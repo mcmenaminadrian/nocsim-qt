@@ -31,10 +31,11 @@ Noc::Noc(const long columns, const long rows, const long pageShift,
     columnCount(columns), rowCount(rows), memoryBlocks(blocks),
     blockSize(bSize), mainWindow(pWind)
 {
+    uint64_t number = 0;
 	for (int i = 0; i < columns; i++) {
 		tiles.push_back(vector<Tile *>(rows));
 		for (int j = 0; j < rows; j++) {
-            tiles[i][j] = new Tile(this, i, j, pageShift, mainWindow);
+            tiles[i][j] = new Tile(this, i, j, pageShift, mainWindow, number++);
 		}
 	}
 	//construct non-memory network

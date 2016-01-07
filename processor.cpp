@@ -41,14 +41,16 @@
 
 using namespace std;
 
-Processor::Processor(Tile *parent, MainWindow *mW): masterTile(parent),
-    mode(REAL), router(parent->getColumn(), parent->getRow()), mainWindow(mW)
+Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
+    masterTile(parent), mode(REAL), router(parent->getColumn(),
+    parent->getRow()), mainWindow(mW)
 {
 	registerFile = vector<uint64_t>(REGISTER_FILE_SIZE, 0);
 	statusWord[0] = true;
 	totalTicks = 1;
 	currentTLB = 0;
 	inInterrupt = false;
+    processorNumber = numb;
 }
 
 void Processor::setMode()

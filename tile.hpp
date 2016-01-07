@@ -20,7 +20,7 @@ private:
 
 public:
     Tile(Noc* parent, const long col, const long r, const long pShift,
-         MainWindow *mW);
+         MainWindow *mW, uint64_t numb);
 	~Tile();
 	Mux *treeLeaf;
 	Processor *tileProcessor;

@@ -38,6 +38,7 @@ private:
 	uint64_t bitMask;
 	uint64_t memoryAvailable;
 	uint64_t pagesAvailable;
+    uint64_t processorNumber;
 	bool inInterrupt;
 	bool inClock;
 	void markUpBasicPageEntries(const uint64_t& reqPTEPages,
@@ -88,7 +89,7 @@ private:
 
 public:
 	std::bitset<16> statusWord;
-    Processor(Tile* parent, MainWindow *mW);
+    Processor(Tile* parent, MainWindow *mW, uint64_t numb);
 	void loadMem(const long regNo, const uint64_t memAddr);
 	void switchModeReal();
 	void switchModeVirtual();
