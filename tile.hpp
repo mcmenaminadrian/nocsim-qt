@@ -26,14 +26,14 @@ public:
 	Processor *tileProcessor;
 	void addTreeLeaf(Mux* leaf);
 	void addConnection(const long col, const long row);
-	const unsigned long getOrder() const;
-	const long getRow() const {return coordinates.second;}
-	const long getColumn() const { return coordinates.first;}
+    unsigned long getOrder() const;
+    long getRow() const {return coordinates.second;}
+    long getColumn() const { return coordinates.first;}
 
 	//memory pass through
-	const uint8_t readByte(const unsigned long address) const;
-	const unsigned long readLong(const unsigned long address) const;
-	const uint32_t readWord32(const unsigned long address) const;
+    uint8_t readByte(const unsigned long address) const;
+    uint64_t readLong(const unsigned long address) const;
+    uint32_t readWord32(const unsigned long address) const;
 	void writeWord32(const unsigned long address, const uint32_t value) const;
 	void writeByte(const unsigned long address, const uint8_t value) const;
 	void writeLong(const unsigned long address, const unsigned long value) const;

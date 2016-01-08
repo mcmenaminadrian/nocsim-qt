@@ -27,16 +27,16 @@ public:
 		}
 	}
 
-	const bool goingUp() const {
+    bool goingUp() const {
 		return (pd == OUT);
 	}
 
 	void fillBuffer(const uint8_t byte);
-	const uint64_t getRequestSize() const
+    uint64_t getRequestSize() const
 	{ return requestSize; }
-	const uint64_t getfulfilSize() const
+    uint64_t getfulfilSize() const
 	{ return fulfilSize; }
-	const uint64_t getRemoteAddress() const
+    uint64_t getRemoteAddress() const
 	{ return remoteAddress; }
 	Processor* getProcessor() const
 	{ return processorIndex; }

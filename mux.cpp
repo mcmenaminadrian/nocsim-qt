@@ -41,7 +41,7 @@ void Mux::initialiseMutex()
 	topMutex = new mutex();
 }
 
-const bool Mux::acceptPacketUp(const MemoryPacket& mPack) const
+bool Mux::acceptPacketUp(const MemoryPacket& mPack) const
 {
 	if (!mPack.goingUp()) {
 		cerr << "Routing memory packet in wrong direction" << endl;

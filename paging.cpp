@@ -52,7 +52,7 @@ PageTable::PageTable(int bitLength): length{ bitLength }
 	}
 }
 
-uint8_t PageTable::getPageFlags(const long& index) const
+uint8_t PageTable::getPageFlags(const unsigned long& index) const
 {
 	if (index > entries.size()) {
 		std::cout << "Out of range in page table" << std::endl;
@@ -61,7 +61,7 @@ uint8_t PageTable::getPageFlags(const long& index) const
 	return entries[index].second;
 }
 
-void PageTable::setPageFlags(const long& index, uint8_t flags)
+void PageTable::setPageFlags(const unsigned long& index, uint8_t flags)
 {
 	if (index > entries.size()) {
 		std::cout << "Out of range in page table" << std::endl;

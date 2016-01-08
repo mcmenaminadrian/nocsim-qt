@@ -183,8 +183,8 @@ void Noc::writeSystemToMemory()
 	unsigned long address = globalMemory[0].readLong(firstFreePageAddr);
 	globalMemory[0].writeLong(sizeof(long) * 2, address);
 	int bytesWritten = 0;
-	for (int i = 0; i < lines.size(); i++) {
-		for (int j = 0; j <= lines.size(); j++) {
+    for (uint32_t i = 0; i < lines.size(); i++) {
+        for (uint32_t j = 0; j <= lines.size(); j++) {
 			//nominator
 			long sign = sgn(lines[i][j]);
 			if (sign < 1) {
@@ -270,7 +270,7 @@ unsigned long Noc::createBasicPageTables()
 	}
 
 	unsigned long sizeOfEntry = sizeof(long) + 1;	
-	for (int i = 0; i < pagesUsedForTables + 2; i++) {
+    for (uint32_t i = 0; i < pagesUsedForTables + 2; i++) {
 		globalMemory[0].writeLong(
 			startOfPageTables + bottomOfPageTable +
 			i * sizeOfEntry, i * 1024);
@@ -279,7 +279,7 @@ unsigned long Noc::createBasicPageTables()
 			i * sizeOfEntry + sizeof(long), 0x03);
 	}
 	//mark out 12MB more
-	for (int i = pagesUsedForTables + 2; i < (pagesUsedForTables + 12002);
+    for (uint32_t i = pagesUsedForTables + 2; i < (pagesUsedForTables + 12002);
 		 i++) {
 			globalMemory[0].writeLong(
 				startOfPageTables + bottomOfPageTable +

@@ -206,7 +206,7 @@ bool Processor::isBitmapValid(const uint64_t& address,
 	return bitFromBitmap & (1 << bitToCheck);
 }
 
-const uint64_t Processor::generateLocalAddress(const uint64_t& frame,
+uint64_t Processor::generateLocalAddress(const uint64_t& frame,
 	const uint64_t& address) const
 {
 	uint64_t offset = address & bitMask;
@@ -278,7 +278,7 @@ void Processor::transferGlobalToLocal(const uint64_t& address,
 		}
 }
 
-const uint64_t Processor::triggerSmallFault(
+uint64_t Processor::triggerSmallFault(
 	const tuple<uint64_t, uint64_t, bool>& tlbEntry,
 	const uint64_t& address)
 {
@@ -453,7 +453,7 @@ void Processor::fixTLB(const uint64_t& frameNo,
 	get<2>(tlbs[frameNo]) = true;
 }
 
-const uint64_t Processor::triggerHardFault(const uint64_t& address)
+uint64_t Processor::triggerHardFault(const uint64_t& address)
 {
     mainWindow->updateHardFaults();
 	interruptBegin();
@@ -472,7 +472,7 @@ const uint64_t Processor::triggerHardFault(const uint64_t& address)
 	
 
 //when this returns, address guarenteed to be present at returned local address
-const uint64_t Processor::fetchAddressRead(const uint64_t& address)
+uint64_t Processor::fetchAddressRead(const uint64_t& address)
 {
 	//implement paging logic
 	if (mode == VIRTUAL) {
@@ -628,7 +628,7 @@ void Processor::waitATick()
 
 void Processor::waitGlobalTick()
 {
-	for (int i = 0; i < GLOBALCLOCKSLOW; i++) {
+    for (uint64_t i = 0; i < GLOBALCLOCKSLOW; i++) {
 		waitATick();
 	}
 }

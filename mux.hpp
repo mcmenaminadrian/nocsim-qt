@@ -42,6 +42,6 @@ public:
 	const std::tuple<const uint64_t, const uint64_t,
 		const uint64_t, const uint64_t> fetchNumbers() const;
 	void routePacket(MemoryPacket& pack);
-	const bool acceptPacketUp(const MemoryPacket& mPack) const;
+    bool acceptPacketUp(const MemoryPacket& mPack) const;
 };	
 #endif

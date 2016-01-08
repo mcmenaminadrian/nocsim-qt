@@ -38,8 +38,8 @@ public:
 	Tile* tileAt(long i);
 	long executeInstructions();
 	unsigned long getBasePageTables() const { return ptrBasePageTables; }
-	const long getColumnCount() const { return columnCount;}
-	const long getRowCount() const { return rowCount; }
+    long getColumnCount() const { return columnCount;}
+    long getRowCount() const { return rowCount; }
 	ControlThread *getBarrier();
 };
 

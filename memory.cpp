@@ -16,7 +16,7 @@ Memory::Memory(const uint64_t& startAddress, const uint64_t& size):
 	start(startAddress), memorySize(size)
 {}
 
-const uint8_t Memory::readByte(const uint64_t& address)
+uint8_t Memory::readByte(const uint64_t& address)
 {
 	uint8_t retVal = 0;
 
@@ -36,7 +36,7 @@ const uint8_t Memory::readByte(const uint64_t& address)
 	return retVal;
 }
 
-const uint64_t Memory::readLong(const uint64_t& address)
+uint64_t Memory::readLong(const uint64_t& address)
 {
 	uint64_t retVal = 0;
 
@@ -48,7 +48,7 @@ const uint64_t Memory::readLong(const uint64_t& address)
 
 	uint8_t in[sizeof(uint64_t)];
 
-	for (int i = 0; i < sizeof(uint64_t); i++)
+    for (uint8_t i = 0; i < sizeof(uint64_t); i++)
 	{	
 		try {
 			in[i] = (uint8_t)contents.at(address + i);
@@ -87,7 +87,7 @@ void Memory::writeLong(const uint64_t& address, const uint64_t& value)
 	}
 }
 
-const uint32_t Memory::readWord32(const uint64_t& address)
+uint32_t Memory::readWord32(const uint64_t& address)
 {
 	uint32_t result = 0;
 	for (int i = 3; i >= 0; i--) {
@@ -106,12 +106,12 @@ void Memory::writeWord32(const uint64_t& address, const uint32_t& data)
 	}
 }
 
-const uint64_t Memory::getSize() const
+uint64_t Memory::getSize() const
 {
 	return memorySize;
 }
 
-const bool Memory::inRange(const uint64_t& address) const
+bool Memory::inRange(const uint64_t& address) const
 {
 	return (address <= (start + memorySize - 1) && address >= start);
 }

@@ -47,13 +47,13 @@ private:
 	void writeOutPageAndBitmapLengths(const uint64_t& reqPTESize,
 		const uint64_t& reqBitmapPages);
 	void zeroOutTLBs(const uint64_t& reqPTEPages);
-	const uint64_t fetchAddressRead(const uint64_t& address);
+    uint64_t fetchAddressRead(const uint64_t& address);
 	bool isBitmapValid(const uint64_t& address,
 		const uint64_t& physAddress) const;
 	bool isPageValid(const uint64_t& frameNo) const;
-	const uint64_t generateLocalAddress(const uint64_t& frame,
+    uint64_t generateLocalAddress(const uint64_t& frame,
 		const uint64_t& address) const;
-	const uint64_t triggerSmallFault(
+    uint64_t triggerSmallFault(
 		const std::tuple<uint64_t, uint64_t, bool>& tlbEntry,
 		const uint64_t& address);
 	void interruptBegin();
@@ -61,7 +61,7 @@ private:
 	void transferGlobalToLocal(const uint64_t& address,
 		const std::tuple<uint64_t, uint64_t, bool>& tlbEntry,
 		const uint64_t& size); 
-	const uint64_t triggerHardFault(const uint64_t& address);
+    uint64_t triggerHardFault(const uint64_t& address);
 	const std::pair<const uint64_t, bool> getFreeFrame() const;
 	void writeBackMemory(const uint64_t& frameNo);
 	void loadMemory(const uint64_t& frameNo,
@@ -115,6 +115,7 @@ public:
 	void waitATick();
 	void waitGlobalTick();
 	Tile* getTile() const { return masterTile; }
+    uint64_t getNumber() { return processorNumber; }
 
 	//message passing code
 };

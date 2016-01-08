@@ -17,15 +17,15 @@ private:
 
 public:
 	Memory(const uint64_t& start, const uint64_t& size);
-	const uint8_t readByte(const uint64_t& address);
-	const uint64_t readLong(const uint64_t& address);
-	const uint32_t readWord32(const uint64_t& address);
+    uint8_t readByte(const uint64_t& address);
+    uint64_t readLong(const uint64_t& address);
+    uint32_t readWord32(const uint64_t& address);
 	void writeWord32(const uint64_t& address, const uint32_t& value);
 	void writeByte(const uint64_t& address, const uint8_t& value);
 	void writeLong(const uint64_t& address, const uint64_t& value);
 	void attachTree(Mux* root);
-	const uint64_t getSize() const;
-	const bool inRange(const uint64_t& address) const; 
+    uint64_t getSize() const;
+    bool inRange(const uint64_t& address) const;
 };
 
 #endif

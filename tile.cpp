@@ -45,14 +45,14 @@ void Tile::addTreeLeaf(Mux *leaf)
 	treeLeaf = leaf;
 }
 
-const unsigned long Tile::getOrder() const
+unsigned long Tile::getOrder() const
 {
 	long row = coordinates.first;
 	long column = coordinates.second;
 	return (row * parentBoard->getColumnCount()) + column;
 }
 
-const uint8_t Tile::readByte(const unsigned long address) const
+uint8_t Tile::readByte(const unsigned long address) const
 {
 	if (address < PAGETABLESLOCAL || address > PAGETABLESLOCAL +
 		tileLocalMemory->getSize() - 1) {
@@ -63,7 +63,7 @@ const uint8_t Tile::readByte(const unsigned long address) const
 }
 
 
-const unsigned long Tile::readLong(const unsigned long address) const
+uint64_t Tile::readLong(const unsigned long address) const
 {
 	if (address < PAGETABLESLOCAL || address > PAGETABLESLOCAL +
 		tileLocalMemory->getSize() - 1) {
@@ -73,7 +73,7 @@ const unsigned long Tile::readLong(const unsigned long address) const
 	}
 }
 	
-const uint32_t Tile::readWord32(const unsigned long address) const
+uint32_t Tile::readWord32(const unsigned long address) const
 {
 	if (address < PAGETABLESLOCAL || address > PAGETABLESLOCAL +
 		tileLocalMemory->getSize() - 1) {
