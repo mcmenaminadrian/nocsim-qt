@@ -43,6 +43,10 @@ enum reg {REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, REG8, REG9,
 //  setsw_  rA          : set status word
 //  push_   rA          : rA -> *SP, SP++   push reg to stack
 //  pop_    rA          : *SP -> rA, SP--   pop stack to reg
+//  shiftl_ rA          : rA << 1           shift left
+//  shiftli_ rA, imm    : rA << imm         shift left
+//  shiftr_ rA          : rA >> 1           shift right
+//  shiftri_ rA, imm    : rA >> imm         shift right
 //  nop                 : no operation
 
 void ProcessorFunctor::add_(const uint64_t& regA,
@@ -191,6 +195,32 @@ void ProcessorFunctor::push_(const uint64_t& regA) const
     proc->pcAdvance();
 }
 
+void ProcessorFunctor::shiftl_(const uint64_t& regA) const
+{
+    proc->setRegister(regA, proc->getRegister(regA) << 1);
+    proc->pcAdvance();
+}
+
+void ProcessorFunctor::shiftli_(const uint64_t& regA, const uint64_t& imm)
+    const
+{
+    proc->setRegister(regA, proc->getRegister(regA) << imm);
+    proc->pcAdvance();
+}
+
+void ProcessorFunctor::shiftr_(const uint64_t& regA) const
+{
+    proc->setRegister(regA, proc->getRegister(regA) >> 1);
+    proc->pcAdvance();
+}
+
+void ProcessorFunctor::shiftri_(const uint64_t& regA, const uint64_t& imm)
+    const
+{
+    proc->setRegister(regA, proc->getRegister(regA) >> imm);
+    proc->pcAdvance();
+}
+
 ///End of instruction set ///
 
 #define SETSIZE 256
@@ -200,9 +230,17 @@ ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 {
 }
 
-void ProcessorFunctor::executeZeroCPU(const uint64_t& pcAddress) const
+void ProcessorFunctor::executeZeroCPU() const
 {
+    //read in the data
+    addi_(REG1, REG0, SETSIZE);
+    addi_(REG2, REG0, APNUMBERSIZE);
+    addi_(REG3, REG0, 0);
+    uint64_t anchor1 = proc->getProgramCounter();
+ loop1:
+    proc->setProgramCounter(anchor1);
 
+    
 }
 
 void ProcessorFunctor::operator()()
@@ -218,7 +256,7 @@ void ProcessorFunctor::operator()()
     swi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     //beq_ address is dummy
     if (beq_(REG1, REG0, 0)) {
-        executeZeroCPU(proc->getProgramCounter());
+        executeZeroCPU();
     }
 	cout << " - our work here is done" << endl;
 	Tile *masterTile = proc->getTile();

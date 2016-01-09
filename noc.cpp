@@ -182,7 +182,6 @@ void Noc::writeSystemToMemory()
 		scanLevelFourTable(levelFourTableAddr);
 	unsigned long address = globalMemory[0].readLong(firstFreePageAddr);
 	globalMemory[0].writeLong(sizeof(long) * 2, address);
-	int bytesWritten = 0;
     for (uint32_t i = 0; i < lines.size(); i++) {
         for (uint32_t j = 0; j <= lines.size(); j++) {
 			//nominator
@@ -193,29 +192,20 @@ void Noc::writeSystemToMemory()
 				globalMemory[0].writeByte(address, 0);
 			}
 			address++;
-			bytesWritten++;
 			globalMemory[0].writeByte(address, APNUMBERSIZE);
-			address++;
-			bytesWritten++;
-			globalMemory[0].writeWord32(address,abs(lines[i][j]));
-			address += 4;
-			bytesWritten += 4;
+            address+= (sizeof(uint64_t) - 1);
+            globalMemory[0].writeLong(address,abs(lines[i][j]));
+            address += sizeof(uint64_t);
 			for (int k = 0; k < APNUMBERSIZE - 2; k++) {
 				globalMemory[0].writeLong(address, 0);
-				address += sizeof(long);
-				bytesWritten += sizeof(long);
+                address += sizeof(uint64_t);
 			}
 			//denominator
-			globalMemory[0].writeByte(address , 0);
-			address++;
-			bytesWritten++;
-			globalMemory[0].writeWord32(address, 1);
-			address += 4;
-			bytesWritten += 4;
-			for (int k = 0; k < APNUMBERSIZE - 2; k++) {
+            globalMemory[0].writeLong(address , 1);
+            address+= sizeof(uint64_t);
+            for (int k = 0; k < APNUMBERSIZE - 1; k++) {
 				globalMemory[0].writeLong(address, 0);
-				address += sizeof(long);
-				bytesWritten += sizeof(long);
+                address += sizeof(uint64_t);
 			}	
 		}
 	}

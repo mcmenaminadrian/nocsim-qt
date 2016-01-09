@@ -38,7 +38,11 @@ private:
 	void push_(const uint64_t& regA) const;
 	void pop_(const uint64_t& regA) const;
     void nop_() const;
-    void executeZeroCPU(const uint64_t& address) const;
+    void shiftl_(const uint64_t& regA) const;
+    void shiftli_(const uint64_t& regA, const uint64_t& imm) const;
+    void shiftr_(const uint64_t& regA) const;
+    void shiftri_(const uint64_t& regA, const uint64_t& imm) const;
+    void executeZeroCPU() const;
 
 	void loadInitialData(const uint64_t order);
 
