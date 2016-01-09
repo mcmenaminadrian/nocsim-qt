@@ -98,9 +98,9 @@ public:
 	void setPCNull();
 	void start();
 	void pcAdvance(const long count = sizeof(long));
-	uint64_t getRegister(const uint64_t regNumber) const;
-	void setRegister(const uint64_t regNumber,
-		const uint64_t value);
+    uint64_t getRegister(const uint64_t& regNumber) const;
+    void setRegister(const uint64_t& regNumber,
+        const uint64_t& value);
 	uint8_t getAddress(const uint64_t& address);
 	uint64_t multiplyWithCarry(const uint64_t A,
 		const uint64_t B);
@@ -112,6 +112,13 @@ public:
 	uint64_t getStackPointer() const { return stackPointer;}
 	void setStackPointer(const uint64_t& address) { 
 		stackPointer = address; }
+    uint64_t getProgramCounter() const {
+        return programCounter;
+    }
+    void setProgramCounter(const uint64_t& address) {
+        programCounter = address;
+    }
+
 	void waitATick();
 	void waitGlobalTick();
 	Tile* getTile() const { return masterTile; }

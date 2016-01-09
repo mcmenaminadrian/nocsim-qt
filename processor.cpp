@@ -542,8 +542,8 @@ uint8_t Processor::getAddress(const uint64_t& address)
 	return masterTile->readByte(fetchAddressRead(address));
 }		
 
-void Processor::setRegister(const uint64_t regNumber,
-	const uint64_t value)
+void Processor::setRegister(const uint64_t& regNumber,
+    const uint64_t& value)
 {
 	//R0 always a zero
 	if (regNumber == 0) {
@@ -556,7 +556,7 @@ void Processor::setRegister(const uint64_t regNumber,
 	}
 }
 
-uint64_t Processor::getRegister(const uint64_t regNumber) const
+uint64_t Processor::getRegister(const uint64_t& regNumber) const
 {
 	if (regNumber == 0) {
 		return 0;
@@ -681,4 +681,4 @@ void Processor::activateClock()
 	currentTLB = (currentTLB + clockWipe) % pagesAvailable;
 	inClock = false;
 	interruptEnd();
-}	
+}

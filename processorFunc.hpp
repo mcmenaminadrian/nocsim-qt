@@ -37,6 +37,8 @@ private:
 	void setsp_(const uint64_t& regA) const;
 	void push_(const uint64_t& regA) const;
 	void pop_(const uint64_t& regA) const;
+    void nop_() const;
+    void executeZeroCPU(const uint64_t& address) const;
 
 	void loadInitialData(const uint64_t order);
 

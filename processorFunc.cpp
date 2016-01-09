@@ -40,6 +40,10 @@ enum reg {REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, REG8, REG9,
 //	br_	imm		: PC <- imm		branch immediate
 //	mul_	rA, rB, rC	: rA <- rB * rC		multiply
 //	muli_	rA, rB, imm	: rA <- rB * imm	multiply immediate
+//  setsw_  rA          : set status word
+//  push_   rA          : rA -> *SP, SP++   push reg to stack
+//  pop_    rA          : *SP -> rA, SP--   pop stack to reg
+//  nop                 : no operation
 
 void ProcessorFunctor::add_(const uint64_t& regA,
 	const uint64_t& regB, const uint64_t& regC) const
@@ -117,7 +121,14 @@ bool ProcessorFunctor::beq_(const uint64_t& regA,
 
 void ProcessorFunctor::br_(const uint64_t& address) const
 {
-	//do nothing
+    proc->pcAdvance();
+    //do nothing else
+}
+
+void ProcessorFunctor::nop_() const
+{
+    proc->waitATick();
+    //no operation
 }
 
 void ProcessorFunctor::mul_(const uint64_t& regA,
@@ -164,6 +175,22 @@ void ProcessorFunctor::setsp_(const uint64_t& regA) const
 	proc->pcAdvance();
 }
 
+void ProcessorFunctor::pop_(const uint64_t& regA) const
+{
+    proc->setRegister(regA, proc->getLongAddress(proc->getStackPointer()));
+    proc->waitATick();
+    proc->popStackPointer();
+    proc->pcAdvance();
+}
+
+void ProcessorFunctor::push_(const uint64_t& regA) const
+{
+    proc->pushStackPointer();
+    proc->waitATick();
+    proc->writeAddress(proc->getStackPointer(), proc->getRegister(regA));
+    proc->pcAdvance();
+}
+
 ///End of instruction set ///
 
 #define SETSIZE 256
@@ -171,6 +198,11 @@ void ProcessorFunctor::setsp_(const uint64_t& regA) const
 ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 	tile{tileIn}, proc{tileIn->tileProcessor}
 {
+}
+
+void ProcessorFunctor::executeZeroCPU(const uint64_t& pcAddress) const
+{
+
 }
 
 void ProcessorFunctor::operator()()
@@ -181,192 +213,13 @@ void ProcessorFunctor::operator()()
 	}
 	proc->start();
 	addi_(REG1, REG0, 0x1);
-	cout << "2";
 	setsw_(REG1);
-	cout << "3";
-	lwi_(REG0, REG1, 0x1000);	
-	lwi_(REG1, REG0, 0x10000);
-	lwi_(REG1, REG0, 0x10014);
-	lwi_(REG1, REG0, 0x10400);
-	lwi_(REG1, REG0, 0x10800);
-	lwi_(REG1, REG0, 0x10C00);
-	lwi_(REG1, REG0, 0x11000);
-	lwi_(REG1, REG0, 0x11400);
-	lwi_(REG1, REG0, 0x11800);
-	lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-lwi_(REG1, REG0, 0x11C00);
-
-	lwi_(REG1, REG0, 0x12000);
-	lwi_(REG1, REG0, 0x12400);
-	lwi_(REG1, REG0, 0x12800);
-	lwi_(REG1, REG0, 0x12C00);
-	lwi_(REG1, REG0, 0x13000);
-	lwi_(REG1, REG0, 0x13400);
-	lwi_(REG1, REG0, 0x13800);
-	lwi_(REG1, REG0, 0x13C00);
-	lwi_(REG1, REG0, 0x14000);
-	lwi_(REG1, REG0, 0x14400);
-	lwi_(REG1, REG0, 0x15400);
-
-	swi_(REG1, REG0, 0x12000);
+    addi_(REG1, REG0, proc->getNumber());
+    swi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
+    //beq_ address is dummy
+    if (beq_(REG1, REG0, 0)) {
+        executeZeroCPU(proc->getProgramCounter());
+    }
 	cout << " - our work here is done" << endl;
 	Tile *masterTile = proc->getTile();
 	masterTile->getBarrier()->decrementTaskCount();
