@@ -477,6 +477,7 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address)
 	//implement paging logic
 	if (mode == VIRTUAL) {
 		uint64_t pageSought = address & pageMask;
+        int y = 0;
 		for (auto x: tlbs) {
 			if (get<2>(x) &&
 				((pageSought) ==
@@ -485,9 +486,9 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address)
 				if (!isBitmapValid(address, get<1>(x))) {
 					return triggerSmallFault(x, address);
 				}
-				return generateLocalAddress(
-					address, get<1>(x));
+                return generateLocalAddress(y, address);
 			}
+            y++;
 		}
 		//not in TLB - but check if it is in page table
 		waitATick(); 
@@ -519,7 +520,7 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address)
 			waitATick();
 		}
 		waitATick();			
-		return triggerHardFault(address);
+        return triggerHardFault(address) + PAGETABLESLOCAL;
 	} else {
 		//what do we do if it's physical address?
 		return address;
