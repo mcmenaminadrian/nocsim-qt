@@ -51,7 +51,7 @@ private:
 	bool isBitmapValid(const uint64_t& address,
 		const uint64_t& physAddress) const;
 	bool isPageValid(const uint64_t& frameNo) const;
-    uint64_t generateLocalAddress(const uint64_t& frame,
+    uint64_t generateAddress(const uint64_t& frame,
 		const uint64_t& address) const;
     uint64_t triggerSmallFault(
 		const std::tuple<uint64_t, uint64_t, bool>& tlbEntry,

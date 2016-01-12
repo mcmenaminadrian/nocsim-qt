@@ -206,11 +206,11 @@ bool Processor::isBitmapValid(const uint64_t& address,
 	return bitFromBitmap & (1 << bitToCheck);
 }
 
-uint64_t Processor::generateLocalAddress(const uint64_t& frame,
+uint64_t Processor::generateAddress(const uint64_t& frame,
 	const uint64_t& address) const
 {
 	uint64_t offset = address & bitMask;
-	return (frame << pageShift) + offset;
+    return (frame << pageShift) + offset + PAGETABLESLOCAL;
 }
 
 void Processor::interruptBegin()
@@ -289,7 +289,7 @@ uint64_t Processor::triggerSmallFault(
 		(get<1>(tlbEntry) - PAGETABLESLOCAL) >> pageShift;
 	markBitmapStart(frameNo, address);	
 	interruptEnd();
-	return generateLocalAddress(get<0>(tlbEntry), address);
+    return generateAddress(get<0>(tlbEntry), address);
 }
 
 //nominate a frame to be used
@@ -467,7 +467,7 @@ uint64_t Processor::triggerHardFault(const uint64_t& address)
 	fixPageMap(frameData.first, address);
 	markBitmapStart(frameData.first, address);
 	interruptEnd();
-	return generateLocalAddress(frameData.first, address);
+    return generateAddress(frameData.first, address);
 }
 	
 
@@ -486,7 +486,7 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address)
 				if (!isBitmapValid(address, get<1>(x))) {
 					return triggerSmallFault(x, address);
 				}
-                return generateLocalAddress(y, address);
+                return generateAddress(y, address);
 			}
             y++;
 		}
@@ -520,7 +520,7 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address)
 			waitATick();
 		}
 		waitATick();			
-        return triggerHardFault(address) + PAGETABLESLOCAL;
+        return triggerHardFault(address);
 	} else {
 		//what do we do if it's physical address?
 		return address;
