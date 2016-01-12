@@ -477,7 +477,7 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address)
 	//implement paging logic
 	if (mode == VIRTUAL) {
 		uint64_t pageSought = address & pageMask;
-        int y = 0;
+        uint64_t y = 0;
 		for (auto x: tlbs) {
 			if (get<2>(x) &&
 				((pageSought) ==

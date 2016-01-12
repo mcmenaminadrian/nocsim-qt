@@ -10,6 +10,8 @@
 #include <mutex>
 #include <condition_variable>
 #include <bitset>
+#include <QFileDialog>
+#include <QString>
 #include "mainwindow.h"
 #include "memory.hpp"
 #include "ControlThread.hpp"
@@ -96,7 +98,7 @@ Tile* Noc::tileAt(long i)
 
 long Noc::readInVariables(const string& path)
 {
-	ifstream inputFile(path);
+    ifstream inputFile("/Users/adrian/noc-qt/variables.csv");
 	//first line is the answer
 	string rawAnswer;
 	getline(inputFile, rawAnswer);
@@ -291,7 +293,7 @@ long Noc::executeInstructions()
 
 	ptrBasePageTables = createBasicPageTables();
 
-	long lines = readInVariables();
+    readInVariables();
 	writeSystemToMemory();
     pBarrier = new ControlThread(0, mainWindow);
 	vector<thread *> threads;
