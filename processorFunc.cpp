@@ -238,16 +238,31 @@ void ProcessorFunctor::executeZeroCPU() const
     addi_(REG3, REG0, 0);
     //REG4 takes address of start of numbers
     lwi_(REG4, REG0, sizeof(uint64_t) * 2);
-    //reg5 reads in first 64 bits
     lw_(REG5, REG0, REG4);
-    lwi_(REG6, REG4, sizeof(uint64_t));
-    cout << proc->getRegister(REG4) <<"," << proc->getRegister(REG5) << "," << proc->getRegister(REG6) << endl;
-
+    //set REG6 to 1
+    addi_(REG6, REG0, 1);
+    //read number
+    lwi_(REG7, REG4, sizeof(uint64_t));
+    //and write this to address
+    swi_(REG6, REG4, sizeof(uint64_t));
+    addi_(REG3, REG0, 1);
     uint64_t anchor1 = proc->getProgramCounter();
- loop1:
+loop1:
     proc->setProgramCounter(anchor1);
-
-
+    //loop through code
+    muli_(REG8, REG3, (APNUMBERSIZE + 2) * 2);
+    sw_(REG5, REG4, REG8);
+    addi_(REG8, REG8, sizeof(uint64_t));
+    sw_(REG7, REG4, REG8);
+    addi_(REG3, REG3, 1);
+    if (beq_(REG3, REG1, 0)) {
+        proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
+        goto ending;
+    }
+    br_(0);
+    goto loop1;
+ending:
+    return;
     
 }
 
