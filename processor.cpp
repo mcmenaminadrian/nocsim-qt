@@ -289,7 +289,7 @@ uint64_t Processor::triggerSmallFault(
 		(get<1>(tlbEntry) - PAGETABLESLOCAL) >> pageShift;
 	markBitmapStart(frameNo, address);	
 	interruptEnd();
-    return generateAddress(get<0>(tlbEntry), address);
+    return generateAddress(frameNo, address);
 }
 
 //nominate a frame to be used
@@ -479,9 +479,7 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address)
 		uint64_t pageSought = address & pageMask;
         uint64_t y = 0;
 		for (auto x: tlbs) {
-			if (get<2>(x) &&
-				((pageSought) ==
-				(get<0>(x) & pageMask))) {
+            if (get<2>(x) && ((pageSought) == (get<0>(x) & pageMask))) {
 				//entry in TLB - check bitmap
 				if (!isBitmapValid(address, get<1>(x))) {
 					return triggerSmallFault(x, address);
@@ -530,7 +528,8 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address)
 void Processor::writeAddress(const uint64_t& address,
 	const uint64_t& value)
 {
-	masterTile->writeLong(fetchAddressWrite(address), value);
+    uint64_t fetchedAddress = fetchAddressWrite(address);
+    masterTile->writeLong(fetchedAddress, value);
 }
 
 uint64_t Processor::getLongAddress(const uint64_t& address)
