@@ -147,7 +147,8 @@ void ProcessorFunctor::mul_(const uint64_t& regA,
 void ProcessorFunctor::muli_(const uint64_t& regA,
 	const uint64_t& regB, const uint64_t& multiplier) const
 {
-	proc->setRegister(regA, proc->multiplyWithCarry(regB, multiplier));
+    proc->setRegister(regA, proc->multiplyWithCarry(proc->getRegister(regB),
+        multiplier));
 	proc->pcAdvance();
 }
 

@@ -83,7 +83,7 @@
       <rect>
        <x>10</x>
        <y>40</y>
-       <width>71</width>
+       <width>91</width>
        <height>23</height>
       </rect>
      </property>
@@ -501,6 +501,9 @@
         </colorrole>
        </disabled>
       </palette>
+     </property>
+     <property name="digitCount">
+      <number>10</number>
      </property>
     </widget>
     <widget class="QLCDNumber" name="lcdNumber_2">
@@ -508,7 +511,7 @@
       <rect>
        <x>10</x>
        <y>90</y>
-       <width>64</width>
+       <width>91</width>
        <height>23</height>
       </rect>
      </property>
@@ -926,6 +929,9 @@
         </colorrole>
        </disabled>
       </palette>
+     </property>
+     <property name="digitCount">
+      <number>10</number>
      </property>
     </widget>
     <widget class="QLCDNumber" name="lcdNumber_3">
@@ -933,7 +939,7 @@
       <rect>
        <x>10</x>
        <y>150</y>
-       <width>64</width>
+       <width>91</width>
        <height>23</height>
       </rect>
      </property>
@@ -1351,6 +1357,9 @@
         </colorrole>
        </disabled>
       </palette>
+     </property>
+     <property name="digitCount">
+      <number>10</number>
      </property>
     </widget>
    </widget>
