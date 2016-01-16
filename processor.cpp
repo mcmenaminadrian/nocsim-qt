@@ -184,13 +184,11 @@ void Processor::createMemoryMap(Memory *local, long pShift)
     //TLB and bitmap for stack
     const uint64_t stackPage = PAGETABLESLOCAL + TILE_MEM_SIZE -
             (1 << pageShift);
-    fixTLB(pagesAvailable - 1, stackPage);
+    const uint64_t stackPageNumber = pagesAvailable - 1;
+    fixTLB(stackPageNumber, stackPage);
     for (unsigned int i = 0; i < bitmapSize * BITS_PER_BYTE; i++) {
-        markBitmapStart(stackPage, stackPage + i * BITMAP_BYTES);
+        markBitmapStart(stackPageNumber, stackPage + i * BITMAP_BYTES);
     }
-	for (unsigned int i = 0; i < bitmapSize * 8; i++) {
-		markBitmapStart(15, (stackPointer & pageMask) + i);
-	}
 }
 
 bool Processor::isPageValid(const uint64_t& frameNo) const
