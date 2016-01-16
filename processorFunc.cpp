@@ -380,6 +380,9 @@ loop1:
     br_(0);
     goto loop1;
 ending:
+    addi_(REG9, REG0, 17);
+    addi_(REG12, REG0, 3);
+    euclidAlgorithm(REG9, REG12);
     return;
     
 }

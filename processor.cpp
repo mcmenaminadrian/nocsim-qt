@@ -177,10 +177,17 @@ void Processor::createMemoryMap(Memory *local, long pShift)
 		const uint64_t pageStart =
 			PAGETABLESLOCAL + i * (1 << pageShift);
 		fixTLB(i, pageStart);
-		for (unsigned int j = 0; j < bitmapSize * 8; j++) {
+        for (unsigned int j = 0; j < bitmapSize * BITS_PER_BYTE; j++) {
 			markBitmapStart(i, pageStart + j * BITMAP_BYTES);
 		}
 	}
+    //TLB and bitmap for stack
+    const uint64_t stackPage = PAGETABLESLOCAL + TILE_MEM_SIZE -
+            (1 << pageShift);
+    fixTLB(pagesAvailable - 1, stackPage);
+    for (unsigned int i = 0; i < bitmapSize * BITS_PER_BYTE; i++) {
+        markBitmapStart(stackPage, stackPage + i * BITMAP_BYTES);
+    }
 	for (unsigned int i = 0; i < bitmapSize * 8; i++) {
 		markBitmapStart(15, (stackPointer & pageMask) + i);
 	}
@@ -661,8 +668,8 @@ void Processor::pushStackPointer()
 {
 	stackPointer -= sizeof(uint64_t);
 	if (stackPointer <= stackPointerUnder) {
-		cerr << "Stack Underflow" << endl;
-		throw "Stack Underflow\n";
+        cerr << "Stack Overflow" << endl;
+        throw "Stack Overflow\n";
 	}
 }
 
@@ -670,8 +677,8 @@ void Processor::popStackPointer()
 {
 	stackPointer += sizeof(uint64_t);
 	if (stackPointer > stackPointerOver) {
-		cerr << "Stack Overflow" << endl;
-		throw "Stack Overflow\n";
+        cerr << "Stack Underflow" << endl;
+        throw "Stack Underflow\n";
 	}
 }
 
