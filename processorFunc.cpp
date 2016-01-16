@@ -32,6 +32,7 @@ enum reg {REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, REG8, REG9,
 //	add_ 	rA, rB, rC	: rA <- rB + rC		add
 //	addi_	rA, rB, imm	: rA <- rB + imm	add immediate
 //	and_	rA, rB, rC	: rA <- rB & rC		and
+//  andi_   rA, rB, imm : rA <- rB & imm    and immediate
 //	sw_	rA, rB, rC	: rA -> *(rB + rC)	store word
 //	swi_	rA, rB, imm	: rA -> *(rB + imm)	store word immediate
 //	lw_	rA, rB, rC	: rA <- *(rB + rC)	load word
@@ -41,6 +42,7 @@ enum reg {REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, REG8, REG9,
 //	mul_	rA, rB, rC	: rA <- rB * rC		multiply
 //	muli_	rA, rB, imm	: rA <- rB * imm	multiply immediate
 //  setsw_  rA          : set status word
+//  getsw_  rA          : get status word
 //  push_   rA          : rA -> *SP, SP++   push reg to stack
 //  pop_    rA          : *SP -> rA, SP--   pop stack to reg
 //  shiftl_ rA          : rA << 1           shift left
@@ -82,6 +84,14 @@ void ProcessorFunctor::and_(const uint64_t& regA,
 	proc->setRegister(regA,
 		proc->getRegister(regB) & proc->getRegister(regC));
 	proc->pcAdvance();
+}
+
+void ProcessorFunctor::andi_(const uint64_t& regA,
+    const uint64_t& regB, const uint64_t& imm) const
+{
+    proc->setRegister(regA,
+        proc->getRegister(regB) & imm);
+    proc->pcAdvance();
 }
 
 void ProcessorFunctor::sw_(const uint64_t& regA, const uint64_t& regB,
@@ -273,18 +283,73 @@ ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 {
 }
 
-//returns GDB in REG3
-void ProcessorFunctor::euclidAlgorithm(const uint64_t& rA,
-    const uint64_t& rB) const
+//returns GDB in REG3, return address in REG1
+void ProcessorFunctor::euclidAlgorithm(const uint64_t& regA,
+    const uint64_t& regB) const
 {
-    push_(rA);
-    push_(rB);
+    push_(REG1);
+    push_(regA);
+    push_(regB);
+    push_(REG4);
+    uint64_t anchor1 = proc->getProgramCounter();
+test:
+    proc->setProgramCounter(anchor1);
+    sub_(REG4, regA, regB);
+    if (beq_(REG4, REG0, 0)) {
+        proc->setProgramCounter(proc->getProgramCounter() +
+            sizeof(uint64_t) * 18);
+        goto answer;
+    }
+    getsw_(REG1);
+    andi_(REG1, REG1, 0x02);
+    addi_(REG3, REG0, 0x02);
+    if (beq_(REG1, REG3, 0)) {
+        proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
+        goto swap;
+    }
+    br_(0);
+    proc->setProgramCounter(proc->getProgramCounter() + 4 * sizeof(uint64_t));
+    goto divide;
+swap:
+    push_(regB);
+    push_(regA);
+    pop_(regB);
+    pop_(regA);
+divide:
+    div_(REG4, regA, regB);
+    mul_(REG1, REG4, regB);
+    push_(REG5);
+    sub_(REG5, regA, REG1);
+    if (beq_(REG5, REG0, 0)) {
+        proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
+        goto multiple;
+    }
+    br_(0);
+    proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
+    goto remainder;
+multiple:
+    pop_(REG5);
+    proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t) * 2);
+    goto answer;
+remainder:
+    sub_(regA, regA, REG5);
+    pop_(REG5);
+    goto test;
 
-
+answer:
+    addi_(REG3, REG0, regB);
+    pop_(REG4);
+    pop_(regB);
+    pop_(regA);
+    pop_(REG1);
+    br_(0); //simulate return
+    return;
 }
 
+//return address in REG1
 void ProcessorFunctor::executeZeroCPU() const
 {
+    push_(REG1);
     //read in the data
     addi_(REG1, REG0, SETSIZE);
     addi_(REG2, REG0, APNUMBERSIZE);

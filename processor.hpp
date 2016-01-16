@@ -120,6 +120,7 @@ public:
     void setProgramCounter(const uint64_t& address) {
         programCounter = address;
     }
+    void checkCarryBit();
 
 	void waitATick();
 	void waitGlobalTick();

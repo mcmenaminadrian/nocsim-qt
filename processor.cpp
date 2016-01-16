@@ -39,6 +39,10 @@
 //second entry - physical address
 //third entry - bool for validity
 
+//statusWord
+//Bit 0 :   true = REAL, false = VIRTUAL
+//Bit 1 :   CarryBit
+
 using namespace std;
 
 Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
@@ -573,11 +577,13 @@ uint64_t Processor::multiplyWithCarry(const uint64_t& A,
     const uint64_t& B)
 {
 	carryBit = false;
+    checkCarryBit();
 	if (A == 0 || B == 0) {
 		return 0;
 	} else {
 		if (A > ULLONG_MAX / B) {
 			carryBit = true;
+            checkCarryBit();
 		}
 		return A * B;
 	}
@@ -586,12 +592,19 @@ uint64_t Processor::multiplyWithCarry(const uint64_t& A,
 uint64_t Processor::subtractWithCarry(const uint64_t &A, const uint64_t& B)
 {
     carryBit = false;
+    checkCarryBit();
     if (B > 0) {
         carryBit = true;
+        checkCarryBit();
     }
     int64_t C_ = A - B;
     uint64_t C = abs(C_);
     return C;
+}
+
+void Processor::checkCarryBit()
+{
+    statusWord[1] = carryBit;
 }
 
 void Processor::setPCNull()
