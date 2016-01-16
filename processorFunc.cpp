@@ -47,6 +47,8 @@ enum reg {REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, REG8, REG9,
 //  shiftli_ rA, imm    : rA << imm         shift left
 //  shiftr_ rA          : rA >> 1           shift right
 //  shiftri_ rA, imm    : rA >> imm         shift right
+//  div_    rA, rB, rC  : rA = rB/rC        integer division
+//  divi_   rA, rB, imm : rA = rB/imm       integer division by immediate
 //  nop                 : no operation
 
 void ProcessorFunctor::add_(const uint64_t& regA,
@@ -134,6 +136,27 @@ void ProcessorFunctor::nop_() const
     proc->waitATick();
     //no operation
 }
+
+void ProcessorFunctor::div_(const uint64_t& regA,
+    const uint64_t& regB, const uint64_t& regC) const
+{
+    proc->setRegister(regA, proc->getRegister(regB) / proc->getRegister(regC));
+    for (int i = 0; i < 32; i++) {
+        proc->waitATick();
+    }
+    proc->pcAdvance();
+}
+
+void ProcessorFunctor::divi_(const uint64_t& regA,
+    const uint64_t& regB, const uint64_t& imm) const
+{
+    proc->setRegister(regA, proc->getRegister(regB) / imm);
+    for (int i = 0; i < 32; i++) {
+        proc->waitATick();
+    }
+    proc->pcAdvance();
+}
+
 
 void ProcessorFunctor::mul_(const uint64_t& regA,
 	const uint64_t& regB, const uint64_t& regC) const

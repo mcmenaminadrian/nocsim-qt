@@ -31,6 +31,10 @@ private:
 		const uint64_t& rC) const;
 	void muli_(const uint64_t& rA, const uint64_t& rB,
 		const uint64_t& imm) const;
+    void div_(const uint64_t& rA, const uint64_t& rB,
+        const uint64_t& rC) const;
+    void divi_(const uint64_t& rA, const uint64_t& rB,
+        const uint64_t& imm) const;
 	void getsw_(const uint64_t& regA) const;
 	void setsw_(const uint64_t& regA) const;
 	void getsp_(const uint64_t& regA) const;
