@@ -102,8 +102,10 @@ public:
     void setRegister(const uint64_t& regNumber,
         const uint64_t& value);
 	uint8_t getAddress(const uint64_t& address);
-	uint64_t multiplyWithCarry(const uint64_t A,
-		const uint64_t B);
+    uint64_t multiplyWithCarry(const uint64_t& A,
+        const uint64_t& B);
+    uint64_t subtractWithCarry(const uint64_t& A,
+        const uint64_t& B);
 	uint64_t getLongAddress(const uint64_t& address);
 	void writeAddress(const uint64_t& addr,
 		const uint64_t& value);

@@ -35,6 +35,10 @@ private:
         const uint64_t& rC) const;
     void divi_(const uint64_t& rA, const uint64_t& rB,
         const uint64_t& imm) const;
+    void subi_(const uint64_t& regA, const uint64_t& regB,
+        const uint64_t& imm) const;
+    void sub_(const uint64_t& regA, const uint64_t& regB,
+        const uint64_t& regC) const;
 	void getsw_(const uint64_t& regA) const;
 	void setsw_(const uint64_t& regA) const;
 	void getsp_(const uint64_t& regA) const;
@@ -47,7 +51,8 @@ private:
     void shiftr_(const uint64_t& regA) const;
     void shiftri_(const uint64_t& regA, const uint64_t& imm) const;
     void executeZeroCPU() const;
-
+    void euclidAlgorithm(const uint64_t& regA,
+        const uint64_t& regB) const;
 	void loadInitialData(const uint64_t order);
 
 public:

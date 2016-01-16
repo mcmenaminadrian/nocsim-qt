@@ -49,6 +49,8 @@ enum reg {REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, REG8, REG9,
 //  shiftri_ rA, imm    : rA >> imm         shift right
 //  div_    rA, rB, rC  : rA = rB/rC        integer division
 //  divi_   rA, rB, imm : rA = rB/imm       integer division by immediate
+//  sub_    rA, rB, rC  : rA = rB - rC      subtract (with carry)
+//  subi_   rA, rB, rC  : rA = rB - imm     subtract using immediate (with carry)
 //  nop                 : no operation
 
 void ProcessorFunctor::add_(const uint64_t& regA,
@@ -175,6 +177,23 @@ void ProcessorFunctor::muli_(const uint64_t& regA,
 	proc->pcAdvance();
 }
 
+void ProcessorFunctor::sub_(const uint64_t& regA, const uint64_t& regB,
+    const uint64_t& regC) const
+{
+    proc->setRegister(regA, proc->subtractWithCarry(proc->getRegister(regB),
+        proc->getRegister(regC)));
+    proc->pcAdvance();
+}
+
+void ProcessorFunctor::subi_(const uint64_t& regA, const uint64_t& regB,
+    const uint64_t& imm) const
+{
+    proc->setRegister(regA, proc->subtractWithCarry(proc->getRegister(regB),
+        imm));
+    proc->pcAdvance();
+}
+
+
 void ProcessorFunctor::getsw_(const uint64_t& regA) const
 {
 	proc->setRegister(regA, proc->statusWord.to_ulong());
@@ -252,6 +271,16 @@ void ProcessorFunctor::shiftri_(const uint64_t& regA, const uint64_t& imm)
 ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 	tile{tileIn}, proc{tileIn->tileProcessor}
 {
+}
+
+//returns GDB in REG3
+void ProcessorFunctor::euclidAlgorithm(const uint64_t& rA,
+    const uint64_t& rB) const
+{
+    push_(rA);
+    push_(rB);
+
+
 }
 
 void ProcessorFunctor::executeZeroCPU() const

@@ -569,8 +569,8 @@ uint64_t Processor::getRegister(const uint64_t& regNumber) const
 	}
 }
 
-uint64_t Processor::multiplyWithCarry(const uint64_t A,
-	const uint64_t B)
+uint64_t Processor::multiplyWithCarry(const uint64_t& A,
+    const uint64_t& B)
 {
 	carryBit = false;
 	if (A == 0 || B == 0) {
@@ -581,6 +581,17 @@ uint64_t Processor::multiplyWithCarry(const uint64_t A,
 		}
 		return A * B;
 	}
+}
+
+uint64_t Processor::subtractWithCarry(const uint64_t &A, const uint64_t& B)
+{
+    carryBit = false;
+    if (B > 0) {
+        carryBit = true;
+    }
+    int64_t C_ = A - B;
+    uint64_t C = abs(C_);
+    return C;
 }
 
 void Processor::setPCNull()
