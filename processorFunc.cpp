@@ -283,18 +283,18 @@ ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 {
 }
 
-//returns GDB in REG3, return address in REG1
-void ProcessorFunctor::euclidAlgorithm(const uint64_t& regA,
-    const uint64_t& regB) const
+//returns GCD in REG3, return address in REG1
+//first number in REG10, second in REG11
+void ProcessorFunctor::euclidAlgorithm() const
 {
     push_(REG1);
-    push_(regA);
-    push_(regB);
+    push_(REG10);
+    push_(REG11);
     push_(REG4);
     uint64_t anchor1 = proc->getProgramCounter();
 test:
     proc->setProgramCounter(anchor1);
-    sub_(REG4, regA, regB);
+    sub_(REG4, REG10, REG11);
     if (beq_(REG4, REG0, 0)) {
         proc->setProgramCounter(proc->getProgramCounter() +
             sizeof(uint64_t) * 18);
@@ -311,15 +311,15 @@ test:
     proc->setProgramCounter(proc->getProgramCounter() + 4 * sizeof(uint64_t));
     goto divide;
 swap:
-    push_(regB);
-    push_(regA);
-    pop_(regB);
-    pop_(regA);
+    push_(REG10);
+    push_(REG11);
+    pop_(REG10);
+    pop_(REG11);
 divide:
-    div_(REG4, regA, regB);
-    mul_(REG1, REG4, regB);
+    div_(REG4, REG10, REG11);
+    mul_(REG1, REG4, REG11);
     push_(REG5);
-    sub_(REG5, regA, REG1);
+    sub_(REG5, REG10, REG1);
     if (beq_(REG5, REG0, 0)) {
         proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
         goto multiple;
@@ -332,15 +332,15 @@ multiple:
     proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t) * 2);
     goto answer;
 remainder:
-    sub_(regA, regA, REG5);
+    sub_(REG10, REG10, REG5);
     pop_(REG5);
     goto test;
 
 answer:
-    addi_(REG3, REG0, regB);
+    addi_(REG3, REG0, REG11);
     pop_(REG4);
-    pop_(regB);
-    pop_(regA);
+    pop_(REG11);
+    pop_(REG10);
     pop_(REG1);
     br_(0); //simulate return
     return;
@@ -380,9 +380,9 @@ loop1:
     br_(0);
     goto loop1;
 ending:
-    addi_(REG9, REG0, 17);
-    addi_(REG12, REG0, 3);
-    euclidAlgorithm(REG9, REG12);
+    addi_(REG10, REG0, 17);
+    addi_(REG11, REG0, 3);
+    euclidAlgorithm();
     return;
     
 }
