@@ -61,6 +61,7 @@ enum reg {REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, REG8, REG9,
 //  sub_    rA, rB, rC  : rA = rB - rC      subtract (with carry)
 //  subi_   rA, rB, rC  : rA = rB - imm     subtract immediate (with carry)
 //  xor     rA, rB, rC  : rA = rB xor rC    exclusive or
+//  or      rA, rB, rC  : rA = rB or rC     or
 //  nop                 : no operation
 
 void ProcessorFunctor::add_(const uint64_t& regA,
@@ -289,6 +290,13 @@ void ProcessorFunctor::xor_(const uint64_t& regA, const uint64_t& regB,
     proc->pcAdvance();
 }
 
+void ProcessorFunctor::or_(const uint64_t& regA, const uint64_t& regB,
+    const uint64_t& regC) const
+{
+    proc->setRegister(regA, proc->getRegister(regB) | proc->getRegister(regC));
+    proc->pcAdvance();
+}
+
 ///End of instruction set ///
 
 #define SETSIZE 256
@@ -384,6 +392,8 @@ void ProcessorFunctor::executeZeroCPU() const
     swi_(REG6, REG4, sizeof(uint64_t));
     //increment loop counter
     addi_(REG3, REG0, 1);
+    //set REG6 to sign
+    andi_(REG6, REG5, 0xFF);
     uint64_t anchor1 = proc->getProgramCounter();
 loop1:
     proc->setProgramCounter(anchor1);
@@ -391,7 +401,11 @@ loop1:
     muli_(REG9, REG3, (APNUMBERSIZE + 2) * 2);
     //load sign block
     lw_(REG10, REG9, REG4);
-    
+    //xor sign blocks
+    andi_(REG11, REG10, 0xFF);
+    xor_(REG11, REG11, REG6);
+    andi_(REG10, REG10, 0xFFFFFFFFFFFFFF00);
+    or_(REG10, REG10, REG11);
     lw_(REG10, REG9, REG4);
     muli_(REG8, REG3, (APNUMBERSIZE + 2) * 2);
     add_(REG11, REG0, REG7);
