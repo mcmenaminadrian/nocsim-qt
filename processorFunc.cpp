@@ -427,17 +427,18 @@ loop1:
 zero:
     addi_(REG11, REG0, 1);
     br_(0);
-    proc->setProgramCounter(proc->getProgramCounter() + 7 * sizeof(uint64_t));
+    proc->setProgramCounter(proc->getProgramCounter() + 9 * sizeof(uint64_t));
     goto store;
 
 notzero:
     //process
     add_(REG11, REG0, REG7);
     push_(REG3);
+    push_(REG1);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     euclidAlgorithm();
-
+    pop_(REG1);
     //calculate
     div_(REG10, REG10, REG3);
     div_(REG11, REG7, REG3);
