@@ -138,6 +138,7 @@ void ProcessorFunctor::lwi_(const uint64_t& regA,
 bool ProcessorFunctor::beq_(const uint64_t& regA,
 	const uint64_t& regB, const uint64_t& address) const
 {
+    proc->waitATick();
 	if (proc->getRegister(regA) == proc->getRegister(regB)) {
 		return true;
 	} else {
@@ -148,6 +149,7 @@ bool ProcessorFunctor::beq_(const uint64_t& regA,
 
 void ProcessorFunctor::br_(const uint64_t& address) const
 {
+    proc->waitATick();
     proc->pcAdvance();
     //do nothing else
 }
@@ -409,12 +411,26 @@ loop1:
     or_(REG10, REG10, REG11);
     sw_(REG10, REG9, REG4);
 
+    //now denominator offset
+    addi_(REG8, REG9, APNUMBERSIZE * sizeof(uint64_t));
+
     //load number
     addi_(REG9, REG9, sizeof(uint64_t));
     lw_(REG10, REG9, REG4);
+    if (beq_(REG10, REG0, 0)) {
+        proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
+        goto zero;
+    }
+    br_(0);
+    proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t) * 2);
+    goto notzero;
+zero:
+    addi_(REG11, REG0, 1);
+    br_(0);
+    proc->setProgramCounter(proc->getProgramCounter() + 7 * sizeof(uint64_t));
+    goto store;
 
-    //now denominator offset
-    addi_(REG8, REG9, APNUMBERSIZE * sizeof(uint64_t));
+notzero:
     //process
     add_(REG11, REG0, REG7);
     push_(REG3);
@@ -425,11 +441,12 @@ loop1:
     //calculate
     div_(REG10, REG10, REG3);
     div_(REG11, REG7, REG3);
+    pop_(REG3);
 
+store:
     //store
     sw_(REG10, REG9, REG4);
     sw_(REG11, REG4, REG8);
-    pop_(REG3);
     addi_(REG3, REG3, 1);
     if (beq_(REG3, REG1, 0)) {
         proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
