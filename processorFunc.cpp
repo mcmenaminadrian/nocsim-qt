@@ -414,10 +414,7 @@ loop1:
     lw_(REG10, REG9, REG4);
 
     //now denominator offset
-    muli_(REG8, REG3, (APNUMBERSIZE * 2 + 1 + APNUMBERSIZE) *
-          sizeof(uint64_t));
-    addi_(REG8, REG8, sizeof(uint64_t));
-
+    addi_(REG8, REG9, APNUMBERSIZE * sizeof(uint64_t));
     //process
     add_(REG11, REG0, REG7);
     push_(REG3);
@@ -431,9 +428,8 @@ loop1:
 
     //store
     sw_(REG10, REG9, REG4);
-    sw_(REG5, REG4, REG8);
-    addi_(REG8, REG8, sizeof(uint64_t));
-    sw_(REG7, REG4, REG8);
+    sw_(REG11, REG4, REG8);
+    pop_(REG3);
     addi_(REG3, REG3, 1);
     if (beq_(REG3, REG1, 0)) {
         proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));

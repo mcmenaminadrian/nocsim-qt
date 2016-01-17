@@ -198,7 +198,7 @@ void Noc::writeSystemToMemory()
             address+= (sizeof(uint64_t) - 1);
             globalMemory[0].writeLong(address,abs(lines[i][j]));
             address += sizeof(uint64_t);
-			for (int k = 0; k < APNUMBERSIZE - 2; k++) {
+            for (int k = 0; k < APNUMBERSIZE - 1; k++) {
 				globalMemory[0].writeLong(address, 0);
                 address += sizeof(uint64_t);
 			}
