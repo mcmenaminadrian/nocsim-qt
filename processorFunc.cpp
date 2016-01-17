@@ -398,23 +398,38 @@ void ProcessorFunctor::executeZeroCPU() const
 loop1:
     proc->setProgramCounter(anchor1);
     //point REG9 to offset to next number sign block
-    muli_(REG9, REG3, (APNUMBERSIZE + 2) * 2);
+    muli_(REG9, REG3, (APNUMBERSIZE + 1) * sizeof(uint64_t) * 2);
     //load sign block
     lw_(REG10, REG9, REG4);
+
     //xor sign blocks
     andi_(REG11, REG10, 0xFF);
     xor_(REG11, REG11, REG6);
     andi_(REG10, REG10, 0xFFFFFFFFFFFFFF00);
     or_(REG10, REG10, REG11);
+    sw_(REG10, REG9, REG4);
+
+    //load number
+    addi_(REG9, REG9, sizeof(uint64_t));
     lw_(REG10, REG9, REG4);
-    muli_(REG8, REG3, (APNUMBERSIZE + 2) * 2);
+
+    //now denominator offset
+    muli_(REG8, REG3, (APNUMBERSIZE + 1) * sizeof(uint64_t) * 3);
+    addi_(REG8, REG8, sizeof(uint64_t));
+
+    //process
     add_(REG11, REG0, REG7);
     push_(REG3);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     euclidAlgorithm();
+
+    //calculate
     div_(REG10, REG10, REG3);
     div_(REG11, REG7, REG3);
+
+    //store
+    sw_(REG10, REG9, REG4);
     sw_(REG5, REG4, REG8);
     addi_(REG8, REG8, sizeof(uint64_t));
     sw_(REG7, REG4, REG8);
@@ -426,9 +441,7 @@ loop1:
     br_(0);
     goto loop1;
 ending:
-    addi_(REG10, REG0, 637);
-    addi_(REG11, REG0, 1001);
-    euclidAlgorithm();
+    pop_(REG1);
     return;
     
 }
