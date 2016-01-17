@@ -332,12 +332,15 @@ multiple:
     proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t) * 2);
     goto answer;
 remainder:
-    sub_(REG10, REG10, REG5);
+    push_(REG11);
+    pop_(REG10);
+    push_(REG5);
+    pop_(REG11);
     pop_(REG5);
     goto test;
 
 answer:
-    addi_(REG3, REG0, REG11);
+    add_(REG3, REG0, REG11);
     pop_(REG4);
     pop_(REG11);
     pop_(REG10);

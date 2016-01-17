@@ -596,15 +596,17 @@ uint64_t Processor::multiplyWithCarry(const uint64_t& A,
 
 uint64_t Processor::subtractWithCarry(const uint64_t &A, const uint64_t& B)
 {
+    uint64_t a = A;
+    uint64_t b = B;
     carryBit = false;
-    checkCarryBit();
-    if (B > 0) {
+    if (b > a) {
         carryBit = true;
-        checkCarryBit();
+        uint64_t c = b;
+        b = a;
+        a = c;
     }
-    int64_t C_ = A - B;
-    uint64_t C = abs(C_);
-    return C;
+    checkCarryBit();
+    return a - b;
 }
 
 void Processor::checkCarryBit()
