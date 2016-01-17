@@ -23,7 +23,7 @@ using namespace std;
 //first 64 bits - sign in first byte (1 is negative)
 //size in second byte
 //further APUMBERSIZE 64 bit words follow
-//then denominator - repeats (sign always positive!) 
+//then denominator - APNUMBERSIZE 64 bit words
 
 //avoid magic numbers
 
@@ -398,7 +398,7 @@ void ProcessorFunctor::executeZeroCPU() const
 loop1:
     proc->setProgramCounter(anchor1);
     //point REG9 to offset to next number sign block
-    muli_(REG9, REG3, (APNUMBERSIZE + 1) * sizeof(uint64_t) * 2);
+    muli_(REG9, REG3, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
     //load sign block
     lw_(REG10, REG9, REG4);
 
@@ -414,7 +414,8 @@ loop1:
     lw_(REG10, REG9, REG4);
 
     //now denominator offset
-    muli_(REG8, REG3, (APNUMBERSIZE + 1) * sizeof(uint64_t) * 3);
+    muli_(REG8, REG3, (APNUMBERSIZE * 2 + 1 + APNUMBERSIZE) *
+          sizeof(uint64_t));
     addi_(REG8, REG8, sizeof(uint64_t));
 
     //process
