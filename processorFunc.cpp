@@ -18,6 +18,13 @@
 
 using namespace std;
 
+//Number format
+//numerator
+//first 64 bits - sign in first byte (1 is negative)
+//size in second byte
+//further APUMBERSIZE 64 bit words follow
+//then denominator - repeats (sign always positive!) 
+
 //avoid magic numbers
 
 enum reg {REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, REG8, REG9,
@@ -52,7 +59,8 @@ enum reg {REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, REG8, REG9,
 //  div_    rA, rB, rC  : rA = rB/rC        integer division
 //  divi_   rA, rB, imm : rA = rB/imm       integer division by immediate
 //  sub_    rA, rB, rC  : rA = rB - rC      subtract (with carry)
-//  subi_   rA, rB, rC  : rA = rB - imm     subtract using immediate (with carry)
+//  subi_   rA, rB, rC  : rA = rB - imm     subtract immediate (with carry)
+//  xor     rA, rB, rC  : rA = rB xor rC    exclusive or
 //  nop                 : no operation
 
 void ProcessorFunctor::add_(const uint64_t& regA,
@@ -274,6 +282,13 @@ void ProcessorFunctor::shiftri_(const uint64_t& regA, const uint64_t& imm)
     proc->pcAdvance();
 }
 
+void ProcessorFunctor::xor_(const uint64_t& regA, const uint64_t& regB,
+    const uint64_t& regC) const
+{
+    proc->setRegister(regA, proc->getRegister(regB) ^ proc->getRegister(regC));
+    proc->pcAdvance();
+}
+
 ///End of instruction set ///
 
 #define SETSIZE 256
@@ -359,19 +374,33 @@ void ProcessorFunctor::executeZeroCPU() const
     addi_(REG3, REG0, 0);
     //REG4 takes address of start of numbers
     lwi_(REG4, REG0, sizeof(uint64_t) * 2);
+    //REG5 reads in first 64 bit word - sign etc
     lw_(REG5, REG0, REG4);
     //set REG6 to 1
     addi_(REG6, REG0, 1);
-    //read number
+    //read first number
     lwi_(REG7, REG4, sizeof(uint64_t));
-    //and write this to address
+    //convert number to 1
     swi_(REG6, REG4, sizeof(uint64_t));
+    //increment loop counter
     addi_(REG3, REG0, 1);
     uint64_t anchor1 = proc->getProgramCounter();
 loop1:
     proc->setProgramCounter(anchor1);
-    //loop through code
+    //point REG9 to offset to next number sign block
+    muli_(REG9, REG3, (APNUMBERSIZE + 2) * 2);
+    //load sign block
+    lw_(REG10, REG9, REG4);
+    
+    lw_(REG10, REG9, REG4);
     muli_(REG8, REG3, (APNUMBERSIZE + 2) * 2);
+    add_(REG11, REG0, REG7);
+    push_(REG3);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    br_(0);
+    euclidAlgorithm();
+    div_(REG10, REG10, REG3);
+    div_(REG11, REG7, REG3);
     sw_(REG5, REG4, REG8);
     addi_(REG8, REG8, sizeof(uint64_t));
     sw_(REG7, REG4, REG8);
@@ -383,8 +412,8 @@ loop1:
     br_(0);
     goto loop1;
 ending:
-    addi_(REG10, REG0, 17);
-    addi_(REG11, REG0, 3);
+    addi_(REG10, REG0, 637);
+    addi_(REG11, REG0, 1001);
     euclidAlgorithm();
     return;
     

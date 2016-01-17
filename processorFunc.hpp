@@ -52,6 +52,8 @@ private:
     void shiftli_(const uint64_t& regA, const uint64_t& imm) const;
     void shiftr_(const uint64_t& regA) const;
     void shiftri_(const uint64_t& regA, const uint64_t& imm) const;
+    void xor_(const uint64_t& regA, const uint64_t& regB,
+              const uint64_t& regC) const;
     void executeZeroCPU() const;
     void euclidAlgorithm() const;
 	void loadInitialData(const uint64_t order);
