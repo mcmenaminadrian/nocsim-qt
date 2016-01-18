@@ -308,6 +308,106 @@ ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 {
 }
 
+//return address in REG1
+void ProcessorFunctor::flushPages() const
+{
+    push_(REG1);
+    br(0);
+    proc->flushPagesStart();
+    //REG1 points to start of page table
+    addi_(REG1, REG0, PAGETABLESLOCAL + (1 << PAGE_SHIFT));
+    //REG2 counts number of pages
+    addi_(REG2, REG0, TILE_MEM_SIZE >> PAGE_SHIFT);
+    //REG9 points to start of bitmaps
+    muli_(REG9, REG2, ENDOFFSET);
+    shiftri_(REG9, REG9, PAGE_SHIFT);
+    addi_(REG9, REG9, 0x01);
+    shiftli_(REG9, REG9, PAGE_SHIFT);
+    add_(REG9, REG9, REG1);
+    //REG10 holds bitmap bytes per page
+    addi_(REG10, REG0, 1 << PAGE_SHIFT);
+    addi_(REG3, REG0, BITMAP_BYTES >> 0x03);
+    shiftr_(REG10, REG10, REG3);
+    //REG3 holds pages done so far
+    add_(REG3, REG0, REG0);
+    //REG4 holds flags
+    lwi_(REG4, REG1, FLAGOFFSET);
+    andi_(REG4, REG4, 0x01);
+    if (beq_(REG4, REG0, 0)) {
+        goto next_pte;
+    }
+    //load physical address in REG4
+    lwi_(REG4, REG1, PHYSOFFSET);
+    //test if it is remote
+    subi_(REG5, REG4, PAGETABLESLOCAL);
+    getsw_(REG5);
+    andi_(REG5, REG5, 0x02);
+    addi_(REG6, REG0, 0x02);
+    if (beq_(REG5, REG6, 0)) {
+        goto flush_page;
+    }
+    addi_(REG6, REG0, PAGETABLESLOCAL + TILE_MEM_SIZE);
+    sub_(REG5, REG6, REG4);
+    andi_(REG5, REG5, 0x02);
+    addi_(REG6, REG0, 0x02);
+    if (beq_(REG5, REG6, 0)) {
+        goto flush_page;
+    }
+    //not a remote address
+    br_(0);
+    goto next_pte;
+
+flush_page:
+    //REG16 holds bytes traversed
+    addi_(REG16, REG0, 0);
+    //get frame number
+    lwi_(REG5, REG4, FRAMEOFFSET);
+    //REG8, bits per page in bitmap
+    add_(REG8, REG10, REG0);
+    shiftri_(REG8, REG8, 0x03);
+    //REG7 - points into bitmap
+    mul_(REG7, REG10, REG5);
+    //now get REG5 to point to base of page in local memory
+    muli_(REG5, REG5, 1 << PAGE_SHIFT);
+    addi(REG5, REG5, PAGETABLESLOCAL);
+    add_(REG7, REG7, REG9);
+    //REG13 holds single bit
+    addi(REG13, REG0, 0x01);
+    //REG12 holds bitmap (64 bits at a time)
+    lw_(REG12, REG7, REG0);
+
+check_next_bit:
+    and_(REG14, REG13, REG12);
+    if (beq_(REG14, REG0, 0)) {
+        goto next_bit;
+    }
+    addi(REG15, REG0, BITMAP_BYTES - sizeof(uint64_t));
+
+write_out_bytes:
+    //REG17 holds contents
+    lwi_(REG17, REG5, REG16);
+    swi_(REG17, REG4, REG16);
+    addi_(REG16, REG16, sizeof(uint64_t));
+    subi_(REG15, REG15, sizeof(uint64_t));
+    if (beq_(REG15, REG0, 0)) {
+        goto next_bit;
+    }
+    br(0);
+    goto write_out_bytes;
+
+next_bit:
+    shiftli_(REG13, REG13, 1);
+    if (beq_(REG13, REG0, 0)) {
+        //used up all our bits
+        goto read_next_bitmap_word:
+    }
+    br_(0);
+    goto check_next_bit;
+
+read_next_bitmap_word:
+    addi_(REG16, REG16, BITMAP_BYTES * sizeof(uint64_t));
+}
+
 //returns GCD in REG3, return address in REG1
 //first number in REG10, second in REG11
 void ProcessorFunctor::euclidAlgorithm() const

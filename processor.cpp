@@ -20,14 +20,7 @@
 #include "processor.hpp"
 #include "router.hpp"
 
-//Page table entries - physical addr, virtual addr, frame no, flags
 
-#define PAGETABLEENTRY (8 + 8 + 8 + 4)
-#define PHYSOFFSET 0
-#define VIRTOFFSET 8
-#define FRAMEOFFSET 16
-#define FLAGOFFSET 24
-#define ENDOFFSET 28
 
 //page table flags
 //bit 0 - 0 for invalid entry, 1 for valid
@@ -138,6 +131,16 @@ void Processor::markUpBasicPageEntries(const uint64_t& reqPTEPages,
 	masterTile->writeLong(stackInTable + VIRTOFFSET, 
 		15 * (1 << pageShift) + PAGETABLESLOCAL);
 	masterTile->writeWord32(stackInTable + FLAGOFFSET, 0x07);
+}
+
+void Processor::flushPagesStart()
+{
+    interruptBegin();
+}
+
+void Processor::flushPagesEnd()
+{
+    interruptEnd();
 }
 
 void Processor::createMemoryMap(Memory *local, long pShift)
@@ -311,7 +314,7 @@ const pair<const uint64_t, bool> Processor::getFreeFrame() const
 	for (uint64_t i = 0; i < frames; i++) {
 		uint32_t flags = masterTile->readWord32((1 << pageShift)
 			+ i * PAGETABLEENTRY + FLAGOFFSET + PAGETABLESLOCAL);
-		if (flags & 0x02) {
+        if (flags & 0x02) {
 			continue;
 		}
 		if (!(flags & 0x01)) {

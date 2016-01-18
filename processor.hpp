@@ -3,6 +3,15 @@
 #ifndef _PROCESSOR_CLASS_
 #define _PROCESSOR_CLASS_
 
+//Page table entries - physical addr, virtual addr, frame no, flags
+
+#define PAGETABLEENTRY (8 + 8 + 8 + 4)
+#define PHYSOFFSET 0
+#define VIRTOFFSET 8
+#define FRAMEOFFSET 16
+#define FLAGOFFSET 24
+#define ENDOFFSET 28
+
 static const uint64_t REGISTER_FILE_SIZE = 32;
 static const uint64_t BITMAP_BYTES = 16;
 static const uint64_t BITMAP_SHIFT = 4;
@@ -128,6 +137,8 @@ public:
 	void waitGlobalTick();
 	Tile* getTile() const { return masterTile; }
     uint64_t getNumber() { return processorNumber; }
+    void flushPagesStart();
+    void flushPagesEnd();
 
 	//message passing code
 };

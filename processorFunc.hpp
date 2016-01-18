@@ -58,6 +58,7 @@ private:
               const uint64_t& regC) const;
     void executeZeroCPU() const;
     void euclidAlgorithm() const;
+    void flushPages() const;
 	void loadInitialData(const uint64_t order);
 
 public:
