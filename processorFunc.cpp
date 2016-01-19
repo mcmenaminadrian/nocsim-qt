@@ -18,6 +18,9 @@
 
 using namespace std;
 
+//alter filter to trap per page bitmaps of less than 64bits
+static const uint64_t BITMAP_FILTER = 0xFFFFFFFFFFFFFFFF
+
 //Number format
 //numerator
 //first 64 bits - sign in first byte (1 is negative)
@@ -330,7 +333,12 @@ void ProcessorFunctor::flushPages() const
     shiftr_(REG10, REG10, REG3);
     //REG3 holds pages done so far
     add_(REG3, REG0, REG0);
-    //REG4 holds flags
+
+check_page_status:
+    muli_(REG5, REG3, ENDOFFSET);
+    addi_(REG5, REG5, 0x01);
+    add_(REG1, REG1, REG5);
+    //REG4 holds flags    
     lwi_(REG4, REG1, FLAGOFFSET);
     andi_(REG4, REG4, 0x01);
     if (beq_(REG4, REG0, 0)) {
@@ -363,18 +371,20 @@ flush_page:
     //get frame number
     lwi_(REG5, REG4, FRAMEOFFSET);
     //REG8, bits per page in bitmap
-    add_(REG8, REG10, REG0);
-    shiftri_(REG8, REG8, 0x03);
+    shiftri_(REG8, REG10, 0x03);
     //REG7 - points into bitmap
     mul_(REG7, REG10, REG5);
     //now get REG5 to point to base of page in local memory
     muli_(REG5, REG5, 1 << PAGE_SHIFT);
     addi(REG5, REG5, PAGETABLESLOCAL);
     add_(REG7, REG7, REG9);
+
+start_check_off:
     //REG13 holds single bit
     addi(REG13, REG0, 0x01);
     //REG12 holds bitmap (64 bits at a time)
     lw_(REG12, REG7, REG0);
+    andi_(REG12, REG12, BITMAP_FILTER);
 
 check_next_bit:
     and_(REG14, REG13, REG12);
@@ -406,6 +416,30 @@ next_bit:
 
 read_next_bitmap_word:
     addi_(REG16, REG16, BITMAP_BYTES * sizeof(uint64_t));
+    subi_(REG15, REG16, 1 << PAGE_SHIFT);
+    if (beq_(REG15, REG0, 0)) {
+        //have done whole page
+        goto next_pte;
+    }
+    addi_(REG7, REG7, sizeof(uint64_t));
+    br_(0);
+    goto start_check_off;
+
+next_pte:
+    addi_(REG3, REG3, 0x01);
+    sub_(REG13, REG2, REG3);
+    if (beq_(REG13, REG0, 0)) {
+        goto finished_flushing;
+    }
+    br_(0);
+    goto check_page_status;
+
+
+finished_flushing:
+    proc->flushPagesEnd();
+    pop_(REG1);
+    br_(0);
+    return;
 }
 
 //returns GCD in REG3, return address in REG1
