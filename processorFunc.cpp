@@ -19,7 +19,7 @@
 using namespace std;
 
 //alter filter to trap per page bitmaps of less than 64bits
-static const uint64_t BITMAP_FILTER = 0xFFFFFFFFFFFFFFFF
+static const uint64_t BITMAP_FILTER = 0xFFFFFFFFFFFFFFFF;
 
 //Number format
 //numerator
@@ -56,8 +56,10 @@ enum reg {REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, REG8, REG9,
 //  push_   rA          : rA -> *SP, SP++   push reg to stack
 //  pop_    rA          : *SP -> rA, SP--   pop stack to reg
 //  shiftl_ rA          : rA << 1           shift left
+//  shiftlr_ rA, rB     : rA << rB          shift left
 //  shiftli_ rA, imm    : rA << imm         shift left
 //  shiftr_ rA          : rA >> 1           shift right
+//  shiftrr_ rA, rB     : rA >> rB          shift right
 //  shiftri_ rA, imm    : rA >> imm         shift right
 //  div_    rA, rB, rC  : rA = rB/rC        integer division
 //  divi_   rA, rB, imm : rA = rB/imm       integer division by immediate
@@ -281,6 +283,22 @@ void ProcessorFunctor::shiftr_(const uint64_t& regA) const
     proc->pcAdvance();
 }
 
+void ProcessorFunctor::shiftrr_(const uint64_t& regA, const uint64_t& regB)
+    const
+{
+    proc->setRegister(regA,
+        proc->getRegister(regA) >> proc->getRegister(regB));
+    proc->pcAdvance();
+}
+
+void ProcessorFunctor::shiftlr_(const uint64_t& regA, const uint64_t& regB)
+    const
+{
+    proc->setRegister(regA,
+        proc->getRegister(regA) << proc->getRegister(regB));
+    proc->pcAdvance();
+}
+
 void ProcessorFunctor::shiftri_(const uint64_t& regA, const uint64_t& imm)
     const
 {
@@ -315,7 +333,7 @@ ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 void ProcessorFunctor::flushPages() const
 {
     push_(REG1);
-    br(0);
+    br_(0);
     proc->flushPagesStart();
     //REG1 points to start of page table
     addi_(REG1, REG0, PAGETABLESLOCAL + (1 << PAGE_SHIFT));
@@ -323,14 +341,14 @@ void ProcessorFunctor::flushPages() const
     addi_(REG2, REG0, TILE_MEM_SIZE >> PAGE_SHIFT);
     //REG9 points to start of bitmaps
     muli_(REG9, REG2, ENDOFFSET);
-    shiftri_(REG9, REG9, PAGE_SHIFT);
+    shiftri_(REG9, PAGE_SHIFT);
     addi_(REG9, REG9, 0x01);
-    shiftli_(REG9, REG9, PAGE_SHIFT);
+    shiftli_(REG9, PAGE_SHIFT);
     add_(REG9, REG9, REG1);
     //REG10 holds bitmap bytes per page
     addi_(REG10, REG0, 1 << PAGE_SHIFT);
     addi_(REG3, REG0, BITMAP_BYTES >> 0x03);
-    shiftr_(REG10, REG10, REG3);
+    shiftrr_(REG10, REG3);
     //REG3 holds pages done so far
     add_(REG3, REG0, REG0);
 
@@ -371,17 +389,18 @@ flush_page:
     //get frame number
     lwi_(REG5, REG4, FRAMEOFFSET);
     //REG8, bits per page in bitmap
-    shiftri_(REG8, REG10, 0x03);
+    add_(REG8, REG10, REG0);
+    shiftri_(REG8, 0x03);
     //REG7 - points into bitmap
     mul_(REG7, REG10, REG5);
     //now get REG5 to point to base of page in local memory
     muli_(REG5, REG5, 1 << PAGE_SHIFT);
-    addi(REG5, REG5, PAGETABLESLOCAL);
+    addi_(REG5, REG5, PAGETABLESLOCAL);
     add_(REG7, REG7, REG9);
 
 start_check_off:
     //REG13 holds single bit
-    addi(REG13, REG0, 0x01);
+    addi_(REG13, REG0, 0x01);
     //REG12 holds bitmap (64 bits at a time)
     lw_(REG12, REG7, REG0);
     andi_(REG12, REG12, BITMAP_FILTER);
@@ -391,7 +410,7 @@ check_next_bit:
     if (beq_(REG14, REG0, 0)) {
         goto next_bit;
     }
-    addi(REG15, REG0, BITMAP_BYTES - sizeof(uint64_t));
+    addi_(REG15, REG0, BITMAP_BYTES - sizeof(uint64_t));
 
 write_out_bytes:
     //REG17 holds contents
@@ -402,14 +421,14 @@ write_out_bytes:
     if (beq_(REG15, REG0, 0)) {
         goto next_bit;
     }
-    br(0);
+    br_(0);
     goto write_out_bytes;
 
 next_bit:
-    shiftli_(REG13, REG13, 1);
+    shiftli_(REG13, 1);
     if (beq_(REG13, REG0, 0)) {
         //used up all our bits
-        goto read_next_bitmap_word:
+        goto read_next_bitmap_word;
     }
     br_(0);
     goto check_next_bit;
