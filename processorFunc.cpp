@@ -347,14 +347,23 @@ void ProcessorFunctor::flushPages() const
     add_(REG9, REG9, REG1);
     //REG10 holds bitmap bytes per page
     addi_(REG10, REG0, 1 << PAGE_SHIFT);
-    addi_(REG3, REG0, BITMAP_BYTES >> 0x03);
-    shiftrr_(REG10, REG3);
+    shiftri_(REG10, BITMAP_SHIFT + 0x03);
     //REG3 holds pages done so far
     add_(REG3, REG0, REG0);
 
 check_page_status:
+    if (beq_(REG3, REG0, 0)) {
+        goto just_starting_flush;
+    }
     muli_(REG5, REG3, ENDOFFSET);
     addi_(REG5, REG5, 0x01);
+    br_(0);
+    goto continuing_flush;
+
+just_starting_flush:
+    addi_(REG5, REG0, 0);
+
+continuing_flush:
     add_(REG1, REG1, REG5);
     //REG4 holds flags    
     lwi_(REG4, REG1, FLAGOFFSET);
@@ -387,10 +396,7 @@ flush_page:
     //REG16 holds bytes traversed
     addi_(REG16, REG0, 0);
     //get frame number
-    lwi_(REG5, REG4, FRAMEOFFSET);
-    //REG8, bits per page in bitmap
-    add_(REG8, REG10, REG0);
-    shiftri_(REG8, 0x03);
+    lwi_(REG5, REG1, FRAMEOFFSET);
     //REG7 - points into bitmap
     mul_(REG7, REG10, REG5);
     //now get REG5 to point to base of page in local memory
@@ -628,6 +634,7 @@ void ProcessorFunctor::operator()()
     //beq_ address is dummy
     if (beq_(REG1, REG0, 0)) {
         executeZeroCPU();
+        flushPages();
     }
 	cout << " - our work here is done" << endl;
 	Tile *masterTile = proc->getTile();
