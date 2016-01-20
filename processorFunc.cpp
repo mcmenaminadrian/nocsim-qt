@@ -406,21 +406,23 @@ check_next_bit:
     if (beq_(REG14, REG0, 0)) {
         goto next_bit;
     }
-    addi_(REG15, REG0, BITMAP_BYTES - sizeof(uint64_t));
+    addi_(REG15, REG0, BITMAP_BYTES);
 
 write_out_bytes:
     //REG17 holds contents
     lwi_(REG17, REG5, REG16);
     swi_(REG17, REG4, REG16);
-    addi_(REG16, REG16, sizeof(uint64_t));
     subi_(REG15, REG15, sizeof(uint64_t));
+    addi_(REG16, REG16, sizeof(uint64_t));
     if (beq_(REG15, REG0, 0)) {
-        goto next_bit;
+        goto next_bit_no_add;
     }
     br_(0);
     goto write_out_bytes;
 
 next_bit:
+    addi_(REG16, REG16, BITMAP_BYTES);
+next_bit_no_add:
     shiftli_(REG13, 1);
     if (beq_(REG13, REG0, 0)) {
         //used up all our bits
@@ -430,7 +432,6 @@ next_bit:
     goto check_next_bit;
 
 read_next_bitmap_word:
-    addi_(REG16, REG16, BITMAP_BYTES * sizeof(uint64_t));
     subi_(REG15, REG16, 1 << PAGE_SHIFT);
     if (beq_(REG15, REG0, 0)) {
         //have done whole page
