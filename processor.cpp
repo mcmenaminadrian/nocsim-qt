@@ -118,9 +118,9 @@ void Processor::markUpBasicPageEntries(const uint64_t& reqPTEPages,
 		const uint64_t mappingAddress = PAGETABLESLOCAL +
 			i * (1 << pageShift);
 		masterTile->writeLong(pageEntryBase + PHYSOFFSET,
-			mappingAddress >> pageShift);
+            mappingAddress);
 		masterTile->writeLong(pageEntryBase + VIRTOFFSET,
-			mappingAddress >> pageShift);
+            mappingAddress);
 		masterTile->writeWord32(pageEntryBase + FLAGOFFSET, 0x07);
 	}
 	//stack

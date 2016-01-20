@@ -352,18 +352,7 @@ void ProcessorFunctor::flushPages() const
     add_(REG3, REG0, REG0);
 
 check_page_status:
-    if (beq_(REG3, REG0, 0)) {
-        goto just_starting_flush;
-    }
-    muli_(REG5, REG3, ENDOFFSET);
-    addi_(REG5, REG5, 0x01);
-    br_(0);
-    goto continuing_flush;
-
-just_starting_flush:
-    addi_(REG5, REG0, 0);
-
-continuing_flush:
+    muli_(REG5, REG3, PAGETABLEENTRY);
     add_(REG1, REG1, REG5);
     //REG4 holds flags    
     lwi_(REG4, REG1, FLAGOFFSET);
@@ -383,6 +372,7 @@ continuing_flush:
     }
     addi_(REG6, REG0, PAGETABLESLOCAL + TILE_MEM_SIZE);
     sub_(REG5, REG6, REG4);
+    getsw_(REG5);
     andi_(REG5, REG5, 0x02);
     addi_(REG6, REG0, 0x02);
     if (beq_(REG5, REG6, 0)) {
