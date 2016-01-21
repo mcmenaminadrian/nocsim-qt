@@ -463,6 +463,7 @@ finished_flushing:
 void ProcessorFunctor::euclidAlgorithm() const
 {
     push_(REG1);
+    push_(REG5);
     push_(REG10);
     push_(REG11);
     push_(REG4);
@@ -472,7 +473,7 @@ test:
     sub_(REG4, REG10, REG11);
     if (beq_(REG4, REG0, 0)) {
         proc->setProgramCounter(proc->getProgramCounter() +
-            sizeof(uint64_t) * 18);
+            sizeof(uint64_t) * 16);
         goto answer;
     }
     getsw_(REG1);
@@ -493,17 +494,15 @@ swap:
 divide:
     div_(REG4, REG10, REG11);
     mul_(REG1, REG4, REG11);
-    push_(REG5);
     sub_(REG5, REG10, REG1);
     if (beq_(REG5, REG0, 0)) {
-        proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
+        proc->setProgramCounter(proc->getProgramCounter() +  sizeof(uint64_t));
         goto multiple;
     }
     br_(0);
     proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
     goto remainder;
 multiple:
-    pop_(REG5);
     proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t) * 2);
     goto answer;
 remainder:
@@ -511,7 +510,6 @@ remainder:
     pop_(REG10);
     push_(REG5);
     pop_(REG11);
-    pop_(REG5);
     goto test;
 
 answer:
@@ -519,6 +517,7 @@ answer:
     pop_(REG4);
     pop_(REG11);
     pop_(REG10);
+    pop_(REG5);
     pop_(REG1);
     br_(0); //simulate return
     return;
