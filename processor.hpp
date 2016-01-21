@@ -60,7 +60,6 @@ private:
     uint64_t fetchAddressRead(const uint64_t& address);
 	bool isBitmapValid(const uint64_t& address,
 		const uint64_t& physAddress) const;
-	bool isPageValid(const uint64_t& frameNo) const;
     uint64_t generateAddress(const uint64_t& frame,
 		const uint64_t& address) const;
     uint64_t triggerSmallFault(

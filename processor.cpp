@@ -94,13 +94,19 @@ void Processor::writeOutPageAndBitmapLengths(const uint64_t& reqPTEPages,
 		reqBitmapPages);
 }
 
-void Processor::writeOutBasicPageEntries(const uint64_t& reqPTEPages)
+void Processor::writeOutBasicPageEntries(const uint64_t& pagesAvailable)
 {
 	const uint64_t tablesOffset = 1 << pageShift;
-	for (unsigned int i = 0; i < reqPTEPages; i++) {
-		long memoryLocalOffset = i * PAGETABLEENTRY + tablesOffset;
+    for (unsigned int i = 0; i < pagesAvailable; i++) {
+        long memoryLocalOffset = i * PAGETABLEENTRY + tablesOffset;
+        masterTile->writeLong(
+            PAGETABLESLOCAL + memoryLocalOffset + PHYSOFFSET,
+                    i * (1 << pageShift) + PAGETABLESLOCAL);
+        masterTile->writeLong(
+            PAGETABLESLOCAL + memoryLocalOffset + VIRTOFFSET,
+                    i * (1 << pageShift) + PAGETABLESLOCAL);
 		masterTile->writeLong(
-			PAGETABLESLOCAL + memoryLocalOffset + FRAMEOFFSET, i);
+            PAGETABLESLOCAL + memoryLocalOffset + FRAMEOFFSET, i);
 		for (int j = FLAGOFFSET; j < ENDOFFSET; j++) {
 			masterTile->writeByte(
 				PAGETABLESLOCAL + memoryLocalOffset + j, 0);
@@ -124,12 +130,13 @@ void Processor::markUpBasicPageEntries(const uint64_t& reqPTEPages,
 		masterTile->writeWord32(pageEntryBase + FLAGOFFSET, 0x07);
 	}
 	//stack
+    uint stackFrame = TILE_MEM_SIZE >> pageShift - 1;
 	const uint64_t stackInTable = (1 << pageShift) + 
-		15 * PAGETABLEENTRY + PAGETABLESLOCAL;
-	masterTile->writeLong(stackInTable, 15 * (1 << pageShift) 
-		+ PAGETABLESLOCAL);
+        stackFrame * PAGETABLEENTRY + PAGETABLESLOCAL;
+    masterTile->writeLong(stackInTable + PHYSOFFSET,
+        stackFrame * (1 << pageShift) + PAGETABLESLOCAL);
 	masterTile->writeLong(stackInTable + VIRTOFFSET, 
-		15 * (1 << pageShift) + PAGETABLESLOCAL);
+        stackFrame * (1 << pageShift) + PAGETABLESLOCAL);
 	masterTile->writeWord32(stackInTable + FLAGOFFSET, 0x07);
 }
 
@@ -192,13 +199,6 @@ void Processor::createMemoryMap(Memory *local, long pShift)
     for (unsigned int i = 0; i < bitmapSize * BITS_PER_BYTE; i++) {
         markBitmapStart(stackPageNumber, stackPage + i * BITMAP_BYTES);
     }
-}
-
-bool Processor::isPageValid(const uint64_t& frameNo) const
-{
-	uint64_t flags = masterTile->readWord32((1 << pageShift)
-		+ frameNo * PAGETABLEENTRY + FLAGOFFSET + PAGETABLESLOCAL);
-	return (flags & 0x01);
 }
 
 bool Processor::isBitmapValid(const uint64_t& address,
