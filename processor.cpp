@@ -150,14 +150,14 @@ void Processor::createMemoryMap(Memory *local, long pShift)
 	memoryAvailable = localMemory->getSize();
 	pagesAvailable = memoryAvailable >> pageShift;
 	uint64_t requiredPTESize = pagesAvailable * PAGETABLEENTRY;
-	uint64_t requiredPTEPages = requiredPTESize >> pageShift;
+    uint64_t requiredPTEPages = requiredPTESize >> pageShift;
 	if ((requiredPTEPages << pageShift) != requiredPTESize) {
 		requiredPTEPages++;
 	}
 
 	stackPointer = TILE_MEM_SIZE + PAGETABLESLOCAL;
-	stackPointerOver = stackPointer;
-	stackPointerUnder = stackPointer - (1 << pageShift);
+    stackPointerUnder = stackPointer;
+    stackPointerOver = stackPointer - (1 << pageShift);
 
 	zeroOutTLBs(pagesAvailable);
 
@@ -671,18 +671,18 @@ void Processor::waitGlobalTick()
 void Processor::pushStackPointer()
 {
 	stackPointer -= sizeof(uint64_t);
-	if (stackPointer <= stackPointerUnder) {
-        cerr << "Stack Overflow" << endl;
-        throw "Stack Overflow\n";
+    if (stackPointer >= stackPointerUnder) {
+        cerr << "Stack Underflow" << endl;
+        throw "Stack Underflow\n";
 	}
 }
 
 void Processor::popStackPointer()
 {
 	stackPointer += sizeof(uint64_t);
-	if (stackPointer > stackPointerOver) {
-        cerr << "Stack Underflow" << endl;
-        throw "Stack Underflow\n";
+    if (stackPointer < stackPointerOver) {
+        cerr << "Stack Overflow" << endl;
+        throw "Stack Overflow\n";
 	}
 }
 
