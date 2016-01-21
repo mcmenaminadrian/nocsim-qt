@@ -314,12 +314,13 @@ const pair<const uint64_t, bool> Processor::getFreeFrame() const
 	for (uint64_t i = 0; i < frames; i++) {
 		uint32_t flags = masterTile->readWord32((1 << pageShift)
 			+ i * PAGETABLEENTRY + FLAGOFFSET + PAGETABLESLOCAL);
+        if (!(flags & 0x01)) {
+            return pair<const uint64_t, bool>(i, false);
+        }
         if (flags & 0x02) {
 			continue;
 		}
-		if (!(flags & 0x01)) {
-			return pair<const uint64_t, bool>(i, false);
-		} else if (!(flags & 0x04)) {
+        else if (!(flags & 0x04)) {
 			couldBe = i;
 		}
 	}
@@ -395,7 +396,7 @@ void Processor::fixPageMap(const uint64_t& frameNo,
 	const uint64_t pageAddress = address & pageMask;
 	waitATick();
 	localMemory->writeLong((1 << pageShift) +
-		frameNo * PAGETABLEENTRY, pageAddress);
+        frameNo * PAGETABLEENTRY + PHYSOFFSET, pageAddress);
 	waitATick();
 	localMemory->writeWord32((1 << pageShift) +
 		frameNo * PAGETABLEENTRY + FLAGOFFSET, 0x05);
@@ -406,7 +407,7 @@ void Processor::fixPageMapStart(const uint64_t& frameNo,
 {
 	const uint64_t pageAddress = address & pageMask;
 	localMemory->writeLong((1 << pageShift) +
-		frameNo * PAGETABLEENTRY, pageAddress);
+        frameNo * PAGETABLEENTRY + PHYSOFFSET, pageAddress);
 	localMemory->writeWord32((1 << pageShift) +
 		frameNo * PAGETABLEENTRY + FLAGOFFSET, 0x05);
 }
@@ -691,12 +692,14 @@ void Processor::activateClock()
 		return;
 	}
 	inClock = true;
+    uint64_t pages = TILE_MEM_SIZE >> pageShift;
 	interruptBegin();
-	for (uint8_t i = 0; i < clockWipe; i++) {
+    int wiped = 0;
+    for (uint8_t i = 0; i < pages; i++) {
 		waitATick();
 		uint32_t flags = masterTile->readWord32(
 			(1 << pageShift) + PAGETABLESLOCAL +
-			(i + currentTLB) * PAGETABLEENTRY + FLAGOFFSET);
+            ((i + currentTLB) % pagesAvailable) * PAGETABLEENTRY + FLAGOFFSET);
 		waitATick();
 		if (flags == 0 || flags & 0x02) {
 			continue;
@@ -709,7 +712,9 @@ void Processor::activateClock()
 		masterTile->writeWord32((1 << pageShift) + PAGETABLESLOCAL + 
 			(i + currentTLB) * PAGETABLEENTRY + FLAGOFFSET, flags);
 		waitATick();
-		get<2>(tlbs[i + currentTLB]) = false;
+        get<2>(tlbs[(i + currentTLB) % pagesAvailable]) = false;
+        if (++wiped >= clockWipe)
+            break;
 	}
 	waitATick();
 	currentTLB = (currentTLB + clockWipe) % pagesAvailable;
