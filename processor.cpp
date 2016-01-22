@@ -130,7 +130,7 @@ void Processor::markUpBasicPageEntries(const uint64_t& reqPTEPages,
 		masterTile->writeWord32(pageEntryBase + FLAGOFFSET, 0x07);
 	}
 	//stack
-    uint stackFrame = TILE_MEM_SIZE >> pageShift - 1;
+    uint stackFrame = (TILE_MEM_SIZE >> pageShift) - 1;
 	const uint64_t stackInTable = (1 << pageShift) + 
         stackFrame * PAGETABLEENTRY + PAGETABLESLOCAL;
     masterTile->writeLong(stackInTable + PHYSOFFSET,
