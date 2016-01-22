@@ -332,9 +332,10 @@ ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 //return address in REG1
 void ProcessorFunctor::flushPages() const
 {
-    push_(REG1);
+    uint64_t startingFlushPoint = proc->getProgramCounter();
     br_(0);
     proc->flushPagesStart();
+    proc->setProgramCounter(startingFlushPoint);
     //REG1 points to start of page table
     addi_(REG1, REG0, PAGETABLESLOCAL + (1 << PAGE_SHIFT));
     //REG2 counts number of pages
@@ -350,18 +351,20 @@ void ProcessorFunctor::flushPages() const
     shiftri_(REG10, BITMAP_SHIFT + 0x03);
     //REG3 holds pages done so far
     add_(REG3, REG0, REG0);
+    uint64_t aboutToCheck = proc->getProgramCounter();
 
 check_page_status:
+    proc->setProgramCounter(aboutToCheck);
     muli_(REG5, REG3, PAGETABLEENTRY);
-    add_(REG1, REG1, REG5);
+    add_(REG17, REG1, REG5);
     //REG4 holds flags    
-    lwi_(REG4, REG1, FLAGOFFSET);
+    lwi_(REG4, REG17, FLAGOFFSET);
     andi_(REG4, REG4, 0x01);
     if (beq_(REG4, REG0, 0)) {
         goto next_pte;
     }
     //load physical address in REG4
-    lwi_(REG4, REG1, PHYSOFFSET);
+    lwi_(REG4, REG17, PHYSOFFSET);
     //test if it is remote
     subi_(REG5, REG4, PAGETABLESLOCAL);
     getsw_(REG5);
@@ -452,8 +455,9 @@ next_pte:
 
 
 finished_flushing:
+    br_(0);
     proc->flushPagesEnd();
-    pop_(REG1);
+    proc->setProgramCounter(startingFlushPoint);
     br_(0);
     return;
 }
