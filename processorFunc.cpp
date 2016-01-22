@@ -635,8 +635,10 @@ void ProcessorFunctor::operator()()
     swi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     //beq_ address is dummy
     if (beq_(REG1, REG4, 0)) {
+        push_(REG2);
         executeZeroCPU();
         flushPages();
+        pop_(REG2);
         addi_(REG3, REG0, 0xFE00);
         swi_(REG3, REG2, 0);
         flushPages();

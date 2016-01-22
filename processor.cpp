@@ -710,7 +710,8 @@ void Processor::activateClock()
 		flags = flags & (~0x04);
 		waitATick();
 		masterTile->writeWord32((1 << pageShift) + PAGETABLESLOCAL + 
-			(i + currentTLB) * PAGETABLEENTRY + FLAGOFFSET, flags);
+            ((i + currentTLB) % pagesAvailable) * PAGETABLEENTRY
+            + FLAGOFFSET, flags);
 		waitATick();
         get<2>(tlbs[(i + currentTLB) % pagesAvailable]) = false;
         if (++wiped >= clockWipe)
