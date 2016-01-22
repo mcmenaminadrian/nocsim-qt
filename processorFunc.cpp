@@ -663,7 +663,7 @@ wait_on_zero:
 just_hanging_around:
     proc->setProgramCounter(hangingPoint);
     nop_();
-    subi_(REG7, REG7, 0);
+    subi_(REG7, REG7, 1);
     if (beq_(REG7, REG0, 0)) {
         goto back_off_handler;
     }
