@@ -131,6 +131,7 @@ public:
         fetchAddressRead(address);
     }
     void checkCarryBit();
+    void cleanTLBs();
 
 	void waitATick();
 	void waitGlobalTick();

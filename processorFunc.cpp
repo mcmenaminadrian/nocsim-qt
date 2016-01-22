@@ -459,6 +459,8 @@ finished_flushing:
     proc->flushPagesEnd();
     proc->setProgramCounter(startingFlushPoint);
     br_(0);
+    //invalidate all not fixed TLBs
+    proc->cleanTLBs();
     return;
 }
 
@@ -616,6 +618,7 @@ ending:
 
 void ProcessorFunctor::operator()()
 {
+    uint64_t hangingPoint, waitingOnZero;
 	const uint64_t order = tile->getOrder();
 	if (order >= SETSIZE) {
 		return;
@@ -623,13 +626,62 @@ void ProcessorFunctor::operator()()
 	proc->start();
 	addi_(REG1, REG0, 0x1);
 	setsw_(REG1);
+    lwi_(REG2, REG0, 0x100);
+    //REG3 holds signal
+    andi_(REG3, REG2, 0xFF00);
+    //REG4 holds register
+    andi_(REG4, REG2, 0xFF);
     addi_(REG1, REG0, proc->getNumber());
     swi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     //beq_ address is dummy
-    if (beq_(REG1, REG0, 0)) {
+    if (beq_(REG1, REG4, 0)) {
         executeZeroCPU();
         flushPages();
+        addi_(REG3, REG0, 0xFE00);
+        swi_(REG3, REG2, 0);
+        flushPages();
+        goto calculate_next;
     }
+    waitingOnZero = proc->getProgramCounter();
+    //try a back off
+    addi_(REG5, REG0, 0x01);
+    addi_(REG6, REG0, 0x100);
+    proc->setProgramCounter(waitingOnZero);
+wait_on_zero:
+    lwi_(REG2, REG0, 0x100);
+    andi_(REG3, REG2, 0xFF00);
+    andi_(REG4, REG2, 0xFF);
+    addi_(REG8, REG0, 0xFE00);
+    if (beq_(REG8, REG3, 0)) {
+        goto calculate_next;
+    }
+    //do the back off wait
+    add_(REG7, REG0, REG5);
+    hangingPoint = proc->getProgramCounter();
+just_hanging_around:
+    proc->setProgramCounter(hangingPoint);
+    nop_();
+    subi_(REG7, REG7, 0);
+    if (beq_(REG7, REG0, 0)) {
+        goto back_off_handler;
+    }
+    br_(0);
+    goto just_hanging_around;
+
+back_off_handler:
+    shiftl_(REG5);
+    sub_(REG7, REG6, REG5);
+    if (beq_(REG7, REG0, 0)) {
+        goto back_off_reset;
+    }
+    br_(0);
+    goto wait_on_zero;
+
+back_off_reset:
+    addi_(REG5, REG0, 0x01);
+    goto wait_on_zero;
+
+calculate_next:
 	cout << " - our work here is done" << endl;
 	Tile *masterTile = proc->getTile();
 	masterTile->getBarrier()->decrementTaskCount();

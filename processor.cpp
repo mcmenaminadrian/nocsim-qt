@@ -721,3 +721,10 @@ void Processor::activateClock()
 	inClock = false;
 	interruptEnd();
 }
+
+void Processor::cleanTLBs()
+{
+    for (auto x:tlbs) {
+        get<2>(x) = false;
+    }
+}

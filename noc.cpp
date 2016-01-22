@@ -212,6 +212,8 @@ void Noc::writeSystemToMemory()
 		}
 	}
 	cleanRestOfPageTable(address);
+    //signal only core 0 should execute
+    globalMemory[0].writeLong(0x100, 0xFF00);
 }	
 
 //memory regions - pair: 1st is number, 2nd is flag
