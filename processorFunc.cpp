@@ -642,12 +642,14 @@ void ProcessorFunctor::operator()()
         flushPages();
         goto calculate_next;
     }
-    waitingOnZero = proc->getProgramCounter();
+
     //try a back off
     addi_(REG5, REG0, 0x01);
     addi_(REG6, REG0, 0x100);
-    proc->setProgramCounter(waitingOnZero);
+    waitingOnZero = proc->getProgramCounter();
+
 wait_on_zero:
+    proc->setProgramCounter(waitingOnZero);
     lwi_(REG2, REG0, 0x100);
     andi_(REG3, REG2, 0xFF00);
     andi_(REG4, REG2, 0xFF);
