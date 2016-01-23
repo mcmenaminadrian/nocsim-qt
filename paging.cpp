@@ -52,7 +52,7 @@ PageTable::PageTable(int bitLength): length{ bitLength }
 	}
 }
 
-uint8_t PageTable::getPageFlags(const unsigned long& index) const
+uint8_t PageTable::getPageFlags(const uint64_t& index) const
 {
 	if (index > entries.size()) {
 		std::cout << "Out of range in page table" << std::endl;
@@ -61,7 +61,7 @@ uint8_t PageTable::getPageFlags(const unsigned long& index) const
 	return entries[index].second;
 }
 
-void PageTable::setPageFlags(const unsigned long& index, uint8_t flags)
+void PageTable::setPageFlags(const uint64_t& index, uint8_t flags)
 {
 	if (index > entries.size()) {
 		std::cout << "Out of range in page table" << std::endl;
@@ -70,13 +70,13 @@ void PageTable::setPageFlags(const unsigned long& index, uint8_t flags)
 	entries[index].second = flags;
 }
 
-unsigned long PageTable::streamToMemory(Memory& mem, unsigned long address)
+unsigned long PageTable::streamToMemory(Memory& mem, uint64_t address)
 {
-	unsigned long tLength = 0;
+    uint64_t tLength = 0;
 	for (auto x: entries) {
 		mem.writeLong(address, x.first);
-		address += sizeof(long);
-		tLength += sizeof(long);
+        address += sizeof(uint64_t);
+        tLength += sizeof(uint64_t);
 		mem.writeByte(address, x.second);
 		address += sizeof(uint8_t);
 		tLength += sizeof(uint8_t);

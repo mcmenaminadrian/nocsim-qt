@@ -21,14 +21,14 @@ class RegionList {
 
 class PageTable {
 	private:
-	std::vector<std::pair<unsigned long, uint8_t>> entries;
+    std::vector<std::pair<uint64_t, uint8_t>> entries;
 	int length;
 	
 	public:
 	PageTable(int bitLength);
-    uint8_t getPageFlags(const unsigned long& index) const;
-    void setPageFlags(const unsigned long& index, uint8_t flags);
-	unsigned long streamToMemory(Memory& mem, unsigned long start);
+    uint8_t getPageFlags(const uint64_t& index) const;
+    void setPageFlags(const uint64_t& index, uint8_t flags);
+    unsigned long streamToMemory(Memory& mem, uint64_t start);
 	
 };
 
