@@ -6,8 +6,8 @@
 //Page table entries - physical addr, virtual addr, frame no, flags
 
 #define PAGETABLEENTRY (8 + 8 + 8 + 4)
-#define PHYSOFFSET 0
-#define VIRTOFFSET 8
+#define VOFFSET 0
+#define POFFSET 8
 #define FRAMEOFFSET 16
 #define FLAGOFFSET 24
 #define ENDOFFSET 28

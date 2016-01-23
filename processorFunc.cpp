@@ -363,8 +363,8 @@ check_page_status:
     if (beq_(REG4, REG0, 0)) {
         goto next_pte;
     }
-    //load physical address in REG4
-    lwi_(REG4, REG17, PHYSOFFSET);
+    //load virtual address in REG4
+    lwi_(REG4, REG17, VOFFSET);
     //test if it is remote
     subi_(REG5, REG4, PAGETABLESLOCAL);
     getsw_(REG5);
