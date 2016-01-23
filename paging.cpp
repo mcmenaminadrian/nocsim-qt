@@ -48,7 +48,7 @@ bool RegionList::addRegionForAddress(const unsigned long& address)
 PageTable::PageTable(int bitLength): length{ bitLength }
 {
 	for (int i = 0; i < (1 << length); i++) {
-		entries.push_back(std::pair<unsigned long, uint8_t>(0, 0));
+        entries.push_back(std::pair<uint64_t, uint8_t>(0, 0));
 	}
 }
 

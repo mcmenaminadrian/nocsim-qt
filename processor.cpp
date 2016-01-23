@@ -466,6 +466,36 @@ void Processor::fixTLB(const uint64_t& frameNo,
 	get<2>(tlbs[frameNo]) = true;
 }
 
+//below is always called from the interrupt context
+const pair<uint64_t, uint8_t>
+    Processor::mapToGlobalAddress(const uint64_t& address)
+{
+    uint64_t globalPagesBase = 0x800;
+    uint64_t superDirectoryIndex = address >> 42;
+    uint64_t directoryIndex = (address >> 30) & 0xFFF;
+    uint64_t superTableIndex = (address >> 18) & 0xFFF;
+    uint64_t tableIndex = (address & 0x3FFFF) >> pageShift;
+    waitATick();
+    //read off the superDirectory number
+    uint64_t ptrToDirectory = masterTile->readLong(globalPagesBase +
+        superDirectoryIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
+    waitATick();
+    uint64_t ptrToSuperTable = masterTile->readLong(ptrToDirectory +
+        directoryIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
+    waitATick();
+    uint64_t ptrToTable = masterTile->readLong(ptrToSuperTable +
+        superTableIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
+    waitATick();
+    pair<uint64_t, uint8_t> globalPageTableEntry(
+        masterTile->readLong(ptrToTable + tableIndex *
+                 (sizeof(uint64_t) + sizeof(uint8_t))),
+        masterTile->readByte(ptrToTable + tableIndex *
+                 (sizeof(uint64_t) + sizeof(uint8_t)) + sizeof(uint64_t)));
+    waitATick();
+    return globalPageTableEntry;
+
+}
+
 uint64_t Processor::triggerHardFault(const uint64_t& address)
 {
     mainWindow->updateHardFaults();
@@ -480,6 +510,7 @@ uint64_t Processor::triggerHardFault(const uint64_t& address)
 	fixPageMap(frameData.first, address);
 	markBitmapStart(frameData.first, address);
 	interruptEnd();
+    mapToGlobalAddress(address);
     return generateAddress(frameData.first, address);
 }
 	

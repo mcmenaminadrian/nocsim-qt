@@ -88,6 +88,8 @@ private:
 		requestRemoteMemory(
 		const uint64_t& size, const uint64_t& remoteAddress,
 		const uint64_t& localAddress);
+    const std::pair<uint64_t, uint8_t>
+        mapToGlobalAddress(const uint64_t& address);
 	void activateClock();
 	//adjust numbers below to change how CLOCK fuctions
     const uint8_t clockWipe = 2;
