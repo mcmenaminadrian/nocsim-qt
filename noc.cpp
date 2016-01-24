@@ -278,7 +278,7 @@ unsigned long Noc::createBasicPageTables()
     }
     uint64_t bottomOfPageTable = runLength + tableLength * PAGE_TABLE_COUNT;
     for (int i = 0; i < (1 << 8) * PAGE_TABLE_COUNT; i++) {
-        uint64_t offsetB = startOfPageTables + runLength + tableLength
+        uint64_t offsetB = startOfPageTables + runLength
                 + i * (sizeof(uint64_t) + sizeof(uint8_t));
         globalMemory[0].writeLong(offsetB, i * (1 << PAGE_SHIFT));
         uint8_t flagOut = 0x03;

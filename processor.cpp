@@ -340,9 +340,9 @@ void Processor::writeBackMemory(const uint64_t& frameNo)
 		(1 + totalPTEPages) * (1 << pageShift);
 	const uint64_t bitmapSize = (1 << pageShift) / BITMAP_BYTES;
 	uint64_t bitToRead = frameNo * bitmapSize;
-	const uint64_t physicalAddress =
+    const uint64_t physicalAddress = mapToGlobalAddress(
 		localMemory->readLong((1 << pageShift) +
-		frameNo * PAGETABLEENTRY);
+        frameNo * PAGETABLEENTRY)).first;
 	long byteToRead = -1;
 	uint8_t byteBit = 0;
 	for (unsigned int i = 0; i < bitmapSize; i++)
@@ -502,16 +502,17 @@ uint64_t Processor::triggerHardFault(const uint64_t& address)
 	interruptBegin();
 	const pair<const uint64_t, bool> frameData = getFreeFrame();
 	if (frameData.second) {
-		writeBackMemory(frameData.first);
-		fixBitmap(frameData.first);
+        writeBackMemory(frameData.first);
+        fixBitmap(frameData.first);
 	}
-	fixTLB(frameData.first, address);
-	transferGlobalToLocal(address, tlbs[frameData.first], BITMAP_BYTES);
-	fixPageMap(frameData.first, address);
-	markBitmapStart(frameData.first, address);
+    pair<uint64_t, uint8_t> translatedAddress = mapToGlobalAddress(address);
+    fixTLB(frameData.first, translatedAddress.first);
+    transferGlobalToLocal(translatedAddress.first, tlbs[frameData.first],
+            BITMAP_BYTES);
+    fixPageMap(frameData.first, translatedAddress.first);
+    markBitmapStart(frameData.first, translatedAddress.first);
 	interruptEnd();
-    mapToGlobalAddress(address);
-    return generateAddress(frameData.first, address);
+    return generateAddress(frameData.first, translatedAddress.first);
 }
 	
 
