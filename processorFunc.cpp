@@ -20,6 +20,8 @@ using namespace std;
 
 //alter filter to trap per page bitmaps of less than 64bits
 static const uint64_t BITMAP_FILTER = 0xFFFFFFFFFFFFFFFF;
+//alter to adjust for page size
+static const uint64_t PAGE_ADDRESS_MASK = 0xFFFFFFFFFFFFFC00;
 
 //Number format
 //numerator
@@ -614,6 +616,56 @@ ending:
     pop_(REG1);
     return;
     
+}
+
+//'interrupt' function to force clean read of a page
+// - dumps the page (not flushed) and reads address in
+//REG3, returning value in REG4
+//REG1 holds return address
+void ProcessorFunctor::forcePageReload()
+{
+    uint64_t reloadStartAddress = proc->getProgramCounter();
+    proc->flushPagesStart();
+    //REG6 holds page address
+    andi_(REG6, REG3, PAGE_ADDRESS_MASK);
+    //walk page table
+    //REG1 points to start of page table
+    addi_(REG1, REG0, PAGETABLESLOCAL + (1 << PAGE_SHIFT));
+    //REG2 counts number of pages
+    addi_(REG2, REG0, TILE_MEM_SIZE >> PAGE_SHIFT);
+    //REG9 points to start of bitmaps
+    muli_(REG9, REG2, ENDOFFSET);
+    shiftri_(REG9, PAGE_SHIFT);
+    addi_(REG9, REG9, 0x01);
+    shiftli_(REG9, PAGE_SHIFT);
+    add_(REG9, REG9, REG1);
+    //REG10 holds bitmap bytes per page
+    addi_(REG10, REG0, 1 << PAGE_SHIFT);
+    shiftri_(REG10, BITMAP_SHIFT + 0x03);
+    //REG5 holds pages done so far
+    add_(REG5, REG0, REG0);
+    uint64_t walking_the_table = proc->getProgramCounter();
+table_walk:
+    proc->setProgramCounter(walking_the_table);
+    muli_(REG12, REG5, PAGETABLEENTRY);
+    lwi_(REG11, REG12, PAGETABLESLOCAL + VOFFSET);
+    if (beq_(REG11, REG0)) {
+        goto matched_page;
+    }
+    addi(REG5, REG5, 1);
+    if (beq_(REG5, (TILE_MEM_SIZE << PAGE_SHIFT) - 1)) {
+        goto page_not_present;
+    }
+    br_(0);
+    goto table_walk;
+ 
+matched_page:
+    //dump the page - ie wipe the bitmap
+    lwi_(REG11, REG12, PAGETABLESLOCAL + FRAMEOFFSET);
+    muli_(REG13, REG10, REG11);
+
+    
+
 }
 
 void ProcessorFunctor::operator()()
