@@ -754,7 +754,7 @@ void Processor::activateClock()
 
 void Processor::cleanTLBs()
 {
-    for (auto x:tlbs) {
+    for (auto& x:tlbs) {
         get<2>(x) = false;
     }
 }
@@ -763,7 +763,7 @@ void Processor::dumpPageFromTLB(const uint64_t& address)
 {
     waitATick();
     uint64_t pageAddress = address & pageMask;
-    for (auto x: tlbs) {
+    for (auto& x: tlbs) {
         if (get<0>(x) == pageAddress) {
             get<2>(x) = false;
             break;

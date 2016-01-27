@@ -632,8 +632,6 @@ void ProcessorFunctor::forcePageReload() const
     //REG6 holds page address
     andi_(REG6, REG3, PAGE_ADDRESS_MASK);
     //walk page table
-    //REG1 points to start of page table
-    addi_(REG1, REG0, PAGETABLESLOCAL + (1 << PAGE_SHIFT));
     //REG2 counts number of pages
     addi_(REG2, REG0, TILE_MEM_SIZE >> PAGE_SHIFT);
     //REG5 holds pages done so far
@@ -643,27 +641,27 @@ void ProcessorFunctor::forcePageReload() const
 table_walk:
     proc->setProgramCounter(walking_the_table);
     muli_(REG12, REG5, PAGETABLEENTRY);
-    lwi_(REG11, REG12, PAGETABLESLOCAL + VOFFSET);
-    if (beq_(REG11, REG0, 0)) {
+    lwi_(REG11, REG12, PAGETABLESLOCAL + VOFFSET + (1 << PAGE_SHIFT));
+    if (beq_(REG11, REG6, 0)) {
         goto matched_page;
     }
 
 walk_next_page:
     addi_(REG5, REG5, 1);
-    if (beq_(REG5, (TILE_MEM_SIZE << PAGE_SHIFT) - 1, 0)) {
+    if (beq_(REG5, REG2, 0)) {
         goto page_walk_done;
     }
     br_(0);
     goto table_walk;
  
 matched_page:
-    lwi_(REG11, REG12, PAGETABLESLOCAL + FLAGOFFSET);
+    lwi_(REG11, REG12, PAGETABLESLOCAL + FLAGOFFSET + (1 << PAGE_SHIFT));
     andi_(REG13, REG11, 0x01);
     if (beq_(REG13, REG0, 0)) {
         goto walk_next_page;
     }
     andi_(REG11, REG11, 0xFFFFFFFFFFFFFFFE);
-    swi_(REG11, REG12, PAGETABLESLOCAL + FLAGOFFSET);
+    swi_(REG11, REG12, PAGETABLESLOCAL + FLAGOFFSET + (1 << PAGE_SHIFT));
     //dump the page - ie wipe the bitmap
     proc->dumpPageFromTLB(proc->getRegister(REG6));
 
@@ -704,13 +702,14 @@ void ProcessorFunctor::operator()()
 
     //try a back off
     addi_(REG5, REG0, 0x01);
-    addi_(REG6, REG0, 0x100);
+    addi_(REG6, REG0, 0x1000);
     waitingOnZero = proc->getProgramCounter();
 
 wait_on_zero:
     proc->setProgramCounter(waitingOnZero);
-    lwi_(REG3, REG0, 0x100);
+    addi_(REG3, REG0, 0x100);
     addi_(REG1, REG0, proc->getProgramCounter());
+    push_(REG1);
     br_(0);
     forcePageReload();
     andi_(REG4, REG4, 0xFFFF);
