@@ -709,11 +709,13 @@ void ProcessorFunctor::operator()()
 
 wait_on_zero:
     proc->setProgramCounter(waitingOnZero);
-    lwi_(REG2, REG0, 0x100);
-    andi_(REG3, REG2, 0xFF00);
-    andi_(REG4, REG2, 0xFF);
+    lwi_(REG3, REG0, 0x100);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    br_(0);
+    forcePageReload();
+    andi_(REG4, REG4, 0xFFFF);
     addi_(REG8, REG0, 0xFE00);
-    if (beq_(REG8, REG3, 0)) {
+    if (beq_(REG8, REG4, 0)) {
         goto calculate_next;
     }
     //do the back off wait

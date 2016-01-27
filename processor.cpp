@@ -761,6 +761,7 @@ void Processor::cleanTLBs()
 
 void Processor::dumpPageFromTLB(const uint64_t& address)
 {
+    waitATick();
     uint64_t pageAddress = address & pageMask;
     for (auto x: tlbs) {
         if (get<0>(x) == pageAddress) {
