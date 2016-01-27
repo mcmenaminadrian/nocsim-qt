@@ -63,6 +63,7 @@ private:
     void executeZeroCPU() const;
     void euclidAlgorithm() const;
     void flushPages() const;
+    void forcePageReload() const;
 	void loadInitialData(const uint64_t order);
 
 public:

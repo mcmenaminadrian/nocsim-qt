@@ -758,3 +758,14 @@ void Processor::cleanTLBs()
         get<2>(x) = false;
     }
 }
+
+void Processor::dumpPageFromTLB(const uint64_t& address)
+{
+    uint64_t pageAddress = address & pageMask;
+    for (auto x: tlbs) {
+        if (get<0>(x) == pageAddress) {
+            get<2>(x) = false;
+            break;
+        }
+    }
+}

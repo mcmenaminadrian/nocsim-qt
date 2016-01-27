@@ -141,6 +141,7 @@ public:
     uint64_t getNumber() { return processorNumber; }
     void flushPagesStart();
     void flushPagesEnd();
+    void dumpPageFromTLB(const uint64_t& address);
 
 	//message passing code
 };
