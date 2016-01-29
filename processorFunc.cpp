@@ -415,8 +415,8 @@ check_next_bit:
 
 write_out_bytes:
     //REG17 holds contents
-    lwi_(REG17, REG5, REG16);
-    swi_(REG17, REG4, REG16);
+    lw_(REG17, REG5, REG16);
+    sw_(REG17, REG4, REG16);
     subi_(REG15, REG15, sizeof(uint64_t));
     addi_(REG16, REG16, sizeof(uint64_t));
     if (beq_(REG15, REG0, 0)) {
