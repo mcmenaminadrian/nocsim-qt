@@ -391,7 +391,7 @@ flush_page:
     //REG16 holds bytes traversed
     addi_(REG16, REG0, 0);
     //get frame number
-    lwi_(REG5, REG1, FRAMEOFFSET);
+    lwi_(REG5, REG17, FRAMEOFFSET);
     //REG7 - points into bitmap
     mul_(REG7, REG10, REG5);
     //now get REG5 to point to base of page in local memory
