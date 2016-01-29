@@ -462,7 +462,7 @@ finished_flushing:
     proc->setProgramCounter(startingFlushPoint);
     br_(0);
     //invalidate all not fixed TLBs
-    proc->cleanTLBs();
+    //proc->cleanTLBs();
     return;
 }
 
@@ -683,6 +683,8 @@ void ProcessorFunctor::operator()()
 	proc->start();
 	addi_(REG1, REG0, 0x1);
 	setsw_(REG1);
+    addi_(REG1, REG0, 0xFF00);
+    swi_(REG1, REG0, 0x100);
     lwi_(REG2, REG0, 0x100);
     //REG3 holds signal
     andi_(REG3, REG2, 0xFF00);
@@ -701,7 +703,7 @@ void ProcessorFunctor::operator()()
     }
 
     //try a back off
-    addi_(REG5, REG0, 0x01);
+    addi_(REG5, REG0, 0x10);
     addi_(REG6, REG0, 0x1000);
     waitingOnZero = proc->getProgramCounter();
 
@@ -744,8 +746,8 @@ back_off_reset:
     goto wait_on_zero;
 
 calculate_next:
-	cout << " - our work here is done" << endl;
 	Tile *masterTile = proc->getTile();
+    cout << masterTile->readLong(0x100) << " - our work here is done - " << masterTile->readLong(0x0) << endl;
 	masterTile->getBarrier()->decrementTaskCount();
 }
 

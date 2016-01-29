@@ -507,7 +507,8 @@ uint64_t Processor::triggerHardFault(const uint64_t& address)
 	}
     pair<uint64_t, uint8_t> translatedAddress = mapToGlobalAddress(address);
     fixTLB(frameData.first, translatedAddress.first);
-    transferGlobalToLocal(translatedAddress.first, tlbs[frameData.first],
+    transferGlobalToLocal(translatedAddress.first + (address & bitMask),
+            tlbs[frameData.first],
             BITMAP_BYTES);
     fixPageMap(frameData.first, translatedAddress.first);
     markBitmapStart(frameData.first, translatedAddress.first);
