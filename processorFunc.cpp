@@ -757,7 +757,7 @@ it_ends_here:
 //this function just to break code up
 void ProcessorFunctor::nextRound() const
 {
-    //calculate factor this line
+    //calculate factor for this line
     //REG1 - hold processor number
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     //REG2 - size of each number
@@ -774,6 +774,75 @@ void ProcessorFunctor::nextRound() const
     //REG7 takes demoninator
     lwi_(REG6, REG4, sizeof(uint64_t));
     lwi_(REG7, REG4, (APNUMBERSIZE + 1) * sizeof(uint64_t));
+    
+    //next set of numbers
+    //REG10 sign
+    //REG11 numerator
+    //REG12 denominator
+    //REG13 progress
+    //REG14 limit
+    add_(REG13, REG0, REG0)
+    addi_(REG14, REG0, 0x100); /* FIX ME: Magic number again */
+    //now loop through all the numbers
+
+    const uint64_t nextRoundLoopStart = proc->getProgramCounter();
+    //REG17 holds offset
+    //REG18 holds calculated position on zero line
+    //REG19 holds calculated position on processor line
+ next_round_loop_start:
+    proc->setProgramCounter(nextRoundLoopStart);
+    muli_(REG17, REG13, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
+
+    //fetch 'bottom' row number
+    add_(REG19, REG4, REG17);
+    lw_(REG20, REG19, REG0);
+    lwi_(REG21, REG19, sizeof(uint64_t));
+    lwi_(REG22, REG19, (APNUMBERSIZE + 1) * sizeof(uint64_t));
+
+    if (beq_(REG11, REG0, 0)) {
+        goto next_round_prepare_to_save;
+    }
+
+    //fetch 'top' row number
+    add_(REG18, REG3, REG17);
+    lw_(REG23, REG18, REG0);
+    lwi_(REG24, REG18, sizeof(uint64_t));
+    lwi_(REG25, REG18, (APNUMBERSIZE + 1) * sizeof(uint64_t));
+
+    if (beq_(REG24, REG0, 0)) {
+        goto next_round_prepare_to_save;
+    }
+
+    //calculate number to subtract
+    xor_(REG26, REG10, REG23);
+    mul_(REG27, REG11, REG24);
+    mul_(REG28, REG12, REG25);
+
+    push_(REG3);
+    push_(REG1);
+    push_(REG10);
+    push_(REG11);
+
+    add_(REG10, REG27, REG0);
+    add_(REG11, REG28, REG0);
+    uint64_t beforeCallEuclid = proc->getProgramCounter();
+    addi_(REG1, REG0, beforeCallEuclid + sizeof(uint64_t) * 3);
+    br_(0);
+    euclidAlgorithm();
+
+    pop_(REG11);
+    pop_(REG10);
+    pop_(REG1);
+
+    div_(REG27, REG27, REG3);
+    div_(REG28, REG28, REG3);
+    pop_(REG3);
+
+    mul_(REG21, REG21, REG28);
+    mul_(REG27, REG27, REG22);
+    mul_(REG22, REG22, REG28);
+
+    
     
     
 }
