@@ -677,6 +677,7 @@ void ProcessorFunctor::operator()()
 {
     uint64_t hangingPoint, waitingOnZero;
 	const uint64_t order = tile->getOrder();
+    Tile *masterTile = proc->getTile();
 	if (order >= SETSIZE) {
 		return;
 	}
@@ -694,11 +695,16 @@ void ProcessorFunctor::operator()()
     swi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     //beq_ address is dummy
     if (beq_(REG1, REG4, 0)) {
+        cout << "A:" << masterTile->readLong(0x100) << ',' << masterTile->readLong(0x0) << endl;
         executeZeroCPU();
+        cout << "B:" << masterTile->readLong(0x100) << ',' << masterTile->readLong(0x0) << endl;
         flushPages();
+        cout << "C:" << masterTile->readLong(0x100) << ',' << masterTile->readLong(0x0) << endl;
         addi_(REG3, REG0, 0xFE00);
         swi_(REG3, REG0, 0x100);
+        cout << "D:" << masterTile->readLong(0x100) << ',' << masterTile->readLong(0x0) << endl;
         flushPages();
+        cout << "E:" << masterTile->readLong(0x100) << ',' << masterTile->readLong(0x0) << endl;
         goto calculate_next;
     }
 
@@ -746,7 +752,6 @@ back_off_reset:
     goto wait_on_zero;
 
 calculate_next:
-	Tile *masterTile = proc->getTile();
     cout << masterTile->readLong(0x100) << " - our work here is done - " << masterTile->readLong(0x0) << endl;
 	masterTile->getBarrier()->decrementTaskCount();
 }
