@@ -757,6 +757,7 @@ it_ends_here:
 //this function just to break code up
 void ProcessorFunctor::nextRound() const
 {
+    uint64_t beforeCallEuclid;
     //calculate factor for this line
     //REG1 - hold processor number
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
@@ -781,7 +782,7 @@ void ProcessorFunctor::nextRound() const
     //REG12 denominator
     //REG13 progress
     //REG14 limit
-    add_(REG13, REG0, REG0)
+    add_(REG13, REG0, REG0);
     addi_(REG14, REG0, 0x100); /* FIX ME: Magic number again */
     //now loop through all the numbers
 
@@ -825,7 +826,7 @@ void ProcessorFunctor::nextRound() const
 
     add_(REG10, REG27, REG0);
     add_(REG11, REG28, REG0);
-    uint64_t beforeCallEuclid = proc->getProgramCounter();
+    beforeCallEuclid = proc->getProgramCounter();
     addi_(REG1, REG0, beforeCallEuclid + sizeof(uint64_t) * 3);
     br_(0);
     euclidAlgorithm();
@@ -842,7 +843,7 @@ void ProcessorFunctor::nextRound() const
     mul_(REG27, REG27, REG22);
     mul_(REG22, REG22, REG28);
 
-    
-    
+next_round_prepare_to_save:
+    nop_();
     
 }

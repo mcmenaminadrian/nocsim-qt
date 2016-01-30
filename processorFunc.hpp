@@ -64,6 +64,7 @@ private:
     void euclidAlgorithm() const;
     void flushPages() const;
     void forcePageReload() const;
+    void nextRound() const;
 	void loadInitialData(const uint64_t order);
 
 public:
