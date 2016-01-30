@@ -700,7 +700,7 @@ void ProcessorFunctor::operator()()
         addi_(REG3, REG0, 0xFE00);
         swi_(REG3, REG0, 0x100);
         flushPages();
-        goto calculate_next;
+        goto it_ends_here;
     }
 
     //try a back off
@@ -745,9 +745,35 @@ back_off_handler:
 back_off_reset:
     addi_(REG5, REG0, 0x01);
     goto wait_on_zero;
-
+    
 calculate_next:
-    cout << masterTile->readLong(0x100) << " - our work here is done - " << masterTile->readLong(0x0) << endl;
+    nextRound();
+
+it_ends_here:
+    cout << masterTile->readLong(0x100) << " - our work here is done - " << endl;
 	masterTile->getBarrier()->decrementTaskCount();
 }
 
+//this function just to break code up
+void ProcessorFunctor::nextRound() const
+{
+    //calculate factor this line
+    //REG1 - hold processor number
+    lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
+    //REG2 - size of each number
+    muli_(REG2, REG1, APNUMBERSIZE * 2 + 1);
+    //REG3 - points to start of numbers
+    lwi_(REG3, REG0, sizeof(uint64_t) * 2);
+    //REG4 - point to start of this processor's numbers
+    muli_(REG4, REG2, 0x100); /*FIX ME: magic number here */
+    add_(REG4, REG4, REG3);
+    //REG5 takes sign of first number
+    lw_(REG5, REG4, REG0);
+    andi_(REG5, REG5, 0xFF);
+    //REG6 takes numerator
+    //REG7 takes demoninator
+    lwi_(REG6, REG4, sizeof(uint64_t));
+    lwi_(REG7, REG4, (APNUMBERSIZE + 1) * sizeof(uint64_t));
+    
+    
+}
