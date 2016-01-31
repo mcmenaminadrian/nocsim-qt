@@ -816,33 +816,9 @@ void ProcessorFunctor::nextRound() const
 
     //calculate number to subtract
     xor_(REG26, REG5, REG23);
-    mul_(REG27, REG7, REG24);
-    mul_(REG28, REG6, REG25);
-    sub_(REG29, REG27, REG28);
-    getsw_(REG30);
-    andi_(REG30, REG30, 0x02);
-    addi_(REG31, REG0, 0x02);
-    if (beq_(REG30, REG31, 0)) {
-        goto next_round_reverse_sign;
-    }
-    br_(0);
-    goto next_round_multi_denom;
+    mul_(REG27, REG6, REG24);
+    mul_(REG28, REG7, REG25);
 
-next_round_reverse_sign:
-    andi_(REG30, REG26, 0x01);
-    if (beq_(REG30, REG0, 0)) {
-        goto next_round_negate;
-    }
-    addi_(REG26, REG26, 0x01);
-    br_(0);
-    goto next_round_multi_denom;
-
-next_round_negate:
-    addi_(REG30, REG0, 0x01);
-    xor_(REG26, REG26, REG30);
-
-next_round_multi_denom:
-    mul_(REG28, REG25, REG7);
 
     push_(REG3);
     push_(REG1);
