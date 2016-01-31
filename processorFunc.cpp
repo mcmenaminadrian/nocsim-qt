@@ -758,6 +758,7 @@ it_ends_here:
 void ProcessorFunctor::nextRound() const
 {
     uint64_t beforeCallEuclid;
+    uint64_t beforeSecondCallEuclid;
     //calculate factor for this line
     //REG1 - hold processor number
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
@@ -777,9 +778,6 @@ void ProcessorFunctor::nextRound() const
     lwi_(REG7, REG4, (APNUMBERSIZE + 1) * sizeof(uint64_t));
     
     //next set of numbers
-    //REG10 sign
-    //REG11 numerator
-    //REG12 denominator
     //REG13 progress
     //REG14 limit
     add_(REG13, REG0, REG0);
@@ -800,7 +798,7 @@ void ProcessorFunctor::nextRound() const
     lwi_(REG21, REG19, sizeof(uint64_t));
     lwi_(REG22, REG19, (APNUMBERSIZE + 1) * sizeof(uint64_t));
 
-    if (beq_(REG11, REG0, 0)) {
+    if (beq_(REG6, REG0, 0)) {
         goto next_round_prepare_to_save;
     }
 
@@ -815,9 +813,34 @@ void ProcessorFunctor::nextRound() const
     }
 
     //calculate number to subtract
-    xor_(REG26, REG10, REG23);
-    mul_(REG27, REG11, REG24);
-    mul_(REG28, REG12, REG25);
+    xor_(REG26, REG5, REG23);
+    mul_(REG27, REG7, REG24);
+    mul_(REG28, REG6, REG25);
+    sub_(REG29, REG27, REG28);
+    getsw_(REG30);
+    andi_(REG30, REG30, 0x02);
+    addi_(REG31, REG0, 0x02);
+    if (beq_(REG30, REG31, 0)) {
+        goto next_round_reverse_sign;
+    }
+    br_(0);
+    goto next_round_multi_denom;
+
+next_round_reverse_sign:
+    andi_(REG30, REG26, 0x01);
+    if (beq_(REG30, REG0, 0)) {
+        goto next_round_negate;
+    }
+    addi_(REG26, REG26, 0x01);
+    br_(0);
+    goto next_round_multi_denom;
+
+next_round_negate:
+    addi_(REG30, REG0, 0x01);
+    xor_(REG26, REG26, REG30);
+
+next_round_multi_denom:
+    mul_(REG28, REG25, REG7);
 
     push_(REG3);
     push_(REG1);
@@ -843,7 +866,64 @@ void ProcessorFunctor::nextRound() const
     mul_(REG27, REG27, REG22);
     mul_(REG22, REG22, REG28);
 
+    sub_(REG21, REG21, REG27);
+    getsw_(REG30);
+    andi_(REG30, REG30, 0x02);
+    addi_(REG31, REG0, 0x02);
+    if (beq_(REG30, REG31, 0)) {
+        goto next_round_reverse_sign_again;
+    }
+    br_(0);
+    goto next_round_euclid_again;
+
+next_round_reverse_sign_again:
+    andi_(REG30, REG20, 0x01);
+    if (beq_(REG30, REG0, 0)) {
+        goto next_round_negate_again;
+    }
+    addi_(REG20, REG20, 0x01);
+    br_(0);
+    goto next_round_euclid_again;
+
+next_round_negate_again:
+    addi_(REG30, REG0, 0x01);
+    xor_(REG20, REG20, REG30);
+
+next_round_euclid_again:
+    if (beq_(REG21, REG0, 0)) {
+        goto next_round_prepare_to_save;
+    }
+    push_(REG3);
+    push_(REG10);
+    push_(REG11);
+    push_(REG1);
+    add_(REG10, REG21, REG0);
+    add_(REG11, REG22, REG0);
+    beforeSecondCallEuclid = proc->getProgramCounter();
+    addi_(REG1, REG0, beforeSecondCallEuclid + sizeof(uint64_t) * 2);
+    br_(0);
+    euclidAlgorithm();
+    pop_(REG1);
+    pop_(REG11);
+    pop_(REG10);
+    div_(REG21, REG21, REG3);
+    div_(REG22, REG22, REG3);
+    pop_(REG3);
+
+
 next_round_prepare_to_save:
+    sw_(REG20, REG19, REG0);
+    swi_(REG21, REG19, sizeof(uint64_t));
+    swi_(REG21, REG19, (APNUMBERSIZE + 1) * sizeof(uint64_t));
+
+    addi_(REG13, REG13, 0x01);
+    sub_(REG30, REG14, REG13);
+    if (beq_(REG30, REG0, 0)) {
+        goto next_round_over;
+    }
+    br_(0);
+    goto next_round_loop_start;
+
+next_round_over:
     nop_();
-    
 }
