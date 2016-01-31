@@ -795,6 +795,7 @@ void ProcessorFunctor::nextRound() const
     //fetch 'bottom' row number
     add_(REG19, REG4, REG17);
     lw_(REG20, REG19, REG0);
+    andi_(REG20, REG20, 0xFF);
     lwi_(REG21, REG19, sizeof(uint64_t));
     lwi_(REG22, REG19, (APNUMBERSIZE + 1) * sizeof(uint64_t));
 
@@ -805,6 +806,7 @@ void ProcessorFunctor::nextRound() const
     //fetch 'top' row number
     add_(REG18, REG3, REG17);
     lw_(REG23, REG18, REG0);
+    andi_(REG23, REG23, 0xFF);
     lwi_(REG24, REG18, sizeof(uint64_t));
     lwi_(REG25, REG18, (APNUMBERSIZE + 1) * sizeof(uint64_t));
 
@@ -912,6 +914,9 @@ next_round_euclid_again:
 
 
 next_round_prepare_to_save:
+    lw_(REG30, REG19, REG0);
+    andi_(REG30, REG30, 0xFFFFFFFFFFFFFF00);
+    or_(REG20, REG30, REG20);
     sw_(REG20, REG19, REG0);
     swi_(REG21, REG19, sizeof(uint64_t));
     swi_(REG21, REG19, (APNUMBERSIZE + 1) * sizeof(uint64_t));
