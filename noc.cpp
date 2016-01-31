@@ -141,36 +141,6 @@ fail:
 	throw "Error";
 }
 
-//get rid of any unneeded entries
-void Noc::cleanRestOfPageTable(unsigned long address)
-{
-	unsigned long entrySize = sizeof(long) + 1;
-	
-	unsigned long levelTwoTableAddr =
-		globalMemory[0].
-		readLong(ptrBasePageTables + (address >> 52) * entrySize);
-	unsigned long levelThreeTableAddr =
-		globalMemory[0].readLong(levelTwoTableAddr + 
-			((address & 0xFFF0000000000) >> 40) * entrySize);
-	unsigned long levelFourTableAddr =
-		globalMemory[0].readLong(levelThreeTableAddr +
-			((address & 0xFFF0000000) >> 28) * entrySize);
-	unsigned long entryOffset =
-		(((address & 0xFFFFC00) >> 10) + 1) * entrySize;
-	while (true) {
-		uint8_t status = globalMemory[0].
-			readByte(levelFourTableAddr + entryOffset +
-			sizeof(long));
-		if (status != 0) {
-			globalMemory[0].writeByte(
-			levelFourTableAddr + entryOffset + sizeof(long), 0);
-		} else {
-			return;
-		}
-		entryOffset += entrySize;
-	}
-}	
-
 void Noc::writeSystemToMemory()
 {
 	//write variables out to memory as AP integers
@@ -212,9 +182,6 @@ void Noc::writeSystemToMemory()
 			}	
 		}
 	}
-    //cleanRestOfPageTable(address);
-    //signal only core 0 should execute
-    globalMemory[0].writeLong(0x100, 0xFF00);
 }	
 
 //memory regions - pair: 1st is number, 2nd is flag

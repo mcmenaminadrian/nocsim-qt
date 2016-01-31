@@ -895,7 +895,7 @@ next_round_prepare_to_save:
     or_(REG20, REG30, REG20);
     sw_(REG20, REG19, REG0);
     swi_(REG21, REG19, sizeof(uint64_t));
-    swi_(REG21, REG19, (APNUMBERSIZE + 1) * sizeof(uint64_t));
+    swi_(REG22, REG19, (APNUMBERSIZE + 1) * sizeof(uint64_t));
 
     addi_(REG13, REG13, 0x01);
     sub_(REG30, REG14, REG13);
