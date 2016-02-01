@@ -763,11 +763,11 @@ void ProcessorFunctor::nextRound() const
     //REG1 - hold processor number
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     //REG2 - size of each number
-    muli_(REG2, REG1, APNUMBERSIZE * 2 + 1);
+    muli_(REG2, REG1, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
     //REG3 - points to start of numbers
     lwi_(REG3, REG0, sizeof(uint64_t) * 2);
     //REG4 - point to start of this processor's numbers
-    muli_(REG4, REG2, 0x100); /*FIX ME: magic number here */
+    muli_(REG4, REG2, 0x101); /*FIX ME: magic number here */
     add_(REG4, REG4, REG3);
     //REG5 takes sign of first number
     lw_(REG5, REG4, REG0);

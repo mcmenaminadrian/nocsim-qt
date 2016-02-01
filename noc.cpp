@@ -25,7 +25,7 @@
 #include "processorFunc.hpp"
 #include "ControlThread.hpp"
 
-#define PAGE_TABLE_COUNT 16
+#define PAGE_TABLE_COUNT 32
 
 using namespace std;
 
