@@ -668,7 +668,7 @@ void Processor::start()
 
 	uint64_t pagesIn = (1 + tabPages + bitPages);
 
-	programCounter = pagesIn * (1 << pageShift) + 0x10000000;
+    programCounter = pagesIn * (1 << pageShift) + 0x900000;
 	fixPageMapStart(pagesIn, programCounter);
 	markBitmapStart(pagesIn, programCounter);
 	fixTLB(pagesIn, programCounter);
