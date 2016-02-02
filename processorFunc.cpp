@@ -552,7 +552,13 @@ void ProcessorFunctor::executeZeroCPU() const
     //increment loop counter
     addi_(REG3, REG0, 1);
     //set REG6 to sign
+    //and store positive sign
     andi_(REG6, REG5, 0xFF);
+    xor_(REG9, REG6, REG6);
+    andi_(REG5, REG5, 0xFFFFFFFFFFFFFF00);
+    or_(REG5, REG5, REG9);
+    sw_(REG5, REG0, REG4);
+
     uint64_t anchor1 = proc->getProgramCounter();
 loop1:
     proc->setProgramCounter(anchor1);
