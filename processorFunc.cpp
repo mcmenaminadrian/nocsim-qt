@@ -611,6 +611,7 @@ store:
     //store
     sw_(REG10, REG9, REG4);
     sw_(REG11, REG4, REG8);
+    cout << proc->getRegister(REG10) << "/" << proc->getRegister(REG11) << endl;
     addi_(REG3, REG3, 1);
     if (beq_(REG3, REG1, 0)) {
         proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
