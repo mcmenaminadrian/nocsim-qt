@@ -758,12 +758,12 @@ calculate_next:
 back_to_next_round:
     nextRound();
 	pop_(REG12);
-	if (beq_(REG1, REG12, 0) {
+	if (beq_(REG1, REG12, 0)) {
 		goto it_ends_here;
 	}
 	addi_(REG12, REG12, 0x01);
 	subi_(REG13, REG12, 0xFF);
-	if (beq_(REG13, REG0, 0) {
+	if (beq_(REG13, REG0, 0)) {
 		goto it_ends_here;
 	}
 	goto back_to_next_round;
@@ -781,7 +781,7 @@ void ProcessorFunctor::nextRound() const
     //calculate factor for this line
     //REG1 - hold processor number
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
-	if (beq_(REG1, REG12, 0) {
+	if (beq_(REG1, REG12, 0)) {
 		return;
 	}
 	muli_(REG9, REG12, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t) * 0x101);
