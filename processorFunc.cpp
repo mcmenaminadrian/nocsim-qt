@@ -753,10 +753,23 @@ back_off_reset:
     goto wait_on_zero;
     
 calculate_next:
+	addi_(REG12, REG0, 0);
+	push_(REG12);
+back_to_next_round:
     nextRound();
+	pop_(REG12);
+	if (beq_(REG1, REG12, 0) {
+		goto it_ends_here;
+	}
+	addi_(REG12, REG12, 0x01);
+	subi_(REG13, REG12, 0xFF);
+	if (beq_(REG13, REG0, 0) {
+		goto it_ends_here;
+	}
+	goto back_to_next_round;
 
 it_ends_here:
-    cout << masterTile->readLong(0x100) << " - our work here is done - " << endl;
+    cout << " - our work here is done - " << endl;
 	masterTile->getBarrier()->decrementTaskCount();
 }
 
@@ -768,6 +781,11 @@ void ProcessorFunctor::nextRound() const
     //calculate factor for this line
     //REG1 - hold processor number
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
+	if (beq_(REG1, REG12, 0) {
+		return;
+	}
+	muli_(REG9, REG12, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t) * 0x101);
+	muli_(REG16, REG12, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
     //REG2 - size of each number
     muli_(REG2, REG1, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
     //REG3 - points to start of numbers
@@ -775,6 +793,8 @@ void ProcessorFunctor::nextRound() const
     //REG4 - point to start of this processor's numbers
     muli_(REG4, REG2, 0x101); /*FIX ME: magic number here */
     add_(REG4, REG4, REG3);
+	add_(REG4, REG4, REG9);
+	add_(REG4, REG4, REG16);
     //REG5 takes sign of first number
     lw_(REG5, REG4, REG0);
     andi_(REG5, REG5, 0xFF);
@@ -786,7 +806,7 @@ void ProcessorFunctor::nextRound() const
     //next set of numbers
     //REG13 progress
     //REG14 limit
-    add_(REG13, REG0, REG0);
+    add_(REG13, REG0, REG12);
     addi_(REG14, REG0, 0x100); /* FIX ME: Magic number again */
     //now loop through all the numbers
 
@@ -902,6 +922,7 @@ next_round_prepare_to_save:
     sw_(REG20, REG19, REG0);
     swi_(REG21, REG19, sizeof(uint64_t));
     swi_(REG22, REG19, (APNUMBERSIZE + 1) * sizeof(uint64_t));
+	cout << proc->getRegister(REG21) << "/" << proc->getRegister(REG22) << ", ";
     addi_(REG13, REG13, 0x01);
     sub_(REG30, REG14, REG13);
     if (beq_(REG30, REG0, 0)) {
