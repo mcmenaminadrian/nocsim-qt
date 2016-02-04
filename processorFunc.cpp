@@ -67,9 +67,10 @@ enum reg {REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, REG8, REG9,
 //  divi_   rA, rB, imm : rA = rB/imm       integer division by immediate
 //  sub_    rA, rB, rC  : rA = rB - rC      subtract (with carry)
 //  subi_   rA, rB, rC  : rA = rB - imm     subtract immediate (with carry)
-//  xor     rA, rB, rC  : rA = rB xor rC    exclusive or
-//  or      rA, rB, rC  : rA = rB or rC     or
-//  nop                 : no operation
+//  xor_    rA, rB, rC  : rA = rB xor rC    exclusive or
+//  or_     rA, rB, rC  : rA = rB or rC     or
+//  ori_    rA, rB, imm : rA = rB or imm    or immediate
+//  nop_                 : no operation
 
 void ProcessorFunctor::add_(const uint64_t& regA,
 	const uint64_t& regB, const uint64_t& regC) const
@@ -322,6 +323,13 @@ void ProcessorFunctor::or_(const uint64_t& regA, const uint64_t& regB,
     proc->pcAdvance();
 }
 
+void ProcessorFunctor::ori_(const uint64_t& regA, const uint64_t& regB,
+    const uint64_t& imm) const
+{
+    proc->setRegister(regA, proc->getRegister(regB) | imm);
+    proc->pcAdvance();
+}
+
 ///End of instruction set ///
 
 #define SETSIZE 256
@@ -532,15 +540,25 @@ answer:
 }
 
 //return address in REG1
-void ProcessorFunctor::executeZeroCPU() const
+//REG2 tells us which line
+void ProcessorFunctor::normaliseLine() const
 {
+    //copy REG2 to REG30;
+    push_(REG2);
+    pop_(REG30);
     push_(REG1);
     //read in the data
     addi_(REG1, REG0, SETSIZE);
     addi_(REG2, REG0, APNUMBERSIZE);
-    addi_(REG3, REG0, 0);
+    add_(REG3, REG0, REG30);
+    //REG28 takes offset on line
+    muli_(REG28, REG30, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
+    //REG29 takes offset to line
+    muli_(REG29, REG30, ((APNUMBERSIZE * 2 + 1) * 0x101) * sizeof(uint64_t));
     //REG4 takes address of start of numbers
     lwi_(REG4, REG0, sizeof(uint64_t) * 2);
+    add_(REG4, REG4, REG29);
+    add_(REG4, REG4, REG28);
     //REG5 reads in first 64 bit word - sign etc
     lw_(REG5, REG0, REG4);
     //set REG6 to 1
@@ -688,27 +706,59 @@ void ProcessorFunctor::operator()()
 		return;
 	}
 	proc->start();
+    //REG15 holds count
+    add_(REG15, REG0, REG0);
 	addi_(REG1, REG0, 0x1);
 	setsw_(REG1);
+    //initial command
     addi_(REG1, REG0, 0xFF00);
     swi_(REG1, REG0, 0x100);
+    const uint64_t readCommandPoint = proc->getProgramCounter();
+
+read_command:
+    proc->setProgramCounter(readCommandPoint);
     lwi_(REG2, REG0, 0x100);
     //REG3 holds signal
     andi_(REG3, REG2, 0xFF00);
+    //REG7 holds signal to match against
+    addi_(REG7, REG0, 0xFF00);
     //REG4 holds register
     andi_(REG4, REG2, 0xFF);
     addi_(REG1, REG0, proc->getNumber());
     swi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
-    //beq_ address is dummy
-    if (beq_(REG1, REG4, 0)) {
-        executeZeroCPU();
-        flushPages();
-        addi_(REG3, REG0, 0xFE00);
-        swi_(REG3, REG0, 0x100);
-        flushPages();
-        goto it_ends_here;
-    }
 
+    //test for signal
+    if (beq_(REG3, REG7, 0)) {
+        goto test_for_processor;
+    }
+    br_(0);
+    goto wait_for_next_signal;
+
+test_for_processor:
+    andi_(REG2, REG2, 0xFF);
+    if (beq_(REG2, REG1, 0)) {
+        goto normalise_line;
+    }
+    br_(0);
+    goto wait_for_next_signal;
+
+normalise_line:
+    push_(REG1);
+    push_(REG15);
+    normaliseLine();
+    flushPages();
+    pop_(REG15);
+    add_(REG3, REG0, REG15);
+    ori_(REG3, REG3, 0xFE00);
+    push_(REG15);
+    swi_(REG3, REG0, 0x100);
+    flushPages();
+    pop_(REG15);
+    pop_(REG1);
+    goto prepare_to_normalise_next;
+
+wait_for_next_signal:
+    push_(REG15);
     //try a back off
     addi_(REG5, REG0, 0x10);
     addi_(REG6, REG0, 0x1000);
@@ -759,17 +809,32 @@ back_to_next_round:
     nextRound();
 	pop_(REG12);
 	if (beq_(REG1, REG12, 0)) {
-		goto it_ends_here;
+        goto get_REG15_back;
 	}
 	addi_(REG12, REG12, 0x01);
 	subi_(REG13, REG12, 0xFF);
 	if (beq_(REG13, REG0, 0)) {
-		goto it_ends_here;
+        goto get_REG15_back;
 	}
 	goto back_to_next_round;
 
-it_ends_here:
-    cout << " - our work here is done - " << endl;
+get_REG15_back:
+    pop_(REG15);
+prepare_to_normalise_next:
+    if (beq_(REG15, REG1, 0)) {
+        goto work_here_is_done;
+    }
+    addi_(REG15, REG15, 0x1);
+    //construct next signal
+    addi_(REG20, REG0, 0xFF00);
+    or_(REG20, REG20, REG15);
+    swi_(REG20, REG0, 0x100);
+    br_(0);
+    goto read_command;
+    //construct next signal
+
+work_here_is_done:
+    cout << " - our work here is done - " << proc->getRegister(REG1) << endl;
 	masterTile->getBarrier()->decrementTaskCount();
 }
 

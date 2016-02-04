@@ -56,11 +56,13 @@ private:
               const uint64_t& regC) const;
     void or_(const uint64_t& regA, const uint64_t& regB,
               const uint64_t& regC) const;
+    void ori_(const uint64_t& regA, const uint64_t& regB,
+              const uint64_t& imm) const;
     void shiftrr_(const uint64_t& regA, const uint64_t& regB)
         const;
     void shiftlr_(const uint64_t& regA, const uint64_t& regB)
         const;
-    void executeZeroCPU() const;
+    void normaliseLine() const;
     void euclidAlgorithm() const;
     void flushPages() const;
     void forcePageReload() const;
