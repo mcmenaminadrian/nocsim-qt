@@ -371,7 +371,8 @@ check_page_status:
     lwi_(REG4, REG17, FLAGOFFSET);
     //don't flush an unmovable page
     andi_(REG30, REG4, 0x02);
-    if (beq_(REG30, REG0, 0)) {
+    addi_(REG31, REG0, 0x02);
+    if (beq_(REG30, REG31, 0)) {
         goto next_pte;
     }
     //don't flush an invalid page
@@ -751,16 +752,20 @@ test_for_processor:
 normalise_line:
     push_(REG1);
     push_(REG15);
+    br_(0);
     normaliseLine();
+    br_(0);
     flushPages();
     pop_(REG15);
     add_(REG3, REG0, REG15);
     ori_(REG3, REG3, 0xFE00);
     push_(REG15);
     swi_(REG3, REG0, 0x100);
+    br_(0);
     flushPages();
     pop_(REG15);
     pop_(REG1);
+    br_(0);
     goto prepare_to_normalise_next;
 
 wait_for_next_signal:

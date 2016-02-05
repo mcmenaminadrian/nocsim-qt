@@ -735,10 +735,7 @@ void Processor::activateClock()
                 + FLAGOFFSET;
 		uint32_t flags = masterTile->readWord32(flagAddress);
 		waitATick();
-		if (flags == 0 || flags & 0x02) {
-			continue;
-		}
-		if (!(flags & 0x01)) {
+        if (!(flags & 0x01) || flags & 0x02) {
 			continue;
 		}
 		flags = flags & (~0x04);
