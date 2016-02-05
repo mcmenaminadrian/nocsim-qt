@@ -369,6 +369,12 @@ check_page_status:
     add_(REG17, REG1, REG5);
     //REG4 holds flags    
     lwi_(REG4, REG17, FLAGOFFSET);
+    //don't flush an unmovable page
+    andi_(REG30, REG4, 0x02);
+    if (beq_(REG30, REG0, 0)) {
+        goto next_pte;
+    }
+    //don't flush an invalid page
     andi_(REG4, REG4, 0x01);
     if (beq_(REG4, REG0, 0)) {
         goto next_pte;
@@ -829,6 +835,7 @@ prepare_to_normalise_next:
     addi_(REG20, REG0, 0xFF00);
     or_(REG20, REG20, REG15);
     swi_(REG20, REG0, 0x100);
+    cout << "sending signal " << proc->getRegister(REG20) << endl;
     br_(0);
     goto read_command;
     //construct next signal
@@ -849,17 +856,23 @@ void ProcessorFunctor::nextRound() const
 	if (beq_(REG1, REG12, 0)) {
 		return;
 	}
+    //REG9 is offset to start of reference line
+    /*FIX ME: Magic number */
 	muli_(REG9, REG12, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t) * 0x101);
+    //REG16 is offset to first number to test
 	muli_(REG16, REG12, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
     //REG2 - size of each number
     muli_(REG2, REG1, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
     //REG3 - points to start of numbers
     lwi_(REG3, REG0, sizeof(uint64_t) * 2);
+    //REG18 holds position on 'zero' line
+    add_(REG18, REG0, REG3);
+    add_(REG18, REG18, REG9);
+    add_(REG18, REG18, REG16);
     //REG4 - point to start of this processor's numbers
     muli_(REG4, REG2, 0x101); /*FIX ME: magic number here */
     add_(REG4, REG4, REG3);
-	add_(REG4, REG4, REG9);
-	add_(REG4, REG4, REG16);
+    add_(REG4, REG4, REG16);
     //REG5 takes sign of first number
     lw_(REG5, REG4, REG0);
     andi_(REG5, REG5, 0xFF);
@@ -871,8 +884,9 @@ void ProcessorFunctor::nextRound() const
     //next set of numbers
     //REG13 progress
     //REG14 limit
-    add_(REG13, REG0, REG12);
-    addi_(REG14, REG0, 0x100); /* FIX ME: Magic number again */
+    add_(REG13, REG0, REG0);
+    addi_(REG14, REG0, 0x101); /* FIX ME: Magic number again */
+    sub_(REG14, REG14, REG12);
     //now loop through all the numbers
 
     const uint64_t nextRoundLoopStart = proc->getProgramCounter();
@@ -895,7 +909,7 @@ void ProcessorFunctor::nextRound() const
     }
 
     //fetch 'top' row number
-    add_(REG18, REG3, REG17);
+    add_(REG18, REG18, REG17);
     lw_(REG23, REG18, REG0);
     andi_(REG23, REG23, 0xFF);
     lwi_(REG24, REG18, sizeof(uint64_t));
