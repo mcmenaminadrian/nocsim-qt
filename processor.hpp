@@ -1,4 +1,25 @@
+#include <QObject>
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <vector>
+#include <map>
+#include <string>
+#include <thread>
+#include <bitset>
+#include <mutex>
+#include <tuple>
+#include <condition_variable>
+#include <climits>
+#include <cstdlib>
+#include "mainwindow.h"
+#include "ControlThread.hpp"
+#include "memorypacket.hpp"
+#include "mux.hpp"
+#include "tile.hpp"
+#include "memory.hpp"
 #include "router.hpp"
+
 
 #ifndef _PROCESSOR_CLASS_
 #define _PROCESSOR_CLASS_
@@ -26,7 +47,13 @@ static const uint64_t BITS_PER_BYTE = 8;
 
 class Tile;
 
-class Processor {
+class Processor: public QObject {
+    Q_OBJECT
+
+signals:
+    void hardFault();
+    void smallFault();
+
 private:
 	Router router;
 	std::mutex interruptLock;
@@ -143,6 +170,5 @@ public:
     void flushPagesEnd();
     void dumpPageFromTLB(const uint64_t& address);
 
-	//message passing code
 };
 #endif

@@ -1,3 +1,4 @@
+#include <QObject>
 #include <iostream>
 #include <mutex>
 #include <thread>
@@ -10,6 +11,8 @@ using namespace std;
 ControlThread::ControlThread(unsigned long tcks, MainWindow *pWind):
     ticks(tcks), taskCount(0), beginnable(false), mainWindow(pWind)
 {
+    QObject::connect(this, SIGNAL(updateCycles()),
+        pWind, SLOT(updateLCD()));
 }
 
 void ControlThread::releaseToRun()
@@ -49,8 +52,8 @@ void ControlThread::run()
 	go.notify_all();
     //update LCD display
     ++(mainWindow->currentCycles);
-    mainWindow->updateLCD();
 	taskCountLock.unlock();
+    emit updateCycles();
 }
 
 void ControlThread::waitForBegin()

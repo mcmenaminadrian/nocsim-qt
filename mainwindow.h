@@ -31,15 +31,15 @@ public:
     void setPageShift(const uint64_t pS) {pageShift = pS;}
     void setBlockSize(const uint64_t bS) {blockSize = bS;}
     void setMemoryBlocks(const uint64_t mB) {memoryBlocks = mB;}
-    void updateLCD();
-    void updateHardFaults();
-    void updateSmallFaults();
     int currentCycles;
 
 private slots:
-    void on_pushButton_clicked();\
+    void on_pushButton_clicked();
 
-
+public slots:
+    void updateHardFaults();
+    void updateSmallFaults();
+    void updateLCD();
 
 
 };

@@ -1,3 +1,4 @@
+#include <QObject>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -48,6 +49,10 @@ Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
 	currentTLB = 0;
 	inInterrupt = false;
     processorNumber = numb;
+    QObject::connect(this, SIGNAL(hardFault()),
+        mW, SLOT(updateHardFaults()));
+    QObject::connect(this, SIGNAL(smallFault()),
+        mW, SLOT(updateSmallFaults()));
 }
 
 void Processor::setMode()
@@ -294,7 +299,7 @@ uint64_t Processor::triggerSmallFault(
 	const tuple<uint64_t, uint64_t, bool>& tlbEntry,
 	const uint64_t& address)
 {
-    mainWindow->updateSmallFaults();
+    emit smallFault();
 	interruptBegin();
 	transferGlobalToLocal(address, tlbEntry, BITMAP_BYTES);
 	const uint64_t frameNo =
@@ -498,7 +503,7 @@ const pair<uint64_t, uint8_t>
 
 uint64_t Processor::triggerHardFault(const uint64_t& address)
 {
-    mainWindow->updateHardFaults();
+    emit hardFault();
 	interruptBegin();
 	const pair<const uint64_t, bool> frameData = getFreeFrame();
 	if (frameData.second) {

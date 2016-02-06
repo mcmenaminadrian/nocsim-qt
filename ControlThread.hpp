@@ -1,7 +1,21 @@
+#include <QObject>
+#include <iostream>
+#include <mutex>
+#include <thread>
+#include <condition_variable>
+#include "mainwindow.h"
+
 #ifndef __CONTROLTHREAD_
 #define __CONTROLTHREAD_
 
-class ControlThread {
+
+
+class ControlThread: public QObject {
+    Q_OBJECT
+
+signals:
+    void updateCycles();
+
 private:
 	uint64_t ticks;
 	volatile uint16_t taskCount;
