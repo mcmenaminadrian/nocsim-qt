@@ -762,13 +762,6 @@ void Processor::activateClock()
 	interruptEnd();
 }
 
-void Processor::cleanTLBs()
-{
-    for (auto& x:tlbs) {
-        get<2>(x) = false;
-    }
-}
-
 void Processor::dumpPageFromTLB(const uint64_t& address)
 {
     waitATick();

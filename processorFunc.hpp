@@ -12,8 +12,6 @@ private:
 		const uint64_t& rC) const;
 	void addi_(const uint64_t& rA, const uint64_t& rB,
 		const uint64_t& imm) const;
-	void addm_(const uint64_t& rA, const uint64_t& rB,
-		const uint64_t& address) const;
 	void and_(const uint64_t& rA, const uint64_t& rB,
 		const uint64_t& rC) const;
     void andi_(const uint64_t& rA, const uint64_t& rB,

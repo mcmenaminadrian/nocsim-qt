@@ -87,14 +87,6 @@ void ProcessorFunctor::addi_(const uint64_t& regA,
 	proc->pcAdvance();
 }
 
-void ProcessorFunctor::addm_(const uint64_t& regA,
-	const uint64_t& regB, const uint64_t& address) const
-{
-	proc->setRegister(regA,
-		proc->getRegister(regB) + proc->getLongAddress(address));
-	proc->pcAdvance();
-}
-
 void ProcessorFunctor::and_(const uint64_t& regA,
 	const uint64_t& regB, const uint64_t& regC) const
 {
