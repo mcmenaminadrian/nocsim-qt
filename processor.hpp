@@ -122,7 +122,7 @@ public:
 		const uint64_t& value);
 	void pushStackPointer();
 	void popStackPointer();
-	uint64_t getStackPointer() const { return stackPointer;}
+    uint64_t getStackPointer() const;
 	void setStackPointer(const uint64_t& address) { 
 		stackPointer = address; }
     uint64_t getProgramCounter() const {

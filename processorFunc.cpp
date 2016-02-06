@@ -253,7 +253,8 @@ void ProcessorFunctor::setsp_(const uint64_t& regA) const
 
 void ProcessorFunctor::pop_(const uint64_t& regA) const
 {
-    proc->setRegister(regA, proc->getLongAddress(proc->getStackPointer()));
+    uint64_t sP = proc->getStackPointer();
+    proc->setRegister(regA, proc->getLongAddress(sP));
     proc->waitATick();
     proc->popStackPointer();
     proc->pcAdvance();
