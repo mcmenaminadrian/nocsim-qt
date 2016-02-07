@@ -1,5 +1,5 @@
 //Memory class
-
+#include <QMap>
 #ifndef _MEMORY_CLASS_
 #define _MEMORY_CLASS_
 
@@ -12,7 +12,7 @@ class Memory {
 private:
 	const uint64_t start;
 	const uint64_t memorySize;
-	std::map<uint64_t, uint8_t> contents;
+    QMap<uint64_t, uint8_t> contents;
 	Mux* rootMux;
 
 public:

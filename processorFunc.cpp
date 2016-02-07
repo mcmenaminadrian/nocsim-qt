@@ -648,6 +648,7 @@ ending:
 //REG1 holds return address
 void ProcessorFunctor::forcePageReload() const
 {
+    push_(REG1);
     //Enter interrupt context
     //find page, wipe TLB and page table,
     //then exit interrupt and read address
@@ -702,14 +703,14 @@ void ProcessorFunctor::operator()()
     uint64_t hangingPoint, waitingOnZero;
 	const uint64_t order = tile->getOrder();
     Tile *masterTile = proc->getTile();
-	if (order >= SETSIZE) {
-		return;
-	}
-	proc->start();
+    if (order >= SETSIZE) {
+	return;
+    }
+    proc->start();
     //REG15 holds count
     add_(REG15, REG0, REG0);
-	addi_(REG1, REG0, 0x1);
-	setsw_(REG1);
+    addi_(REG1, REG0, 0x1);
+    setsw_(REG1);
     //initial command
     addi_(REG1, REG0, 0xFF00);
     swi_(REG1, REG0, 0x100);
@@ -735,8 +736,7 @@ read_command:
     goto wait_for_next_signal;
 
 test_for_processor:
-    andi_(REG2, REG2, 0xFF);
-    if (beq_(REG2, REG1, 0)) {
+    if (beq_(REG4, REG1, 0)) {
         goto normalise_line;
     }
     br_(0);
@@ -772,14 +772,15 @@ wait_on_zero:
     proc->setProgramCounter(waitingOnZero);
     addi_(REG3, REG0, 0x100);
     addi_(REG1, REG0, proc->getProgramCounter());
-    push_(REG1);
     br_(0);
-    forcePageReload();
-    andi_(REG4, REG4, 0xFFFF);
+    forcePageReload(); //reads address in REG3, returning in REG4
+    push_(REG4);
+    andi_(REG4, REG4, 0xFF00);
     addi_(REG8, REG0, 0xFE00);
     if (beq_(REG8, REG4, 0)) {
         goto calculate_next;
     }
+    pop_(REG4);
     //do the back off wait
     add_(REG7, REG0, REG5);
     hangingPoint = proc->getProgramCounter();
@@ -807,20 +808,17 @@ back_off_reset:
     goto wait_on_zero;
     
 calculate_next:
-	addi_(REG12, REG0, 0);
-	push_(REG12);
-back_to_next_round:
+    pop_(REG4);
+    andi_(REG4, REG4, 0xFF);
+    if (beq_(REG4, REG15, 0)) {
+	goto on_to_next_round;
+    }
+    br_(0);
+    goto wait_on_zero;
+
+on_to_next_round:
+    add_(REG12, REG4, REG0);
     nextRound();
-	pop_(REG12);
-	if (beq_(REG1, REG12, 0)) {
-        goto get_REG15_back;
-	}
-	addi_(REG12, REG12, 0x01);
-	subi_(REG13, REG12, 0xFF);
-	if (beq_(REG13, REG0, 0)) {
-        goto get_REG15_back;
-	}
-	goto back_to_next_round;
 
 get_REG15_back:
     pop_(REG15);
@@ -833,6 +831,12 @@ prepare_to_normalise_next:
     addi_(REG20, REG0, 0xFF00);
     or_(REG20, REG20, REG15);
     swi_(REG20, REG0, 0x100);
+    push_(REG15);
+    push_(REG1);
+    br(0);
+    flushPages();
+    pop_(REG1);
+    pop_(REG15);
     cout << "sending signal " << proc->getRegister(REG20) << endl;
     br_(0);
     goto read_command;
@@ -850,15 +854,16 @@ void ProcessorFunctor::nextRound() const
     uint64_t beforeSecondCallEuclid;
     //calculate factor for this line
     //REG1 - hold processor number
+    //REG12 - the 'top' line
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
-	if (beq_(REG1, REG12, 0)) {
-		return;
-	}
+    if (beq_(REG1, REG12, 0)) {
+	return;
+    }
     //REG9 is offset to start of reference line
     /*FIX ME: Magic number */
-	muli_(REG9, REG12, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t) * 0x101);
+    muli_(REG9, REG12, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t) * 0x101);
     //REG16 is offset to first number to test
-	muli_(REG16, REG12, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
+    muli_(REG16, REG12, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
     //REG2 - size of each number
     muli_(REG2, REG1, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
     //REG3 - points to start of numbers

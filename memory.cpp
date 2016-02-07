@@ -26,7 +26,7 @@ uint8_t Memory::readByte(const uint64_t& address)
 	}
 
 	try {
-		retVal = contents.at(address);
+        retVal = contents.value(address);
 	}
 	catch (const out_of_range& err)
 	{
@@ -51,7 +51,7 @@ uint64_t Memory::readLong(const uint64_t& address)
     for (uint8_t i = 0; i < sizeof(uint64_t); i++)
 	{	
 		try {
-			in[i] = (uint8_t)contents.at(address + i);
+            in[i] = (uint8_t)contents.value(address + i);
 		}
 		catch (const out_of_range& err)
 		{
