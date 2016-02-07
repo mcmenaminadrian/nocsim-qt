@@ -546,6 +546,7 @@ void ProcessorFunctor::normaliseLine() const
     //copy REG2 to REG30;
     push_(REG2);
     pop_(REG30);
+    andi_(REG30, REG30, 0xFF);
     push_(REG1);
     //read in the data
     addi_(REG1, REG0, SETSIZE);
@@ -833,7 +834,7 @@ prepare_to_normalise_next:
     swi_(REG20, REG0, 0x100);
     push_(REG15);
     push_(REG1);
-    br(0);
+    br_(0);
     flushPages();
     pop_(REG1);
     pop_(REG15);
