@@ -712,6 +712,8 @@ page_walk_done:
 void ProcessorFunctor::operator()()
 {
     uint64_t hangingPoint, waitingOnZero;
+    uint64_t loopingWaitingForProcessorCount;
+    uint64_t waitingForTurn;
 	const uint64_t order = tile->getOrder();
     Tile *masterTile = proc->getTile();
     if (order >= SETSIZE) {
@@ -748,7 +750,7 @@ read_command:
     //wait 0x10 ticks x processor number
     muli_(REG3, REG1, 0x10);
 tick_read_down:
-    nop();
+    nop_();
     subi_(REG3, REG3, 0x01);
     if (beq_(REG3, REG0, 0)) {
 	goto read_command;
@@ -870,7 +872,7 @@ prepare_to_normalise_next:
     addi_(REG15, REG15, 0x1);
     //construct next signal
 
-    uint64_t waitingForTurn = proc->getProgramCounter();
+    waitingForTurn = proc->getProgramCounter();
 
 wait_for_turn_to_complete:
     proc->setProgramCounter(waitingForTurn);
@@ -887,7 +889,7 @@ wait_for_turn_to_complete:
     }
     sub_(REG5, REG1, REG4);
     muli_(REG5, REG5, 0x100);
-    uint loopingWaitingForProcessorCount = proc->getProgramCounter();
+    loopingWaitingForProcessorCount = proc->getProgramCounter();
 
 loop_wait_processor_count:
     proc->setProgramCounter(loopingWaitingForProcessorCount);
@@ -910,7 +912,7 @@ ready_to_loop_again:
 write_out_next_processor:
     swi_(REG1, REG0, 0x110);
     br_(0);
-    addi_(REG1, REG0, proc->setProgramCounter());
+    addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
     pop_(REG5);
     pop_(REG4);
