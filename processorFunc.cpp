@@ -544,6 +544,14 @@ answer:
 void ProcessorFunctor::normaliseLine() const
 {
     cout << "Normalising line " << proc->getRegister(REG30) << endl;
+
+    //reset processor count to zero
+    swi_(REG0, REG0, 0x110);
+    push_(REG1);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    flushPages();
+    pop_(REG1);
+
     //copy REG2 to REG30;
     push_(REG2);
     pop_(REG30);
@@ -697,6 +705,7 @@ page_walk_done:
     lw_(REG4, REG3, REG0);
     pop_(REG1);
     br_(0);
+    proc->setProgramCounter(proc->getRegister(REG1));
     nop_();
 }
 
@@ -713,9 +722,11 @@ void ProcessorFunctor::operator()()
     add_(REG15, REG0, REG0);
     addi_(REG1, REG0, 0x1);
     setsw_(REG1);
-    //initial command
+    //initial commands
     addi_(REG1, REG0, 0xFF00);
     swi_(REG1, REG0, 0x100);
+    addi_(REG1, REG0, 0xFF);
+    swi_(REG1, REG0, 0x110);
     //store processor number
     addi_(REG1, REG0, proc->getNumber());
     swi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
@@ -724,6 +735,29 @@ void ProcessorFunctor::operator()()
 
 read_command:
     proc->setProgramCounter(readCommandPoint);
+    addi_(REG3, REG0, 0x110);
+    push_(REG1);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    br_(0);
+    forcePageReload();
+    pop_(REG1);
+    addi_(REG3, REG0, 0xFF);
+    if (beq_(REG3, REG4, 0)) {
+	goto keep_reading_command;
+    }
+    //wait 0x10 ticks x processor number
+    muli_(REG3, REG1, 0x10);
+tick_read_down:
+    nop();
+    subi_(REG3, REG3, 0x01);
+    if (beq_(REG3, REG0, 0)) {
+	goto read_command;
+    }
+    br_(0);
+    goto tick_read_down;
+
+
+keep_reading_command:
     lwi_(REG2, REG0, 0x100);
     //REG3 holds signal
     andi_(REG3, REG2, 0xFF00);
@@ -751,6 +785,7 @@ normalise_line:
     push_(REG15);
     br_(0);
     normaliseLine();
+    addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     flushPages();
     pop_(REG15);
@@ -758,6 +793,7 @@ normalise_line:
     ori_(REG3, REG3, 0xFE00);
     push_(REG15);
     swi_(REG3, REG0, 0x100);
+    addi_(REG1, REG0, proc->getProgramCounter()); 
     br_(0);
     flushPages();
     pop_(REG15);
@@ -833,6 +869,53 @@ prepare_to_normalise_next:
     }
     addi_(REG15, REG15, 0x1);
     //construct next signal
+
+    uint64_t waitingForTurn = proc->getProgramCounter();
+
+wait_for_turn_to_complete:
+    proc->setProgramCounter(waitingForTurn);
+    push_(REG3);
+    push_(REG4);
+    addi_(REG3, REG0, 0x110);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    forcePageReload();
+    lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
+    push_(REG5);
+    addi_(REG5, REG4, 0x01);
+    if (beq_(REG5, REG1, 0)) {
+        goto write_out_next_processor;
+    }
+    sub_(REG5, REG1, REG4);
+    muli_(REG5, REG5, 0x100);
+    uint loopingWaitingForProcessorCount = proc->getProgramCounter();
+
+loop_wait_processor_count:
+    proc->setProgramCounter(loopingWaitingForProcessorCount);
+    nop_();
+    subi_(REG5, REG5, 0x01);
+    if (beq_(REG5, REG0, 0)) {
+	goto ready_to_loop_again;
+    }
+    br_(0);
+    goto loop_wait_processor_count;
+    
+
+ready_to_loop_again:
+    pop_(REG5);
+    pop_(REG4);
+    pop_(REG3);
+    br_(0);
+    goto wait_for_turn_to_complete;
+
+write_out_next_processor:
+    swi_(REG1, REG0, 0x110);
+    br_(0);
+    addi_(REG1, REG0, proc->setProgramCounter());
+    flushPages();
+    pop_(REG5);
+    pop_(REG4);
+    pop_(REG3);
+
     addi_(REG20, REG0, 0xFF00);
     or_(REG20, REG20, REG15);
     swi_(REG20, REG0, 0x100);
@@ -848,8 +931,10 @@ prepare_to_normalise_next:
     //construct next signal
 
 work_here_is_done:
+    swi_(REG1, REG0, 0x110);
+    flushPages();
     cout << " - our work here is done - " << proc->getRegister(REG1) << endl;
-	masterTile->getBarrier()->decrementTaskCount();
+    masterTile->getBarrier()->decrementTaskCount();
 }
 
 //this function just to break code up
