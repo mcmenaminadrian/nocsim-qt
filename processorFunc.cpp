@@ -729,6 +729,8 @@ void ProcessorFunctor::operator()()
     swi_(REG1, REG0, 0x100);
     addi_(REG1, REG0, 0xFF);
     swi_(REG1, REG0, 0x110);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    flushPages();
     //store processor number
     addi_(REG1, REG0, proc->getNumber());
     swi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
