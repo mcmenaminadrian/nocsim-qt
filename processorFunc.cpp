@@ -543,6 +543,7 @@ answer:
 //REG2 tells us which line
 void ProcessorFunctor::normaliseLine() const
 {
+    cout << "Normalising line " << proc->getRegister(REG30) << endl;
     //copy REG2 to REG30;
     push_(REG2);
     pop_(REG30);
@@ -715,6 +716,10 @@ void ProcessorFunctor::operator()()
     //initial command
     addi_(REG1, REG0, 0xFF00);
     swi_(REG1, REG0, 0x100);
+    //store processor number
+    addi_(REG1, REG0, proc->getNumber());
+    swi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
+
     const uint64_t readCommandPoint = proc->getProgramCounter();
 
 read_command:
@@ -726,9 +731,7 @@ read_command:
     addi_(REG7, REG0, 0xFF00);
     //REG4 holds register
     andi_(REG4, REG2, 0xFF);
-    addi_(REG1, REG0, proc->getNumber());
-    swi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
-
+ 
     //test for signal
     if (beq_(REG3, REG7, 0)) {
         goto test_for_processor;
@@ -824,6 +827,7 @@ on_to_next_round:
 get_REG15_back:
     pop_(REG15);
 prepare_to_normalise_next:
+    cout << "Pass " << proc->getRegister(REG15) << " on processor " << proc->getRegister(REG1) << " complete." << endl;
     if (beq_(REG15, REG1, 0)) {
         goto work_here_is_done;
     }
@@ -838,7 +842,7 @@ prepare_to_normalise_next:
     flushPages();
     pop_(REG1);
     pop_(REG15);
-    cout << "sending signal " << proc->getRegister(REG20) << endl;
+    cout << "sending signal " << hex << proc->getRegister(REG20) << endl;
     br_(0);
     goto read_command;
     //construct next signal
@@ -857,6 +861,7 @@ void ProcessorFunctor::nextRound() const
     //REG1 - hold processor number
     //REG12 - the 'top' line
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
+    cout << "Processor " << proc->getRegister(REG1) << " with base line " << proc->getRegister(REG12) << endl;
     if (beq_(REG1, REG12, 0)) {
 	return;
     }
@@ -1005,7 +1010,7 @@ next_round_prepare_to_save:
     sw_(REG20, REG19, REG0);
     swi_(REG21, REG19, sizeof(uint64_t));
     swi_(REG22, REG19, (APNUMBERSIZE + 1) * sizeof(uint64_t));
-	cout << proc->getRegister(REG21) << "/" << proc->getRegister(REG22) << ", ";
+    cout << "Stored: " << proc->getRegister(REG21) << "/" << proc->getRegister(REG22) << " : " << proc->getRegister(REG1) << ":" << proc->getRegister(REG12) << ":" << proc->getRegister(REG13) << endl;
     addi_(REG13, REG13, 0x01);
     sub_(REG30, REG14, REG13);
     if (beq_(REG30, REG0, 0)) {
