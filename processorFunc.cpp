@@ -717,7 +717,7 @@ void ProcessorFunctor::operator()()
 	const uint64_t order = tile->getOrder();
     Tile *masterTile = proc->getTile();
     if (order >= SETSIZE) {
-	return;
+        return;
     }
     proc->start();
     //REG15 holds count
@@ -740,6 +740,7 @@ void ProcessorFunctor::operator()()
 read_command:
     proc->setProgramCounter(readCommandPoint);
     addi_(REG3, REG0, 0x110);
+    lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     push_(REG1);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
@@ -747,7 +748,7 @@ read_command:
     pop_(REG1);
     addi_(REG3, REG0, 0xFF);
     if (beq_(REG3, REG4, 0)) {
-	goto keep_reading_command;
+        goto keep_reading_command;
     }
     //wait 0x10 ticks x processor number
     muli_(REG3, REG1, 0x10);
@@ -902,7 +903,6 @@ loop_wait_processor_count:
     }
     br_(0);
     goto loop_wait_processor_count;
-    
 
 ready_to_loop_again:
     pop_(REG5);
