@@ -714,6 +714,7 @@ void ProcessorFunctor::operator()()
     uint64_t hangingPoint, waitingOnZero;
     uint64_t loopingWaitingForProcessorCount;
     uint64_t waitingForTurn;
+    uint64_t normaliseTickDown;
 	const uint64_t order = tile->getOrder();
     Tile *masterTile = proc->getTile();
     if (order >= SETSIZE) {
@@ -750,8 +751,8 @@ read_command:
     if (beq_(REG3, REG4, 0)) {
         goto keep_reading_command;
     }
-    //wait 0x10 ticks x processor number
-    muli_(REG3, REG1, 0x10);
+    //wait 2 ticks x processor number
+    muli_(REG3, REG1, 2);
 tick_read_down:
     nop_();
     subi_(REG3, REG3, 0x01);
@@ -801,6 +802,20 @@ normalise_line:
     addi_(REG1, REG0, proc->getProgramCounter()); 
     br_(0);
     flushPages();
+    //wait 0x10000 ticks
+    addi_(REG1, REG0, 0x10001);
+    normaliseTickDown = proc->getProgramCounter();
+
+normalise_tick_down:
+    proc->setProgramCounter(normaliseTickDown);
+    subi_(REG1, REG1, 0x01);
+    if (beq_(REG1, REG0, 0)) {
+        goto ready_for_next_normalisation;
+    }
+    br_(0);
+    goto normalise_tick_down;
+
+ready_for_next_normalisation:
     pop_(REG15);
     pop_(REG1);
     br_(0);
