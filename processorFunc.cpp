@@ -1062,6 +1062,11 @@ void ProcessorFunctor::nextRound() const
     mul_(REG27, REG27, REG22);
     mul_(REG22, REG22, REG28);
 
+	andi_(REG30, REG26, 0x01);
+	addi_(REG31, REG0, 0x01);
+	if (beq_(REG30, REG31, 0)) {
+		goto add_not_subtract;
+	}
     sub_(REG21, REG21, REG27);
     getsw_(REG30);
     andi_(REG30, REG30, 0x02);
@@ -1072,6 +1077,11 @@ void ProcessorFunctor::nextRound() const
     br_(0);
     goto next_round_euclid_again;
 
+add_not_subtract:
+	add_(REG21, REG21, REG27);
+	br_(0);
+	goto next_round_euclid_again;
+	
 next_round_reverse_sign_again:
     andi_(REG30, REG20, 0x01);
     if (beq_(REG30, REG0, 0)) {
