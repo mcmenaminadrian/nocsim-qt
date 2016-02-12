@@ -978,10 +978,10 @@ void ProcessorFunctor::nextRound() const
     muli_(REG2, REG1, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
     //REG3 - points to start of numbers
     lwi_(REG3, REG0, sizeof(uint64_t) * 2);
-    //REG18 holds position on 'zero' line
-    add_(REG18, REG0, REG3);
-    add_(REG18, REG18, REG9);
-    add_(REG18, REG18, REG16);
+    //REG29 points to start of 'zero' line
+    add_(REG29, REG0, REG3);
+    add_(REG29, REG29, REG9);
+    add_(REG29, REG29, REG16);
     //REG4 - point to start of this processor's numbers
     muli_(REG4, REG2, 0x101); /*FIX ME: magic number here */
     add_(REG4, REG4, REG3);
@@ -1022,7 +1022,7 @@ void ProcessorFunctor::nextRound() const
     }
 
     //fetch 'top' row number
-    add_(REG18, REG18, REG17);
+    add_(REG18, REG29, REG17);
     lw_(REG23, REG18, REG0);
     andi_(REG23, REG23, 0xFF);
     lwi_(REG24, REG18, sizeof(uint64_t));
