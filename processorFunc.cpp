@@ -1037,7 +1037,6 @@ void ProcessorFunctor::nextRound() const
     mul_(REG27, REG6, REG24);
     mul_(REG28, REG7, REG25);
 
-
     push_(REG3);
     push_(REG1);
     push_(REG10);
@@ -1073,6 +1072,7 @@ void ProcessorFunctor::nextRound() const
     }
     //first is positive, second is negative
     //subtract, but change sign on overflow
+do_subtract:
     sub_(REG21, REG21, REG27);
     getsw_(REG30);
     andi_(REG30, REG30, 0x02);
@@ -1104,9 +1104,14 @@ add_not_subtract:
     goto next_round_euclid_again;
 
 sub_first_from_second:
-    sub_(REG21, REG27, REG21);
+    push_(REG27);
+    push_(REG21);
+    pop_(REG27);
+    pop_(REG21);
+    addi_(REG30, REG0, 0x01);
+    xor_(REG20, REG20, REG30);
     br_(0);
-    goto next_round_euclid_again;
+    goto do_subtract;
 
 reverse_add:
     //first is negative and so is second (after minus)
