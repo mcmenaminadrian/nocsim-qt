@@ -906,7 +906,7 @@ wait_for_turn_to_complete:
         goto write_out_next_processor;
     }
     sub_(REG5, REG1, REG4);
-    muli_(REG5, REG5, 0x100);
+    muli_(REG5, REG5, 0x10);
     loopingWaitingForProcessorCount = proc->getProgramCounter();
 
 loop_wait_processor_count:
@@ -944,7 +944,7 @@ write_out_next_processor:
     flushPages();
     pop_(REG1);
     pop_(REG15);
-    cout << "sending signal " << hex << proc->getRegister(REG20) << endl;
+    cout << "sending signal " << hex << proc->getRegister(REG20) << " from " << proc->getNumber() << endl;
     br_(0);
     goto read_command;
     //construct next signal
@@ -1062,39 +1062,57 @@ void ProcessorFunctor::nextRound() const
     mul_(REG27, REG27, REG22);
     mul_(REG22, REG22, REG28);
 
-	andi_(REG30, REG26, 0x01);
-	addi_(REG31, REG0, 0x01);
-	if (beq_(REG30, REG31, 0)) {
-		goto add_not_subtract;
-	}
+    andi_(REG30, REG26, 0x01);
+    addi_(REG31, REG0, 0x01);
+    if (beq_(REG30, REG31, 0)) {
+	goto add_not_subtract;
+    }
+    andi_(REG30, REG20, 0x01);
+    if (beq_(REG30, REG31, 0)) {
+	goto reverse_add;
+    }
+    //first is positive, second is negative
+    //subtract, but change sign on overflow
     sub_(REG21, REG21, REG27);
     getsw_(REG30);
     andi_(REG30, REG30, 0x02);
-    addi_(REG31, REG0, 0x02);
+    addi_(REG31, REG31, 0x02);
     if (beq_(REG30, REG31, 0)) {
-        goto next_round_reverse_sign_again;
+	goto sign_reversal;
     }
     br_(0);
     goto next_round_euclid_again;
 
-add_not_subtract:
-	add_(REG21, REG21, REG27);
-	br_(0);
-	goto next_round_euclid_again;
-	
-next_round_reverse_sign_again:
-    andi_(REG30, REG20, 0x01);
-    if (beq_(REG30, REG0, 0)) {
-        goto next_round_negate_again;
-    }
+sign_reversal:
     addi_(REG20, REG20, 0x01);
     br_(0);
     goto next_round_euclid_again;
 
-next_round_negate_again:
-    addi_(REG30, REG0, 0x01);
-    xor_(REG20, REG20, REG30);
 
+add_not_subtract:
+    //second is positive (after minus)
+    //check sign of first
+    //if neg then take first from second
+    //otherwise add first and second
+    andi_(REG30, REG20, 0x01);
+    addi_(REG31, REG0, 0x01);
+    if (beq_(REG30, REG31, 0)) {
+	goto sub_first_from_second;
+    }
+    add_(REG21, REG21, REG27);
+    br_(0);
+    goto next_round_euclid_again;
+
+sub_first_from_second:
+    sub_(REG21, REG27, REG21);
+    br_(0);
+    goto next_round_euclid_again;
+
+reverse_add:
+    //first is negative and so is second (after minus)
+    //add both as negatives
+    add_(REG21, REG21, REG27);
+ 
 next_round_euclid_again:
     if (beq_(REG21, REG0, 0)) {
         goto next_round_prepare_to_save;
