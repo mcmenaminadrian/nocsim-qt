@@ -29,7 +29,7 @@ private:
 public:
 	std::vector<Memory>& getGlobal() { return globalMemory;}
 	const long memoryBlocks;
-	std::vector<Tree *> trees; 
+	std::vector<Tree *> trees;
 	Noc(const long columns, const long rows, const long pageShift,
         const long memBlocks, const long bSize, MainWindow *pWind);
 	~Noc();

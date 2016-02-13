@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <bitset>
 #include <map>
+#include <QFile>
 #include "mainwindow.h"
 #include "ControlThread.hpp"
 #include "memorypacket.hpp"
@@ -469,8 +470,6 @@ finished_flushing:
     proc->flushPagesEnd();
     proc->setProgramCounter(startingFlushPoint);
     br_(0);
-    //invalidate all not fixed TLBs
-    //proc->cleanTLBs();
     return;
 }
 
@@ -543,7 +542,7 @@ answer:
 //REG2 tells us which line
 void ProcessorFunctor::normaliseLine() const
 {
-    cout << "Normalising line " << proc->getRegister(REG30) << endl;
+    cout << "Normalising line " << (proc->getRegister(REG2) & 0xFF) << endl;
 
     //reset processor count to zero
     swi_(REG0, REG0, 0x110);
@@ -715,7 +714,9 @@ void ProcessorFunctor::operator()()
     uint64_t loopingWaitingForProcessorCount;
     uint64_t waitingForTurn;
     uint64_t normaliseTickDown;
-	const uint64_t order = tile->getOrder();
+    uint64_t holdingPoint;
+    uint64_t tickReadingDown;
+    const uint64_t order = tile->getOrder();
     Tile *masterTile = proc->getTile();
     if (order >= SETSIZE) {
         return;
@@ -751,9 +752,15 @@ read_command:
     if (beq_(REG3, REG4, 0)) {
         goto keep_reading_command;
     }
-    //wait 2 ticks x processor number
-    muli_(REG3, REG1, 2);
+
+    addi_(REG30, REG0, 0x101);
+    sub_(REG30, REG30, REG1);
+
+    //wait longer if we have low processor number
+    muli_(REG3, REG30, 0x28);
+    tickReadingDown = proc->getProgramCounter();
 tick_read_down:
+    proc->setProgramCounter(tickReadingDown);
     nop_();
     subi_(REG3, REG3, 0x01);
     if (beq_(REG3, REG0, 0)) {
@@ -761,7 +768,6 @@ tick_read_down:
     }
     br_(0);
     goto tick_read_down;
-
 
 keep_reading_command:
     lwi_(REG2, REG0, 0x100);
@@ -906,7 +912,8 @@ wait_for_turn_to_complete:
         goto write_out_next_processor;
     }
     sub_(REG5, REG1, REG4);
-    muli_(REG5, REG5, 0x10);
+    //delay loop dependent on how much further we have to go
+    muli_(REG5, REG5, 0x400);
     loopingWaitingForProcessorCount = proc->getProgramCounter();
 
 loop_wait_processor_count:
@@ -944,7 +951,22 @@ write_out_next_processor:
     flushPages();
     pop_(REG1);
     pop_(REG15);
-    cout << "sending signal " << hex << proc->getRegister(REG20) << " from " << proc->getNumber() << endl;
+    cout << "sending signal " << hex << proc->getRegister(REG20) << " from " << dec << proc->getNumber() << endl;
+
+    //count down to avoid flooding memory net
+    addi_(REG30, REG0, 0x1000);
+    holdingPoint = proc->getProgramCounter();
+hold_on_a_while:
+    proc->setProgramCounter(holdingPoint);
+    nop_();
+    subi_(REG30, REG30, 0x01);
+    if (beq_(REG30, REG0, 0)) {
+	goto moving_on;
+    }
+    br_(0);
+    goto hold_on_a_while;
+
+moving_on:
     br_(0);
     goto read_command;
     //construct next signal
@@ -954,6 +976,20 @@ work_here_is_done:
     flushPages();
     cout << " - our work here is done - " << proc->getRegister(REG1) << endl;
     masterTile->getBarrier()->decrementTaskCount();
+    //some C++ to write out normalised line
+    uint64_t myProcessor = proc->getRegister(REG1);
+    uint64_t numberSize = (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t);
+    uint64_t lineSize = numberSize * 0x101;
+    startingPoint = masterTile->readLong(sizeof(uint64_t) * 2);
+    for (int i = 0; i < 0x100; i++) {
+	uint64_t position = lineSize * myProcessor + i * numberSize;
+        cout << masterTile->readLong(position);
+        cout << "/";
+        cout << masterTile->readLong(position +
+            (APNUMBERSIZE + 1) * sizeof(uint64_t));
+        cout << ",";
+    }
+    cout << endl;
 }
 
 //this function just to break code up
@@ -967,7 +1003,7 @@ void ProcessorFunctor::nextRound() const
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     cout << "Processor " << proc->getRegister(REG1) << " with base line " << proc->getRegister(REG12) << endl;
     if (beq_(REG1, REG12, 0)) {
-	return;
+        return;
     }
     //REG9 is offset to start of reference line
     /*FIX ME: Magic number */
@@ -997,9 +1033,8 @@ void ProcessorFunctor::nextRound() const
     //next set of numbers
     //REG13 progress
     //REG14 limit
-    add_(REG13, REG0, REG0);
+    add_(REG13, REG0, REG12);
     addi_(REG14, REG0, 0x101); /* FIX ME: Magic number again */
-    sub_(REG14, REG14, REG12);
     //now loop through all the numbers
 
     const uint64_t nextRoundLoopStart = proc->getProgramCounter();

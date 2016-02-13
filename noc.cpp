@@ -12,6 +12,7 @@
 #include <bitset>
 #include <QFileDialog>
 #include <QString>
+#include <QFile>
 #include "mainwindow.h"
 #include "memory.hpp"
 #include "ControlThread.hpp"
@@ -35,7 +36,7 @@ Noc::Noc(const long columns, const long rows, const long pageShift,
     blockSize(bSize), mainWindow(pWind)
 {
     uint64_t number = 0;
-	for (int i = 0; i < columns; i++) {
+    for (int i = 0; i < columns; i++) {
 		tiles.push_back(vector<Tile *>(rows));
 		for (int j = 0; j < rows; j++) {
             tiles[i][j] = new Tile(this, i, j, pageShift, mainWindow, number++);
@@ -79,7 +80,6 @@ Noc::~Noc()
 	for (int i = 0; i < memoryBlocks; i++) {
 		delete trees[i];
 	}
-
 }
 
 bool Noc::attach(Tree& memoryTree, const long leafTile)

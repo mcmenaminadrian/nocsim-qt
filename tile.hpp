@@ -2,7 +2,7 @@
 
 #ifndef _TILE_CLASS_
 #define _TILE_CLASS_
-
+#include <QString>
 
 class Memory;
 class Processor;
@@ -28,6 +28,7 @@ public:
     unsigned long getOrder() const;
     long getRow() const {return coordinates.second;}
     long getColumn() const { return coordinates.first;}
+
 
 	//memory pass through
     uint8_t readByte(const uint64_t& address) const;

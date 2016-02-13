@@ -8,6 +8,7 @@ class ProcessorFunctor {
 private:
 	Tile *tile;
 	Processor *proc;
+    uint64_t startingPoint;
 	void add_(const uint64_t& rA, const uint64_t& rB,
 		const uint64_t& rC) const;
 	void addi_(const uint64_t& rA, const uint64_t& rB,

@@ -2,13 +2,15 @@
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+#include <QFile>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "ControlThread.hpp"
 #include "memorypacket.hpp"
 #include "mux.hpp"
-#include "tile.hpp"
 #include "noc.hpp"
+#include "tile.hpp"
+
 
 using namespace std;
 

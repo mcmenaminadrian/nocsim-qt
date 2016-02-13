@@ -6,6 +6,7 @@
 #include <mutex>
 #include <bitset>
 #include <condition_variable>
+#include <QFile>
 #include "mainwindow.h"
 #include "ControlThread.hpp"
 #include "memorypacket.hpp"
