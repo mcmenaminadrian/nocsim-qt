@@ -86,6 +86,7 @@ void ProcessorFunctor::add_(const uint64_t& regA,
 void ProcessorFunctor::addi_(const uint64_t& regA,
 	const uint64_t& regB, const uint64_t& imm) const
 {
+	proc->pcAdvance();
 	proc->setRegister(regA, proc->getRegister(regB) + imm);
 	proc->pcAdvance();
 }
@@ -101,6 +102,7 @@ void ProcessorFunctor::and_(const uint64_t& regA,
 void ProcessorFunctor::andi_(const uint64_t& regA,
     const uint64_t& regB, const uint64_t& imm) const
 {
+    proc->pcAdvance();
     proc->setRegister(regA,
         proc->getRegister(regB) & imm);
     proc->pcAdvance();
@@ -117,6 +119,7 @@ void ProcessorFunctor::sw_(const uint64_t& regA, const uint64_t& regB,
 void ProcessorFunctor::swi_(const uint64_t& regA,
 	const uint64_t& regB, const uint64_t& address) const
 {
+	proc->pcAdvance();
 	proc->writeAddress(proc->getRegister(regB) + address,
 		proc->getRegister(regA));
 	proc->pcAdvance();
@@ -133,6 +136,7 @@ void ProcessorFunctor::lw_(const uint64_t& regA, const uint64_t& regB,
 void ProcessorFunctor::lwi_(const uint64_t& regA,
 	const uint64_t& regB, const uint64_t& address) const
 {
+	proc->pcAdvance();
 	proc->setRegister(regA, proc->getLongAddress(
 		proc->getRegister(regB) + address)); 
 	proc->pcAdvance();
@@ -159,8 +163,9 @@ void ProcessorFunctor::br_(const uint64_t& address) const
 
 void ProcessorFunctor::nop_() const
 {
-    proc->waitATick();
+    proc->pcAdvance();
     //no operation
+    
 }
 
 void ProcessorFunctor::div_(const uint64_t& regA,
@@ -176,6 +181,7 @@ void ProcessorFunctor::div_(const uint64_t& regA,
 void ProcessorFunctor::divi_(const uint64_t& regA,
     const uint64_t& regB, const uint64_t& imm) const
 {
+    proc->pcAdvance();
     proc->setRegister(regA, proc->getRegister(regB) / imm);
     for (int i = 0; i < 32; i++) {
         proc->waitATick();
@@ -196,6 +202,7 @@ void ProcessorFunctor::mul_(const uint64_t& regA,
 void ProcessorFunctor::muli_(const uint64_t& regA,
 	const uint64_t& regB, const uint64_t& multiplier) const
 {
+    proc->pcAdvance();
     proc->setRegister(regA, proc->multiplyWithCarry(proc->getRegister(regB),
         multiplier));
 	proc->pcAdvance();
@@ -212,6 +219,7 @@ void ProcessorFunctor::sub_(const uint64_t& regA, const uint64_t& regB,
 void ProcessorFunctor::subi_(const uint64_t& regA, const uint64_t& regB,
     const uint64_t& imm) const
 {
+    proc->pcAdvance();
     proc->setRegister(regA, proc->subtractWithCarry(proc->getRegister(regB),
         imm));
     proc->pcAdvance();
@@ -272,6 +280,7 @@ void ProcessorFunctor::shiftl_(const uint64_t& regA) const
 void ProcessorFunctor::shiftli_(const uint64_t& regA, const uint64_t& imm)
     const
 {
+    proc->pcAdvance();
     proc->setRegister(regA, proc->getRegister(regA) << imm);
     proc->pcAdvance();
 }
@@ -301,6 +310,7 @@ void ProcessorFunctor::shiftlr_(const uint64_t& regA, const uint64_t& regB)
 void ProcessorFunctor::shiftri_(const uint64_t& regA, const uint64_t& imm)
     const
 {
+    proc->pcAdvance();
     proc->setRegister(regA, proc->getRegister(regA) >> imm);
     proc->pcAdvance();
 }
@@ -322,6 +332,7 @@ void ProcessorFunctor::or_(const uint64_t& regA, const uint64_t& regB,
 void ProcessorFunctor::ori_(const uint64_t& regA, const uint64_t& regB,
     const uint64_t& imm) const
 {
+    proc->pcAdvance();
     proc->setRegister(regA, proc->getRegister(regB) | imm);
     proc->pcAdvance();
 }
