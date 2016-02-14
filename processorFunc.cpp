@@ -974,8 +974,8 @@ moving_on:
 work_here_is_done:
     swi_(REG1, REG0, 0x110);
     flushPages();
-    cout << " - our work here is done - " << proc->getRegister(REG1) << endl;
     masterTile->getBarrier()->decrementTaskCount();
+    cout << " - our work here is done - " << proc->getRegister(REG1) << endl;
     //some C++ to write out normalised line
     uint64_t myProcessor = proc->getRegister(REG1);
     uint64_t numberSize = (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t);
@@ -990,7 +990,7 @@ work_here_is_done:
         cout << ",";
     }
     cout << endl;
-}
+ }
 
 //this function just to break code up
 void ProcessorFunctor::nextRound() const
@@ -1005,21 +1005,22 @@ void ProcessorFunctor::nextRound() const
     if (beq_(REG1, REG12, 0)) {
         return;
     }
-    //REG9 is offset to start of reference line
-    /*FIX ME: Magic number */
-    muli_(REG9, REG12, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t) * 0x101);
-    //REG16 is offset to first number to test
-    muli_(REG16, REG12, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
     //REG2 - size of each number
-    muli_(REG2, REG1, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
+    add_(REG2, REG0, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t);
+    //REG11 - length of a line
+    muli_(REG11, REG2, sumCount);
+    //REG9 is offset to start of reference line
+    mul_(REG9, REG12, REG11);
+    //REG16 is offset to first number to test on line
+    mul_(REG16, REG12, REG2);
     //REG3 - points to start of numbers
     lwi_(REG3, REG0, sizeof(uint64_t) * 2);
-    //REG29 points to start of 'zero' line
+    //REG29 points to first number to use in our reference line
     add_(REG29, REG0, REG3);
     add_(REG29, REG29, REG9);
     add_(REG29, REG29, REG16);
     //REG4 - point to start of this processor's numbers
-    muli_(REG4, REG2, 0x101); /*FIX ME: magic number here */
+    mul_(REG4, REG11, REG1);
     add_(REG4, REG4, REG3);
     add_(REG4, REG4, REG16);
     //REG5 takes sign of first number
