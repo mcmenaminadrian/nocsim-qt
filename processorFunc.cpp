@@ -565,7 +565,7 @@ void ProcessorFunctor::normaliseLine() const
     //REG28 takes offset on line
     muli_(REG28, REG30, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
     //REG29 takes offset to line
-    muli_(REG29, REG30, ((APNUMBERSIZE * 2 + 1) * 0x101) * sizeof(uint64_t));
+    muli_(REG29, REG30, ((APNUMBERSIZE * 2 + 1) * sumCount) * sizeof(uint64_t));
     //REG4 takes address of start of numbers
     lwi_(REG4, REG0, sizeof(uint64_t) * 2);
     add_(REG4, REG4, REG29);
@@ -759,7 +759,7 @@ read_command:
     sub_(REG30, REG30, REG1);
 
     //wait longer if we have low processor number
-    muli_(REG3, REG30, 0x28);
+    muli_(REG3, REG30, 0x17);
     tickReadingDown = proc->getProgramCounter();
 tick_read_down:
     proc->setProgramCounter(tickReadingDown);
@@ -915,7 +915,7 @@ wait_for_turn_to_complete:
     }
     sub_(REG5, REG1, REG4);
     //delay loop dependent on how much further we have to go
-    muli_(REG5, REG5, 0x400);
+    muli_(REG5, REG5, 0x13);
     loopingWaitingForProcessorCount = proc->getProgramCounter();
 
 loop_wait_processor_count:
@@ -956,7 +956,7 @@ write_out_next_processor:
     cout << "sending signal " << hex << proc->getRegister(REG20) << " from " << dec << proc->getNumber() << endl;
 
     //count down to avoid flooding memory net
-    addi_(REG30, REG0, 0x1000);
+    addi_(REG30, REG0, 0xA00);
     holdingPoint = proc->getProgramCounter();
 hold_on_a_while:
     proc->setProgramCounter(holdingPoint);
@@ -1008,7 +1008,7 @@ void ProcessorFunctor::nextRound() const
         return;
     }
     //REG2 - size of each number
-    add_(REG2, REG0, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
+    addi_(REG2, REG0, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
     //REG11 - length of a line
     muli_(REG11, REG2, sumCount);
     //REG9 is offset to start of reference line
@@ -1037,7 +1037,7 @@ void ProcessorFunctor::nextRound() const
     //REG13 progress
     //REG14 limit
     add_(REG13, REG0, REG12);
-    addi_(REG14, REG0, 0x101); /* FIX ME: Magic number again */
+    addi_(REG14, REG0, sumCount);
     //now loop through all the numbers
 
     const uint64_t nextRoundLoopStart = proc->getProgramCounter();
