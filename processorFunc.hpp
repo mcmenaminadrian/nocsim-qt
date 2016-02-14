@@ -6,7 +6,7 @@
 class ProcessorFunctor {
 
 private:
-	static const uint64_t sumCount = 0x101;
+    static const uint64_t sumCount;
 	Tile *tile;
 	Processor *proc;
     uint64_t startingPoint;

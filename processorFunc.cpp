@@ -19,6 +19,8 @@
 
 using namespace std;
 
+const uint64_t ProcessorFunctor::sumCount = 0x101;
+
 //alter filter to trap per page bitmaps of less than 64bits
 static const uint64_t BITMAP_FILTER = 0xFFFFFFFFFFFFFFFF;
 //alter to adjust for page size
@@ -1006,7 +1008,7 @@ void ProcessorFunctor::nextRound() const
         return;
     }
     //REG2 - size of each number
-    add_(REG2, REG0, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t);
+    add_(REG2, REG0, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
     //REG11 - length of a line
     muli_(REG11, REG2, sumCount);
     //REG9 is offset to start of reference line
