@@ -244,7 +244,7 @@ unsigned long Noc::createBasicPageTables()
         globalMemory[0].writeByte(offsetA + sizeof(uint64_t), 0x01);
     }
     uint64_t bottomOfPageTable = runLength + tableLength * PAGE_TABLE_COUNT;
-    for (int i = 0; i < (1 << 8) * PAGE_TABLE_COUNT; i++) {
+    for (unsigned int i = 0; i < (1 << 8) * PAGE_TABLE_COUNT; i++) {
         uint64_t offsetB = startOfPageTables + runLength
                 + i * (sizeof(uint64_t) + sizeof(uint8_t));
         globalMemory[0].writeLong(offsetB, i * (1 << PAGE_SHIFT));
