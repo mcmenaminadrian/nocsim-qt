@@ -729,6 +729,7 @@ void ProcessorFunctor::operator()()
     uint64_t normaliseTickDown;
     uint64_t holdingPoint;
     uint64_t tickReadingDown;
+    uint64_t totalOrderLoop;
     const uint64_t order = tile->getOrder();
     Tile *masterTile = proc->getTile();
     if (order >= SETSIZE) {
@@ -744,6 +745,8 @@ void ProcessorFunctor::operator()()
     swi_(REG1, REG0, 0x100);
     addi_(REG1, REG0, 0xFF);
     swi_(REG1, REG0, 0x110);
+    addi_(REG1, REG0, 0x00);
+    swi_(REG1, REG0, 0x120);
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
     //store processor number
@@ -754,8 +757,8 @@ void ProcessorFunctor::operator()()
 
 read_command:
     proc->setProgramCounter(readCommandPoint);
+    lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);    
     addi_(REG3, REG0, 0x110);
-    lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     push_(REG1);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
@@ -885,7 +888,7 @@ back_off_handler:
 back_off_reset:
     addi_(REG5, REG0, 0x01);
     goto wait_on_zero;
-    
+
 calculate_next:
     pop_(REG4);
     andi_(REG4, REG4, 0xFF);
@@ -896,6 +899,36 @@ calculate_next:
     goto wait_on_zero;
 
 on_to_next_round:
+    lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
+    addi_(REG3, REG0, 0x120);
+    push_(REG1);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    br_(0);
+    forcePageReload();
+    pop_(REG1);
+    if (beq_(REG3, REG1, 0)) {
+	goto do_next_round;
+    }
+    sub_(REG3, REG3, REG1);
+    muli_(REG3, REG3, 0x13);
+
+    totalOrderLoop = proc->getProgramCounter();
+total_order_loop:
+    proc->setProgramCounter(totalOrderLoop);
+    nop_();
+    subi_(REG30, REG3, 0x01);
+    if (beq_(REG30, REG0, 0)) {
+        goto do_next_round;
+    }
+    br_(0);
+    goto total_order_loop;
+
+do_next_round:
+    swi_(REG3, REG0, 0x120);
+    push_(REG1);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    flushPages();
+    pop_(REG1);
     add_(REG12, REG4, REG0);
     nextRound();
 
@@ -947,6 +980,17 @@ ready_to_loop_again:
     goto wait_for_turn_to_complete;
 
 write_out_next_processor:
+    subi_(REG5, REG1, sumCount - 1);
+    if (beq_(REG5, REG0, 0)) {
+        goto write_processor_back_to_zero;
+    }
+    br_(0);
+    goto write_out_next_processor_A;
+
+write_processor_back_to_zero:
+    swi_(REG0, REG0, 0x120);
+
+write_out_next_processor_A:
     swi_(REG1, REG0, 0x110);
     br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
@@ -986,6 +1030,7 @@ moving_on:
 
 work_here_is_done:
     swi_(REG1, REG0, 0x110);
+    
     flushPages();
     masterTile->getBarrier()->decrementTaskCount();
     cout << " - our work here is done - " << proc->getRegister(REG1) << endl;
