@@ -910,13 +910,13 @@ on_to_next_round:
 	goto do_next_round;
     }
     sub_(REG3, REG3, REG1);
-    muli_(REG3, REG3, 0x13);
+    muli_(REG30, REG3, 0x13);
 
     totalOrderLoop = proc->getProgramCounter();
 total_order_loop:
     proc->setProgramCounter(totalOrderLoop);
     nop_();
-    subi_(REG30, REG3, 0x01);
+    subi_(REG30, REG30, 0x01);
     if (beq_(REG30, REG0, 0)) {
         goto do_next_round;
     }
@@ -1011,7 +1011,7 @@ write_out_next_processor_A:
     cout << "sending signal " << hex << proc->getRegister(REG20) << " from " << dec << proc->getNumber() << endl;
 
     //count down to avoid flooding memory net
-    addi_(REG30, REG0, 0xA00);
+    addi_(REG30, REG0, 0x100);
     holdingPoint = proc->getProgramCounter();
 hold_on_a_while:
     proc->setProgramCounter(holdingPoint);
