@@ -809,6 +809,8 @@ test_for_processor:
     goto wait_for_next_signal;
 
 normalise_line:
+    addi_(REG30, REG1, 0x01);
+    swi_(REG30, REG0, 0x120);
     push_(REG1);
     push_(REG15);
     br_(0);
@@ -901,6 +903,7 @@ calculate_next:
 
 on_to_next_round:
     push_(REG4);
+test_again_next_round:
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     addi_(REG3, REG0, 0x120);
     push_(REG1);
@@ -920,7 +923,7 @@ total_order_loop:
     nop_();
     subi_(REG30, REG30, 0x01);
     if (beq_(REG30, REG0, 0)) {
-        goto do_next_round;
+        goto test_again_next_round;
     }
     br_(0);
     goto total_order_loop;
