@@ -570,7 +570,7 @@ void ProcessorFunctor::normaliseLine() const
     andi_(REG30, REG30, 0xFF);
     push_(REG1);
     //read in the data
-    addi_(REG1, REG0, SETSIZE);
+    addi_(REG1, REG0, SETSIZE + 1);
     addi_(REG2, REG0, APNUMBERSIZE);
     add_(REG3, REG0, REG30);
     //REG28 takes offset on line
