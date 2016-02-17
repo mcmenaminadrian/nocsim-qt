@@ -863,6 +863,7 @@ wait_on_zero:
         goto calculate_next;
     }
     pop_(REG4);
+
     //do the back off wait
     add_(REG7, REG0, REG5);
     hangingPoint = proc->getProgramCounter();
@@ -899,6 +900,7 @@ calculate_next:
     goto wait_on_zero;
 
 on_to_next_round:
+    push_(REG4);
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     addi_(REG3, REG0, 0x120);
     push_(REG1);
@@ -929,6 +931,7 @@ do_next_round:
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
     pop_(REG1);
+    pop_(REG4);
     add_(REG12, REG4, REG0);
     nextRound();
 
