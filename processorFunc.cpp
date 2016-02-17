@@ -908,7 +908,7 @@ on_to_next_round:
     br_(0);
     forcePageReload();
     pop_(REG1);
-    if (beq_(REG3, REG1, 0)) {
+    if (beq_(REG4, REG1, 0)) {
 	goto do_next_round;
     }
     sub_(REG3, REG3, REG1);
@@ -926,7 +926,8 @@ total_order_loop:
     goto total_order_loop;
 
 do_next_round:
-    swi_(REG3, REG0, 0x120);
+    addi_(REG4, REG4, 0x01);
+    swi_(REG4, REG0, 0x120);
     push_(REG1);
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
