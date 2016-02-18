@@ -745,7 +745,7 @@ void ProcessorFunctor::operator()()
     swi_(REG1, REG0, 0x100);
     addi_(REG1, REG0, 0xFF);
     swi_(REG1, REG0, 0x110);
-    addi_(REG1, REG0, 0x00);
+    add_(REG1, REG0, REG0);
     swi_(REG1, REG0, 0x120);
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
