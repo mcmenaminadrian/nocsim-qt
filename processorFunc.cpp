@@ -914,7 +914,7 @@ test_again_next_round:
     if (beq_(REG4, REG1, 0)) {
 	goto do_next_round;
     }
-    sub_(REG3, REG1, REG3);
+    sub_(REG3, REG1, REG4);
     muli_(REG30, REG3, 0x13);
 
     totalOrderLoop = proc->getProgramCounter();
