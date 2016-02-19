@@ -729,7 +729,7 @@ void ProcessorFunctor::operator()()
     uint64_t normaliseTickDown;
     uint64_t holdingPoint;
     uint64_t tickReadingDown;
-    uint64_t totalOrderLoop;
+    uint64_t testNextRound;
     const uint64_t order = tile->getOrder();
     Tile *masterTile = proc->getTile();
     if (order >= SETSIZE) {
@@ -902,41 +902,22 @@ calculate_next:
     goto wait_on_zero;
 
 on_to_next_round:
-    push_(REG4);
-test_again_next_round:
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
-    addi_(REG3, REG0, 0x120);
-    push_(REG1);
-    addi_(REG1, REG0, proc->getProgramCounter());
-    br_(0);
-    forcePageReload();
-    pop_(REG1);
-    if (beq_(REG4, REG1, 0)) {
+    addi_(REG31, REG0, 0x01);
+    muli_(REG30, REG1, 0x400);
+
+    testNextRound = proc->getProgramCounter();
+test_next_round:
+    proc->setProgramCounter(testNextRound);
+    nop_();
+    sub_(REG30, REG30, REG31);
+    if (beq_(REG30, REG0, 0)) {
 	goto do_next_round;
     }
-    sub_(REG3, REG1, REG4);
-    muli_(REG30, REG3, 0x13);
-
-    totalOrderLoop = proc->getProgramCounter();
-total_order_loop:
-    proc->setProgramCounter(totalOrderLoop);
-    nop_();
-    subi_(REG30, REG30, 0x01);
-    if (beq_(REG30, REG0, 0)) {
-        goto test_again_next_round;
-    }
     br_(0);
-    goto total_order_loop;
+    goto test_next_round;
 
 do_next_round:
-    addi_(REG4, REG4, 0x01);
-    swi_(REG4, REG0, 0x120);
-    push_(REG1);
-    addi_(REG1, REG0, proc->getProgramCounter());
-    flushPages();
-    pop_(REG1);
-    pop_(REG4);
-    add_(REG12, REG4, REG0);
     nextRound();
 
 get_REG15_back:
