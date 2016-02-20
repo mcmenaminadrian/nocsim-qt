@@ -349,10 +349,10 @@ ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 //return address in REG1
 void ProcessorFunctor::flushPages() const
 {
-    uint64_t startingFlushPoint = proc->getProgramCounter();
+    uint64_t writeOutBytes;
+    push_(REG1);
     br_(0);
     proc->flushPagesStart();
-    proc->setProgramCounter(startingFlushPoint);
     //REG1 points to start of page table
     addi_(REG1, REG0, PAGETABLESLOCAL + (1 << PAGE_SHIFT));
     //REG2 counts number of pages
@@ -435,7 +435,10 @@ check_next_bit:
     }
     addi_(REG15, REG0, BITMAP_BYTES);
 
+    writeOutBytes = proc->getProgramCounter();
+
 write_out_bytes:
+    proc->setProgramCounter(writeOutBytes);
     //REG17 holds contents
     lw_(REG17, REG5, REG16);
     sw_(REG17, REG4, REG16);
@@ -481,8 +484,9 @@ next_pte:
 finished_flushing:
     br_(0);
     proc->flushPagesEnd();
-    proc->setProgramCounter(startingFlushPoint);
+    pop_(REG1);
     br_(0);
+    proc->setProgramCounter(proc->getRegister(REG1));
     return;
 }
 
@@ -548,6 +552,7 @@ answer:
     pop_(REG5);
     pop_(REG1);
     br_(0); //simulate return
+    proc->setProgramCounter(proc->getRegister(REG1));
     return;
 }
 
@@ -660,8 +665,9 @@ store:
     goto loop1;
 ending:
     pop_(REG1);
+    br_(0);
+    proc->setProgramCounter(proc->getRegister(REG1));
     return;
-    
 }
 
 //'interrupt' function to force clean read of a page
@@ -814,6 +820,7 @@ normalise_line:
     push_(REG1);
     push_(REG15);
     br_(0);
+    addi_(REG1, REG), proc->getProgramCounter());
     normaliseLine();
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
@@ -992,6 +999,7 @@ write_out_next_processor_A:
     swi_(REG20, REG0, 0x100);
     push_(REG15);
     push_(REG1);
+    addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     flushPages();
     pop_(REG1);
@@ -1018,7 +1026,8 @@ moving_on:
 
 work_here_is_done:
     swi_(REG1, REG0, 0x110);
-    
+    br_(0);
+    addi_(REG1, REG0, proc->getProgramCounter()); 
     flushPages();
     masterTile->getBarrier()->decrementTaskCount();
     cout << " - our work here is done - " << proc->getRegister(REG1) << endl;
