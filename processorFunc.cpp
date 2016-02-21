@@ -820,7 +820,7 @@ normalise_line:
     push_(REG1);
     push_(REG15);
     br_(0);
-    addi_(REG1, REG), proc->getProgramCounter());
+    addi_(REG1, REG0, proc->getProgramCounter());
     normaliseLine();
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
