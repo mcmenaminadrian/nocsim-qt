@@ -857,8 +857,8 @@ wait_for_next_signal:
     //try a back off
     addi_(REG5, REG0, 0x10);
     addi_(REG6, REG0, 0x1000);
-    waitingOnZero = proc->getProgramCounter();
 
+    waitingOnZero = proc->getProgramCounter();
 wait_on_zero:
     proc->setProgramCounter(waitingOnZero);
     addi_(REG3, REG0, 0x100);
@@ -910,24 +910,8 @@ calculate_next:
 
 on_to_next_round:
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
-    addi_(REG31, REG0, 0x01);
-    muli_(REG30, REG1, 0x400);
-
-    testNextRound = proc->getProgramCounter();
-test_next_round:
-    proc->setProgramCounter(testNextRound);
-    nop_();
-    sub_(REG30, REG30, REG31);
-    if (beq_(REG30, REG0, 0)) {
-	goto do_next_round;
-    }
-    br_(0);
-    goto test_next_round;
-
-do_next_round:
+    add_(REG12, REG0, REG15);
     nextRound();
-
-get_REG15_back:
     pop_(REG15);
 prepare_to_normalise_next:
     cout << "Pass " << proc->getRegister(REG15) << " on processor " << proc->getRegister(REG1) << " complete." << endl;
@@ -938,7 +922,6 @@ prepare_to_normalise_next:
     //construct next signal
 
     waitingForTurn = proc->getProgramCounter();
-
 wait_for_turn_to_complete:
     proc->setProgramCounter(waitingForTurn);
     push_(REG3);
@@ -955,8 +938,8 @@ wait_for_turn_to_complete:
     sub_(REG5, REG1, REG4);
     //delay loop dependent on how much further we have to go
     muli_(REG5, REG5, 0x13);
-    loopingWaitingForProcessorCount = proc->getProgramCounter();
 
+    loopingWaitingForProcessorCount = proc->getProgramCounter();
 loop_wait_processor_count:
     proc->setProgramCounter(loopingWaitingForProcessorCount);
     nop_();
