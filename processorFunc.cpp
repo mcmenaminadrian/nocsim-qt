@@ -990,7 +990,7 @@ write_out_next_processor_A:
     cout << "sending signal " << hex << proc->getRegister(REG20) << " from " << dec << proc->getNumber() << endl;
 
     //count down to avoid flooding memory net
-    addi_(REG30, REG0, 0x100);
+    addi_(REG30, REG0, 0x10);
     holdingPoint = proc->getProgramCounter();
 hold_on_a_while:
     proc->setProgramCounter(holdingPoint);
@@ -1008,26 +1008,27 @@ moving_on:
     //construct next signal
 
 work_here_is_done:
-    swi_(REG1, REG0, 0x110);
+    swi_(REG10, REG0, 0x110);
+    andi_(REG10, REG10, 0xFF);
     br_(0);
-    addi_(REG1, REG0, proc->getProgramCounter()); 
+    addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
-    masterTile->getBarrier()->decrementTaskCount();
-    cout << " - our work here is done - " << proc->getRegister(REG1) << endl;
+    cout << " - our work here is done - " << proc->getRegister(REG10) << endl;
     //some C++ to write out normalised line
-    uint64_t myProcessor = proc->getRegister(REG1);
+    uint64_t myProcessor = proc->getRegister(REG10);
     uint64_t numberSize = (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t);
-    uint64_t lineSize = numberSize * 0x101;
+    uint64_t lineOffset = numberSize * 0x101 * myProcessor;
+    uint64_t halfNumber = (APNUMBERSIZE + 1) * sizeof(uint64_t);
     startingPoint = masterTile->readLong(sizeof(uint64_t) * 2);
-    for (int i = 0; i < 0x100; i++) {
-	uint64_t position = lineSize * myProcessor + i * numberSize;
+    for (int i = 0; i < 0x101; i++) {
+        uint64_t position = startingPoint + lineOffset + i * numberSize;
         cout << masterTile->readLong(position);
         cout << "/";
-        cout << masterTile->readLong(position +
-            (APNUMBERSIZE + 1) * sizeof(uint64_t));
+        cout << masterTile->readLong(position + halfNumber);
         cout << ",";
     }
     cout << endl;
+    masterTile->getBarrier()->decrementTaskCount();
  }
 
 //this function just to break code up
