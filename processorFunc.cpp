@@ -1008,7 +1008,7 @@ moving_on:
     //construct next signal
 
 work_here_is_done:
-    swi_(REG10, REG0, 0x110);
+    lwi_(REG10, REG0, 0x110);
     andi_(REG10, REG10, 0xFF);
     br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
