@@ -833,8 +833,8 @@ normalise_line:
     addi_(REG1, REG0, proc->getProgramCounter()); 
     br_(0);
     flushPages();
-    //wait 0x10000 ticks
-    addi_(REG1, REG0, 0x10001);
+    //wait a few thousand ticks
+    addi_(REG1, REG0, 0x1000);
     normaliseTickDown = proc->getProgramCounter();
 
 normalise_tick_down:
@@ -1022,7 +1022,10 @@ work_here_is_done:
     startingPoint = masterTile->readLong(sizeof(uint64_t) * 2);
     for (int i = 0; i < 0x101; i++) {
         uint64_t position = startingPoint + lineOffset + i * numberSize;
-        cout << masterTile->readLong(position);
+        if (masterTile->readLong(position) & 0x01) {
+            cout << "-";
+        }
+        cout << masterTile->readLong(position + sizeof(uint64_t));
         cout << "/";
         cout << masterTile->readLong(position + halfNumber);
         cout << ",";
