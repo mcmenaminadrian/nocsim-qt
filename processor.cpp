@@ -95,8 +95,6 @@ void Processor::writeOutPageAndBitmapLengths(const uint64_t& reqPTEPages,
 	const uint64_t& reqBitmapPages)
 {
 	masterTile->writeLong(PAGETABLESLOCAL, reqPTEPages);
-	masterTile->writeLong(PAGETABLESLOCAL + sizeof(uint64_t),
-		reqBitmapPages);
 }
 
 void Processor::writeOutBasicPageEntries(const uint64_t& pagesAvailable)
@@ -123,7 +121,7 @@ void Processor::markUpBasicPageEntries(const uint64_t& reqPTEPages,
 	const uint64_t& reqBitmapPages)
 {
 	//mark for page tables, bit map and 1 notional page for kernel
-	for (unsigned int i = 0; i <= reqPTEPages + reqBitmapPages; i++) {
+	for (unsigned int i = 0; i <= reqPTEPages; i++) {
 		const uint64_t pageEntryBase = (1 << pageShift) +
 			i * PAGETABLEENTRY + PAGETABLESLOCAL;
 		const uint64_t mappingAddress = PAGETABLESLOCAL +
@@ -173,37 +171,24 @@ void Processor::createMemoryMap(Memory *local, long pShift)
 
 	zeroOutTLBs(pagesAvailable);
 
-	//how many pages needed for bitmaps?
-	uint64_t bitmapSize = ((1 << pageShift) / (BITMAP_BYTES)) / 8;
-	uint64_t totalBitmapSpace = bitmapSize * pagesAvailable;
-	uint64_t requiredBitmapPages = totalBitmapSpace >> pageShift;
-	if ((requiredBitmapPages << pageShift) != totalBitmapSpace) {
-		requiredBitmapPages++;
-	}
-	writeOutPageAndBitmapLengths(requiredPTEPages, requiredBitmapPages);
+	writeOutPageAndBitmapLengths(requiredPTEPages);
 	writeOutBasicPageEntries(pagesAvailable);
-	markUpBasicPageEntries(requiredPTEPages, requiredBitmapPages);
+	markUpBasicPageEntries(requiredPTEPages);
 	pageMask = 0xFFFFFFFFFFFFFFFF;
 	pageMask = pageMask >> pageShift;
 	pageMask = pageMask << pageShift;
 	bitMask = ~ pageMask;
-	uint64_t pageCount = requiredPTEPages + requiredBitmapPages + 1;
+	uint64_t pageCount = requiredPTEPages + 1;
 	for (unsigned int i = 0; i <= pageCount; i++) {
 		const uint64_t pageStart =
 			PAGETABLESLOCAL + i * (1 << pageShift);
 		fixTLB(i, pageStart);
-        for (unsigned int j = 0; j < bitmapSize * BITS_PER_BYTE; j++) {
-			markBitmapStart(i, pageStart + j * BITMAP_BYTES);
-		}
-	}
+  	}
     //TLB and bitmap for stack
     const uint64_t stackPage = PAGETABLESLOCAL + TILE_MEM_SIZE -
             (1 << pageShift);
     const uint64_t stackPageNumber = pagesAvailable - 1;
     fixTLB(stackPageNumber, stackPage);
-    for (unsigned int i = 0; i < bitmapSize * BITS_PER_BYTE; i++) {
-        markBitmapStart(stackPageNumber, stackPage + i * BITMAP_BYTES);
-    }
 }
 
 
@@ -277,20 +262,6 @@ void Processor::transferGlobalToLocal(const uint64_t& address,
 				(maskedAddress & bitMask), x);
 			offset++;
 		}
-}
-
-uint64_t Processor::triggerSmallFault(
-	const tuple<uint64_t, uint64_t, bool>& tlbEntry,
-	const uint64_t& address)
-{
-    emit smallFault();
-	interruptBegin();
-	transferGlobalToLocal(address, tlbEntry, BITMAP_BYTES);
-	const uint64_t frameNo =
-		(get<1>(tlbEntry) - PAGETABLESLOCAL) >> pageShift;
-	markBitmapStart(frameNo, address);	
-	interruptEnd();
-    return generateAddress(frameNo, address);
 }
 
 //nominate a frame to be used
@@ -450,7 +421,6 @@ uint64_t Processor::triggerHardFault(const uint64_t& address)
 	if (frameData.second) {
         writeBackMemory(frameData.first);
     }
-    fixBitmap(frameData.first);
     pair<uint64_t, uint8_t> translatedAddress = mapToGlobalAddress(address);
     fixTLB(frameData.first, translatedAddress.first);
     transferGlobalToLocal(translatedAddress.first + (address & bitMask),
