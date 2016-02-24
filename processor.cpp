@@ -289,61 +289,18 @@ const pair<const uint64_t, bool> Processor::getFreeFrame() const
 
 void Processor::writeBackMemory(const uint64_t& frameNo)
 {
-	//find bitmap for this frame
-	const uint64_t totalPTEPages =
-		masterTile->readLong(fetchAddressRead(PAGETABLESLOCAL));
-	const uint64_t bitmapOffset =
-		(1 + totalPTEPages) * (1 << pageShift);
-	const uint64_t bitmapSize = (1 << pageShift) / BITMAP_BYTES;
-	uint64_t bitToRead = frameNo * bitmapSize;
+    const uint64_t totalPTEPages =
+	masterTile->readLong(fetchAddressRead(PAGETABLESLOCAL));
     const uint64_t physicalAddress = mapToGlobalAddress(
-		localMemory->readLong((1 << pageShift) +
+	localMemory->readLong((1 << pageShift) +
         frameNo * PAGETABLEENTRY)).first;
-	long byteToRead = -1;
-	uint8_t byteBit = 0;
-	for (unsigned int i = 0; i < bitmapSize; i++)
-	{
-		long nextByte = bitToRead / 8;
-		if (nextByte != byteToRead) {
-			byteBit =
-				localMemory->readByte(bitmapOffset + nextByte);
-			byteToRead = nextByte;
-		}
-		uint8_t actualBit = bitToRead%8;
-		if (byteBit & (1 << actualBit)) {
-			for (unsigned int j = 0; 
-				j < BITMAP_BYTES/sizeof(uint64_t); j++)
-			{
-				waitATick();
-				uint64_t toGo =
-					masterTile->readLong(
-					fetchAddressRead(frameNo * 
-					(1 << pageShift) + PAGETABLESLOCAL
-					 + i * BITMAP_BYTES + 
-					j * sizeof(uint64_t)));
-				waitATick();
-				masterTile->writeLong(fetchAddressWrite(
-					physicalAddress + i * BITMAP_BYTES
-					 + j * sizeof(uint64_t)), toGo);
-			}
-		}
-		bitToRead++;
-	}
-}
-
-void Processor::loadMemory(const uint64_t& frameNo,
-	const uint64_t& address)
-{
-	const uint64_t fetchPortion = (address & bitMask) & BITMAP_MASK;
-	for (unsigned int i = 0; i < BITMAP_BYTES/sizeof(uint64_t); 
-		i+= sizeof(uint64_t)) {
-		waitATick();
-		uint64_t toGet = masterTile->readLong(
-			fetchAddressRead(address + i));
-		waitATick();
-		masterTile->writeLong(fetchAddressWrite(PAGETABLESLOCAL +
-			frameNo * (1 << pageShift) + fetchPortion + i), toGet);
-	}
+    for (unsigned int i = 0; i < PAGE_BYTES; i += sizeof(uint64_t)) {
+        waitATick();
+        uint64_t toGo = masterTile->readLong(fetchAddressRead(frameNo *
+            (1 << pageShift) + PAGETABLESLOCAL + i));
+        waitATick();
+        masterTile->writeLong(fetchAddressWrite(physicalAddress + i), toGo);
+    }
 }
 
 void Processor::fixPageMap(const uint64_t& frameNo,
@@ -581,7 +538,6 @@ void Processor::start()
 
     programCounter = pagesIn * (1 << pageShift) + 0x900000;
 	fixPageMapStart(pagesIn, programCounter);
-	markBitmapStart(pagesIn, programCounter);
 	fixTLB(pagesIn, programCounter);
 	switchModeVirtual();
 	ControlThread *pBarrier = masterTile->getBarrier();
