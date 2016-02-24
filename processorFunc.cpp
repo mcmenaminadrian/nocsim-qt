@@ -1008,11 +1008,10 @@ moving_on:
     //construct next signal
 
 work_here_is_done:
-    lwi_(REG10, REG0, 0x110);
-    andi_(REG10, REG10, 0xFF);
     br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
+    add_(REG10, REG0, proc->getNumber());
     cout << " - our work here is done - " << proc->getRegister(REG10) << endl;
     //some C++ to write out normalised line
     uint64_t myProcessor = proc->getRegister(REG10);
@@ -1057,21 +1056,23 @@ void ProcessorFunctor::nextRound() const
     mul_(REG16, REG12, REG2);
     //REG3 - points to start of numbers
     lwi_(REG3, REG0, sizeof(uint64_t) * 2);
-    //REG29 points to first number to use in our reference line
+    //REG29 points to first number in our reference line
     add_(REG29, REG0, REG3);
     add_(REG29, REG29, REG9);
-    add_(REG29, REG29, REG16);
     //REG4 - point to start of this processor's numbers
     mul_(REG4, REG11, REG1);
     add_(REG4, REG4, REG3);
+    //add in offset to first usable number
     add_(REG4, REG4, REG16);
-    //REG5 takes sign of first number
+    //REG5 takes sign of first usable number
     lw_(REG5, REG4, REG0);
     andi_(REG5, REG5, 0xFF);
-    //REG6 takes numerator
+    //REG6 takes numerator of 1st usable
     //REG7 takes demoninator
     lwi_(REG6, REG4, sizeof(uint64_t));
     lwi_(REG7, REG4, (APNUMBERSIZE + 1) * sizeof(uint64_t));
+    //remove offset
+    sub_(REG4, REG4, REG16);
     
     //next set of numbers
     //REG13 progress
@@ -1080,19 +1081,23 @@ void ProcessorFunctor::nextRound() const
     addi_(REG14, REG0, sumCount);
     //now loop through all the numbers
 
+    //some constants to save on cycles
+    addi_(REG16, REG0, sizeof(uint64_t));
+    addi_(REG15, REG0, 0x01);	
+   
     const uint64_t nextRoundLoopStart = proc->getProgramCounter();
     //REG17 holds offset
     //REG18 holds calculated position on zero line
     //REG19 holds calculated position on processor line
  next_round_loop_start:
     proc->setProgramCounter(nextRoundLoopStart);
-    muli_(REG17, REG13, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
+    mul_(REG17, REG13, REG2);
 
     //fetch 'bottom' row number
     add_(REG19, REG4, REG17);
     lw_(REG20, REG19, REG0);
     andi_(REG20, REG20, 0xFF);
-    lwi_(REG21, REG19, sizeof(uint64_t));
+    lw_(REG21, REG19, REG16);
     lwi_(REG22, REG19, (APNUMBERSIZE + 1) * sizeof(uint64_t));
 
     if (beq_(REG6, REG0, 0)) {
@@ -1103,7 +1108,7 @@ void ProcessorFunctor::nextRound() const
     add_(REG18, REG29, REG17);
     lw_(REG23, REG18, REG0);
     andi_(REG23, REG23, 0xFF);
-    lwi_(REG24, REG18, sizeof(uint64_t));
+    lw_(REG24, REG18, REG16);
     lwi_(REG25, REG18, (APNUMBERSIZE + 1) * sizeof(uint64_t));
 
     if (beq_(REG24, REG0, 0)) {
@@ -1139,12 +1144,12 @@ void ProcessorFunctor::nextRound() const
     mul_(REG27, REG27, REG22);
     mul_(REG22, REG22, REG28);
 
-    andi_(REG30, REG26, 0x01);
-    addi_(REG31, REG0, 0x01);
+    and_(REG30, REG26, REG15);
+    add_(REG31, REG0, REG15);
     if (beq_(REG30, REG31, 0)) {
 	goto add_not_subtract;
     }
-    andi_(REG30, REG20, 0x01);
+    and_(REG30, REG20, REG15);
     if (beq_(REG30, REG31, 0)) {
 	goto reverse_add;
     }
@@ -1162,7 +1167,7 @@ do_subtract:
     goto next_round_euclid_again;
 
 sign_reversal:
-    addi_(REG20, REG20, 0x01);
+    add_(REG20, REG20, REG15);
     br_(0);
     goto next_round_euclid_again;
 
@@ -1172,8 +1177,8 @@ add_not_subtract:
     //check sign of first
     //if neg then take first from second
     //otherwise add first and second
-    andi_(REG30, REG20, 0x01);
-    addi_(REG31, REG0, 0x01);
+    and_(REG30, REG20, REG15);
+    add_(REG31, REG0, REG15);
     if (beq_(REG30, REG31, 0)) {
 	goto sub_first_from_second;
     }
@@ -1186,7 +1191,7 @@ sub_first_from_second:
     push_(REG21);
     pop_(REG27);
     pop_(REG21);
-    addi_(REG30, REG0, 0x01);
+    add_(REG30, REG0, REG15);
     xor_(REG20, REG20, REG30);
     br_(0);
     goto do_subtract;
@@ -1223,14 +1228,14 @@ next_round_prepare_to_save:
     andi_(REG30, REG30, 0xFFFFFFFFFFFFFF00);
     or_(REG20, REG30, REG20);
     sw_(REG20, REG19, REG0);
-    swi_(REG21, REG19, sizeof(uint64_t));
+    sw_(REG21, REG19, REG16);
     swi_(REG22, REG19, (APNUMBERSIZE + 1) * sizeof(uint64_t));
     cout << "Stored: ";
     if (proc->getRegister(REG20) & 0x01) {
 	cout <<"-";
     }
     cout << proc->getRegister(REG21) << "/" << proc->getRegister(REG22) << " : " << proc->getRegister(REG1) << ":" << proc->getRegister(REG12) << ":" << proc->getRegister(REG13) << endl;
-    addi_(REG13, REG13, 0x01);
+    add_(REG13, REG13, REG15);
     sub_(REG30, REG14, REG13);
     if (beq_(REG30, REG0, 0)) {
         goto next_round_over;
