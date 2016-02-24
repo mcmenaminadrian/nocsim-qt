@@ -51,8 +51,6 @@ Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
     processorNumber = numb;
     QObject::connect(this, SIGNAL(hardFault()),
         mW, SLOT(updateHardFaults()));
-    QObject::connect(this, SIGNAL(smallFault()),
-        mW, SLOT(updateSmallFaults()));
 }
 
 void Processor::setMode()
@@ -91,8 +89,7 @@ void Processor::zeroOutTLBs(const uint64_t& frames)
 	}
 }
 
-void Processor::writeOutPageAndBitmapLengths(const uint64_t& reqPTEPages,
-	const uint64_t& reqBitmapPages)
+void Processor::writeOutPageAndBitmapLengths(const uint64_t& reqPTEPages)
 {
 	masterTile->writeLong(PAGETABLESLOCAL, reqPTEPages);
 }
@@ -117,8 +114,7 @@ void Processor::writeOutBasicPageEntries(const uint64_t& pagesAvailable)
 	}
 }
 
-void Processor::markUpBasicPageEntries(const uint64_t& reqPTEPages,
-	const uint64_t& reqBitmapPages)
+void Processor::markUpBasicPageEntries(const uint64_t& reqPTEPages)
 {
 	//mark for page tables, bit map and 1 notional page for kernel
 	for (unsigned int i = 0; i <= reqPTEPages; i++) {
@@ -416,20 +412,18 @@ const pair<uint64_t, uint8_t>
 uint64_t Processor::triggerHardFault(const uint64_t& address)
 {
     emit hardFault();
-	interruptBegin();
-	const pair<const uint64_t, bool> frameData = getFreeFrame();
-	if (frameData.second) {
+    interruptBegin();
+    const pair<const uint64_t, bool> frameData = getFreeFrame();
+    if (frameData.second) {
         writeBackMemory(frameData.first);
     }
     pair<uint64_t, uint8_t> translatedAddress = mapToGlobalAddress(address);
     fixTLB(frameData.first, translatedAddress.first);
     transferGlobalToLocal(translatedAddress.first + (address & bitMask),
             tlbs[frameData.first],
-            BITMAP_BYTES);
+            PAGE_BYTES);
     fixPageMap(frameData.first, translatedAddress.first);
-    markBitmapStart(frameData.first, translatedAddress.first +
-        (address & bitMask));
-	interruptEnd();
+    interruptEnd();
     return generateAddress(frameData.first, translatedAddress.first +
         (address & bitMask));
 }
@@ -439,23 +433,19 @@ uint64_t Processor::triggerHardFault(const uint64_t& address)
 uint64_t Processor::fetchAddressRead(const uint64_t& address)
 {
 	//implement paging logic
-	if (mode == VIRTUAL) {
-		uint64_t pageSought = address & pageMask;
+    if (mode == VIRTUAL) {
+        uint64_t pageSought = address & pageMask;
         uint64_t y = 0;
-		for (auto x: tlbs) {
+	for (auto x: tlbs) {
             if (get<2>(x) && ((pageSought) == (get<0>(x) & pageMask))) {
-				//entry in TLB - check bitmap
-				if (!isBitmapValid(address, get<1>(x))) {
-                    return triggerSmallFault(x, address);
-				}
                 return generateAddress(y, address);
-			}
+            }
             y++;
-		}
-		//not in TLB - but check if it is in page table
-		waitATick(); 
-		for (unsigned int i = 0; i < TOTAL_LOCAL_PAGES; i++) {
-			waitATick();
+	}
+	//not in TLB - but check if it is in page table
+	waitATick(); 
+	for (unsigned int i = 0; i < TOTAL_LOCAL_PAGES; i++) {
+	    waitATick();
             uint64_t addressInPageTable = PAGETABLESLOCAL +
                     (i * PAGETABLEENTRY) + (1 << pageShift);
             uint64_t flags = masterTile->readWord32(addressInPageTable
@@ -464,11 +454,11 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address)
                 continue;
             }
             waitATick();
-            uint64_t storedPage = masterTile->readLong(
-                addressInPageTable + VOFFSET);
-			waitATick();
+            uint64_t storedPage =
+                masterTile->readLong(addressInPageTable + VOFFSET);
+	    waitATick();
             if (pageSought == storedPage) {
-				waitATick();
+		waitATick();
                 flags |= 0x04;
                 masterTile->writeWord32(addressInPageTable + FLAGOFFSET,
                     flags);
