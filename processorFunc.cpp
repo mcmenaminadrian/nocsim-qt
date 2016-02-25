@@ -357,19 +357,12 @@ void ProcessorFunctor::flushPages() const
     addi_(REG1, REG0, PAGETABLESLOCAL + (1 << PAGE_SHIFT));
     //REG2 counts number of pages
     addi_(REG2, REG0, TILE_MEM_SIZE >> PAGE_SHIFT);
-    //REG9 points to start of bitmaps
-    muli_(REG9, REG2, ENDOFFSET);
-    shiftri_(REG9, PAGE_SHIFT);
-    addi_(REG9, REG9, 0x01);
-    shiftli_(REG9, PAGE_SHIFT);
-    add_(REG9, REG9, REG1);
-    //REG10 holds bitmap bytes per page
-    addi_(REG10, REG0, 1 << PAGE_SHIFT);
-    shiftri_(REG10, BITMAP_SHIFT + 0x03);
     //REG3 holds pages done so far
     add_(REG3, REG0, REG0);
-    uint64_t aboutToCheck = proc->getProgramCounter();
+    //REG15 holds page size
+    addi_(REG15, REG0, PAGE_BYTES);
 
+    uint64_t aboutToCheck = proc->getProgramCounter();
 check_page_status:
     proc->setProgramCounter(aboutToCheck);
     muli_(REG5, REG3, PAGETABLEENTRY);
@@ -414,26 +407,10 @@ flush_page:
     addi_(REG16, REG0, 0);
     //get frame number
     lwi_(REG5, REG17, FRAMEOFFSET);
-    //REG7 - points into bitmap
-    mul_(REG7, REG10, REG5);
     //now get REG5 to point to base of page in local memory
     muli_(REG5, REG5, 1 << PAGE_SHIFT);
     addi_(REG5, REG5, PAGETABLESLOCAL);
-    add_(REG7, REG7, REG9);
 
-start_check_off:
-    //REG13 holds single bit
-    addi_(REG13, REG0, 0x01);
-    //REG12 holds bitmap (64 bits at a time)
-    lw_(REG12, REG7, REG0);
-    andi_(REG12, REG12, BITMAP_FILTER);
-
-check_next_bit:
-    and_(REG14, REG13, REG12);
-    if (beq_(REG14, REG0, 0)) {
-        goto next_bit;
-    }
-    addi_(REG15, REG0, BITMAP_BYTES);
 
     writeOutBytes = proc->getProgramCounter();
 
@@ -442,34 +419,12 @@ write_out_bytes:
     //REG17 holds contents
     lw_(REG17, REG5, REG16);
     sw_(REG17, REG4, REG16);
-    subi_(REG15, REG15, sizeof(uint64_t));
     addi_(REG16, REG16, sizeof(uint64_t));
-    if (beq_(REG15, REG0, 0)) {
-        goto next_bit_no_add;
+    if (beq_(REG15, REG16, 0)) {
+        goto next_pte;
     }
     br_(0);
     goto write_out_bytes;
-
-next_bit:
-    addi_(REG16, REG16, BITMAP_BYTES);
-next_bit_no_add:
-    shiftli_(REG13, 1);
-    if (beq_(REG13, REG0, 0)) {
-        //used up all our bits
-        goto read_next_bitmap_word;
-    }
-    br_(0);
-    goto check_next_bit;
-
-read_next_bitmap_word:
-    subi_(REG15, REG16, 1 << PAGE_SHIFT);
-    if (beq_(REG15, REG0, 0)) {
-        //have done whole page
-        goto next_pte;
-    }
-    addi_(REG7, REG7, sizeof(uint64_t));
-    br_(0);
-    goto start_check_off;
 
 next_pte:
     addi_(REG3, REG3, 0x01);
