@@ -36,7 +36,7 @@
 static const uint64_t REGISTER_FILE_SIZE = 32;
 static const uint64_t PAGE_BYTES = 1024;
 static const uint64_t BITMAP_SHIFT = 4;
-static const uint64_t BITMAP_MASK = 0xFFFFFFFFFFFFFFF0;
+static const uint64_t MEM_REQ_SIZE = 16;
 //page mappings
 static const uint64_t PAGETABLESLOCAL = 0xA000000000000000;
 static const uint64_t GLOBALCLOCKSLOW = 4;
