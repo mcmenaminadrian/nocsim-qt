@@ -349,6 +349,9 @@ ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 //return address in REG1
 void ProcessorFunctor::flushPages() const
 {
+    //FIXME: delete these later
+    uint64_t tot1, tot2;
+
     uint64_t writeOutBytes;
     push_(REG1);
     br_(0);
@@ -358,10 +361,8 @@ void ProcessorFunctor::flushPages() const
     //REG2 counts number of pages
     addi_(REG2, REG0, TILE_MEM_SIZE >> PAGE_SHIFT);
     //REG9 points to start of bitmaps
-    muli_(REG9, REG2, ENDOFFSET);
-    shiftri_(REG9, PAGE_SHIFT);
-    addi_(REG9, REG9, 0x01);
-    shiftli_(REG9, PAGE_SHIFT);
+    lwi_(REG9, REG0, PAGETABLESLOCAL);
+    muli_(REG9, REG9, 1 << PAGE_SHIFT);
     add_(REG9, REG9, REG1);
     //REG10 holds bitmap bytes per page
     addi_(REG10, REG0, 1 << PAGE_SHIFT);
@@ -372,13 +373,14 @@ void ProcessorFunctor::flushPages() const
 
 check_page_status:
     proc->setProgramCounter(aboutToCheck);
+    addi_(REG29, REG0, 0x02); //constant
     muli_(REG5, REG3, PAGETABLEENTRY);
     add_(REG17, REG1, REG5);
     //REG4 holds flags    
     lwi_(REG4, REG17, FLAGOFFSET);
     //don't flush an unmovable page
-    andi_(REG30, REG4, 0x02);
-    addi_(REG31, REG0, 0x02);
+    and_(REG30, REG4, REG29);
+    add_(REG31, REG0, REG29);
     if (beq_(REG30, REG31, 0)) {
         goto next_pte;
     }
@@ -388,20 +390,20 @@ check_page_status:
         goto next_pte;
     }
     //load virtual address in REG4
-    lwi_(REG4, REG17, VOFFSET);
+    lwi_(REG4, REG17, VOFFSET); cout << "REG4 is " << hex << proc->getRegister(REG4) << dec << endl;
     //test if it is remote
     subi_(REG5, REG4, PAGETABLESLOCAL);
     getsw_(REG5);
-    andi_(REG5, REG5, 0x02);
-    addi_(REG6, REG0, 0x02);
+    and_(REG5, REG5, REG29);
+    add_(REG6, REG0, REG29);
     if (beq_(REG5, REG6, 0)) {
         goto flush_page;
     }
     addi_(REG6, REG0, PAGETABLESLOCAL + TILE_MEM_SIZE);
     sub_(REG5, REG6, REG4);
     getsw_(REG5);
-    andi_(REG5, REG5, 0x02);
-    addi_(REG6, REG0, 0x02);
+    and_(REG5, REG5, REG29);
+    add_(REG6, REG0, REG29);
     if (beq_(REG5, REG6, 0)) {
         goto flush_page;
     }
@@ -411,9 +413,10 @@ check_page_status:
 
 flush_page:
     //REG16 holds bytes traversed
-    addi_(REG16, REG0, 0);
+    add_(REG16, REG0, REG0);
     //get frame number
     lwi_(REG5, REG17, FRAMEOFFSET);
+    cout << "Flushing page frame " << proc->getRegister(REG5) << " on processor " << proc->getNumber() << endl;
     //REG7 - points into bitmap
     mul_(REG7, REG10, REG5);
     //now get REG5 to point to base of page in local memory
@@ -434,16 +437,19 @@ check_next_bit:
         goto next_bit;
     }
     addi_(REG15, REG0, BITMAP_BYTES);
+    addi_(REG21, REG0, sizeof(uint64_t)); //constant
 
     writeOutBytes = proc->getProgramCounter();
-
+    tot1 = proc->getRegister(REG5) + proc->getRegister(REG16);
+    tot2 = proc->getRegister(REG4) + proc->getRegister(REG16);
+    cout << "Flushing from " << hex  << tot1 << " to " << tot2 << dec << endl;
 write_out_bytes:
     proc->setProgramCounter(writeOutBytes);
-    //REG17 holds contents
-    lw_(REG17, REG5, REG16);
-    sw_(REG17, REG4, REG16);
-    subi_(REG15, REG15, sizeof(uint64_t));
-    addi_(REG16, REG16, sizeof(uint64_t));
+    //REG31 holds contents
+    lw_(REG31, REG5, REG16);
+    sw_(REG31, REG4, REG16);
+    sub_(REG15, REG15, REG21);
+    add_(REG16, REG16, REG21);
     if (beq_(REG15, REG0, 0)) {
         goto next_bit_no_add;
     }
@@ -465,11 +471,18 @@ read_next_bitmap_word:
     subi_(REG15, REG16, 1 << PAGE_SHIFT);
     if (beq_(REG15, REG0, 0)) {
         //have done whole page
-        goto next_pte;
+        goto ready_next_pte;
     }
-    addi_(REG7, REG7, sizeof(uint64_t));
+    add_(REG7, REG7, REG21);
     br_(0);
     goto start_check_off;
+
+ready_next_pte:
+    //drop page from TLB and
+    //mark page as invalid
+    lwi_(REG30, REG17, VOFFSET);
+    proc->dumpPageFromTLB(proc->getRegister(REG30));
+    swi_(REG0, REG17, FLAGOFFSET);
 
 next_pte:
     addi_(REG3, REG3, 0x01);
@@ -562,8 +575,9 @@ void ProcessorFunctor::normaliseLine() const
 {
     cout << "Normalising line " << (proc->getRegister(REG2) & 0xFF) << endl;
 
-    //reset processor count to zero
-    swi_(REG0, REG0, 0x110);
+    //reset processor count
+    andi_(REG30, REG2, 0xFF);
+    swi_(REG30, REG0, 0x110);
     push_(REG1);
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
@@ -664,6 +678,7 @@ store:
     br_(0);
     goto loop1;
 ending:
+    flushPages();
     pop_(REG1);
     br_(0);
     proc->setProgramCounter(proc->getRegister(REG1));
@@ -751,8 +766,6 @@ void ProcessorFunctor::operator()()
     swi_(REG1, REG0, 0x100);
     addi_(REG1, REG0, 0xFF);
     swi_(REG1, REG0, 0x110);
-    add_(REG1, REG0, REG0);
-    swi_(REG1, REG0, 0x120);
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
     //store processor number
@@ -815,16 +828,11 @@ test_for_processor:
     goto wait_for_next_signal;
 
 normalise_line:
-    addi_(REG30, REG1, 0x01);
-    swi_(REG30, REG0, 0x120);
     push_(REG1);
     push_(REG15);
     br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
     normaliseLine();
-    addi_(REG1, REG0, proc->getProgramCounter());
-    br_(0);
-    flushPages();
     pop_(REG15);
     add_(REG3, REG0, REG15);
     ori_(REG3, REG3, 0xFE00);
@@ -833,18 +841,6 @@ normalise_line:
     addi_(REG1, REG0, proc->getProgramCounter()); 
     br_(0);
     flushPages();
-    //wait a few thousand ticks
-    addi_(REG1, REG0, 0x1000);
-    normaliseTickDown = proc->getProgramCounter();
-
-normalise_tick_down:
-    proc->setProgramCounter(normaliseTickDown);
-    subi_(REG1, REG1, 0x01);
-    if (beq_(REG1, REG0, 0)) {
-        goto ready_for_next_normalisation;
-    }
-    br_(0);
-    goto normalise_tick_down;
 
 ready_for_next_normalisation:
     pop_(REG15);
@@ -855,7 +851,7 @@ ready_for_next_normalisation:
 wait_for_next_signal:
     push_(REG15);
     //try a back off
-    addi_(REG5, REG0, 0x10);
+    addi_(REG5, REG0, 0x400);
     addi_(REG6, REG0, 0x1000);
 
     waitingOnZero = proc->getProgramCounter();
@@ -896,7 +892,7 @@ back_off_handler:
     goto wait_on_zero;
 
 back_off_reset:
-    addi_(REG5, REG0, 0x01);
+    addi_(REG5, REG0, 0x10);
     goto wait_on_zero;
 
 calculate_next:
@@ -911,7 +907,9 @@ calculate_next:
 on_to_next_round:
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     add_(REG12, REG0, REG15);
+    push_(REG1);
     nextRound();
+    pop_(REG1);
     pop_(REG15);
 prepare_to_normalise_next:
     cout << "Pass " << proc->getRegister(REG15) << " on processor " << proc->getRegister(REG1) << " complete." << endl;
@@ -928,6 +926,7 @@ wait_for_turn_to_complete:
     push_(REG4);
     addi_(REG3, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
+    br_(0);
     forcePageReload();
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     push_(REG5);
@@ -937,7 +936,7 @@ wait_for_turn_to_complete:
     }
     sub_(REG5, REG1, REG4);
     //delay loop dependent on how much further we have to go
-    muli_(REG5, REG5, 0x13);
+    muli_(REG5, REG5, 0x130);
 
     loopingWaitingForProcessorCount = proc->getProgramCounter();
 loop_wait_processor_count:
@@ -958,25 +957,16 @@ ready_to_loop_again:
     goto wait_for_turn_to_complete;
 
 write_out_next_processor:
-    subi_(REG5, REG1, sumCount - 1);
-    if (beq_(REG5, REG0, 0)) {
-        goto write_processor_back_to_zero;
-    }
-    br_(0);
-    goto write_out_next_processor_A;
-
-write_processor_back_to_zero:
-    swi_(REG0, REG0, 0x120);
-
-write_out_next_processor_A:
     swi_(REG1, REG0, 0x110);
-    br_(0);
+    push_(REG1);
     addi_(REG1, REG0, proc->getProgramCounter());
+    br_(0);
     flushPages();
+    pop_(REG1);
+    cout << "Wrote " << proc->getRegister(REG1) << " to 0x110" << endl;
     pop_(REG5);
     pop_(REG4);
     pop_(REG3);
-
     addi_(REG20, REG0, 0xFF00);
     or_(REG20, REG20, REG15);
     swi_(REG20, REG0, 0x100);
@@ -987,20 +977,7 @@ write_out_next_processor_A:
     flushPages();
     pop_(REG1);
     pop_(REG15);
-    cout << "sending signal " << hex << proc->getRegister(REG20) << " from " << dec << proc->getNumber() << endl;
-
-    //count down to avoid flooding memory net
-    addi_(REG30, REG0, 0x10);
-    holdingPoint = proc->getProgramCounter();
-hold_on_a_while:
-    proc->setProgramCounter(holdingPoint);
-    nop_();
-    subi_(REG30, REG30, 0x01);
-    if (beq_(REG30, REG0, 0)) {
-	goto moving_on;
-    }
-    br_(0);
-    goto hold_on_a_while;
+    cout << "sending signal " << hex << proc->getRegister(REG20) << " from " << dec << proc->getRegister(REG1) << endl;
 
 moving_on:
     br_(0);
@@ -1244,5 +1221,7 @@ next_round_prepare_to_save:
     goto next_round_loop_start;
 
 next_round_over:
-    nop_();
+    addi_(REG1, REG0, proc->getProgramCounter());
+    br_(0);
+    flushPages();
 }
