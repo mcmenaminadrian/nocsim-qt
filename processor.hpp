@@ -52,7 +52,7 @@ class Processor: public QObject {
 
 signals:
     void hardFault();
-    void smallFault();
+
 
 private:
 	Router router;
@@ -78,6 +78,7 @@ private:
     uint64_t processorNumber;
 	bool inInterrupt;
 	bool inClock;
+	bool clockDue;
     void markUpBasicPageEntries(const uint64_t& reqPTEPages);
 	void writeOutBasicPageEntries(const uint64_t& reqPTEPages);
     void writeOutPageAndBitmapLengths(const uint64_t& reqPTESize);

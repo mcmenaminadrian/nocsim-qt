@@ -416,15 +416,23 @@ flush_page:
 
 write_out_bytes:
     proc->setProgramCounter(writeOutBytes);
-    //REG17 holds contents
-    lw_(REG17, REG5, REG16);
-    sw_(REG17, REG4, REG16);
+    //REG30 holds contents
+    lw_(REG30, REG5, REG16);
+    sw_(REG30, REG4, REG16);
     addi_(REG16, REG16, sizeof(uint64_t));
     if (beq_(REG15, REG16, 0)) {
-        goto next_pte;
+        goto ready_next_pte;
     }
     br_(0);
     goto write_out_bytes;
+
+//flushed page, now dump it from TLB and local page tables
+ready_next_pte:
+    lwi_(REG30, REG17, VOFFSET);
+    proc->dumpPageFromTLB(proc->getRegister(REG30));
+    lwi_(REG30, REG17, FLAGOFFSET);
+    andi_(REG30, REG30, 0xFFFFFFFFFFFFFF0);
+    swi_(REG30, REG17, FLAGOFFSET);
 
 next_pte:
     addi_(REG3, REG3, 0x01);
@@ -619,6 +627,7 @@ store:
     br_(0);
     goto loop1;
 ending:
+    flushPages();
     pop_(REG1);
     br_(0);
     proc->setProgramCounter(proc->getRegister(REG1));
@@ -777,9 +786,6 @@ normalise_line:
     br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
     normaliseLine();
-    addi_(REG1, REG0, proc->getProgramCounter());
-    br_(0);
-    flushPages();
     pop_(REG15);
     add_(REG3, REG0, REG15);
     ori_(REG3, REG3, 0xFE00);
@@ -788,20 +794,6 @@ normalise_line:
     addi_(REG1, REG0, proc->getProgramCounter()); 
     br_(0);
     flushPages();
-    //wait a few thousand ticks
-    addi_(REG1, REG0, 0x1000);
-    normaliseTickDown = proc->getProgramCounter();
-
-normalise_tick_down:
-    proc->setProgramCounter(normaliseTickDown);
-    subi_(REG1, REG1, 0x01);
-    if (beq_(REG1, REG0, 0)) {
-        goto ready_for_next_normalisation;
-    }
-    br_(0);
-    goto normalise_tick_down;
-
-ready_for_next_normalisation:
     pop_(REG15);
     pop_(REG1);
     br_(0);
@@ -1200,4 +1192,5 @@ next_round_prepare_to_save:
 
 next_round_over:
     nop_();
+    flushPages();
 }
