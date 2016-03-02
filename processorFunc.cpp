@@ -983,7 +983,7 @@ work_here_is_done:
     br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
-    add_(REG10, REG0, proc->getNumber());
+    addi_(REG10, REG0, proc->getNumber());
     cout << " - our work here is done - " << proc->getRegister(REG10) << endl;
     //some C++ to write out normalised line
     uint64_t myProcessor = proc->getRegister(REG10);
