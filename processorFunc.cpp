@@ -349,9 +349,6 @@ ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 //return address in REG1
 void ProcessorFunctor::flushPages() const
 {
-    //FIXME: delete these later
-    uint64_t tot1, tot2;
-
     uint64_t writeOutBytes;
     push_(REG1);
     br_(0);
@@ -369,11 +366,12 @@ void ProcessorFunctor::flushPages() const
     shiftri_(REG10, BITMAP_SHIFT + 0x03);
     //REG3 holds pages done so far
     add_(REG3, REG0, REG0);
+    addi_(REG29, REG0, 0x02); //constant
+    addi_(REG21, REG0, sizeof(uint64_t)); //constant
     uint64_t aboutToCheck = proc->getProgramCounter();
 
 check_page_status:
     proc->setProgramCounter(aboutToCheck);
-    addi_(REG29, REG0, 0x02); //constant
     muli_(REG5, REG3, PAGETABLEENTRY);
     add_(REG17, REG1, REG5);
     //REG4 holds flags    
@@ -390,7 +388,7 @@ check_page_status:
         goto next_pte;
     }
     //load virtual address in REG4
-    lwi_(REG4, REG17, VOFFSET); cout << "REG4 is " << hex << proc->getRegister(REG4) << dec << endl;
+    lwi_(REG4, REG17, VOFFSET);
     //test if it is remote
     subi_(REG5, REG4, PAGETABLESLOCAL);
     getsw_(REG5);
@@ -416,7 +414,6 @@ flush_page:
     add_(REG16, REG0, REG0);
     //get frame number
     lwi_(REG5, REG17, FRAMEOFFSET);
-    cout << "Flushing page frame " << proc->getRegister(REG5) << " on processor " << proc->getNumber() << endl;
     //REG7 - points into bitmap
     mul_(REG7, REG10, REG5);
     //now get REG5 to point to base of page in local memory
@@ -437,12 +434,8 @@ check_next_bit:
         goto next_bit;
     }
     addi_(REG15, REG0, BITMAP_BYTES);
-    addi_(REG21, REG0, sizeof(uint64_t)); //constant
 
     writeOutBytes = proc->getProgramCounter();
-    tot1 = proc->getRegister(REG5) + proc->getRegister(REG16);
-    tot2 = proc->getRegister(REG4) + proc->getRegister(REG16);
-    cout << "Flushing from " << hex  << tot1 << " to " << tot2 << dec << endl;
 write_out_bytes:
     proc->setProgramCounter(writeOutBytes);
     //REG31 holds contents
@@ -482,7 +475,9 @@ ready_next_pte:
     //mark page as invalid
     lwi_(REG30, REG17, VOFFSET);
     proc->dumpPageFromTLB(proc->getRegister(REG30));
-    swi_(REG0, REG17, FLAGOFFSET);
+    lwi_(REG30, REG17, FLAGOFFSET);
+    andi_(REG30, REG30, 0xFFFFFFFFFFFFFF00);
+    swi_(REG30, REG17, FLAGOFFSET);
 
 next_pte:
     addi_(REG3, REG3, 0x01);

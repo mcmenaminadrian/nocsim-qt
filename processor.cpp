@@ -338,46 +338,43 @@ const pair<const uint64_t, bool> Processor::getFreeFrame() const
 
 void Processor::writeBackMemory(const uint64_t& frameNo)
 {
-	//find bitmap for this frame
-	const uint64_t totalPTEPages =
-		masterTile->readLong(fetchAddressRead(PAGETABLESLOCAL));
-	const uint64_t bitmapOffset =
-		(1 + totalPTEPages) * (1 << pageShift);
-	const uint64_t bitmapSize = (1 << pageShift) / BITMAP_BYTES;
-	uint64_t bitToRead = frameNo * bitmapSize;
+    //find bitmap for this frame
+    const uint64_t totalPTEPages =
+	masterTile->readLong(fetchAddressRead(PAGETABLESLOCAL));
+    const uint64_t bitmapOffset =
+	(1 + totalPTEPages) * (1 << pageShift);
+    const uint64_t bitmapSize = (1 << pageShift) / BITMAP_BYTES;
+    uint64_t bitToRead = frameNo * bitmapSize;
     const uint64_t physicalAddress = mapToGlobalAddress(
-		localMemory->readLong((1 << pageShift) +
+	localMemory->readLong((1 << pageShift) +
         frameNo * PAGETABLEENTRY)).first;
-	long byteToRead = -1;
-	uint8_t byteBit = 0;
-	for (unsigned int i = 0; i < bitmapSize; i++)
-	{
-		long nextByte = bitToRead / 8;
-		if (nextByte != byteToRead) {
-			byteBit =
-				localMemory->readByte(bitmapOffset + nextByte);
-			byteToRead = nextByte;
-		}
-		uint8_t actualBit = bitToRead%8;
-		if (byteBit & (1 << actualBit)) {
-			for (unsigned int j = 0; 
-				j < BITMAP_BYTES/sizeof(uint64_t); j++)
-			{
-				waitATick();
-				uint64_t toGo =
-					masterTile->readLong(
-					fetchAddressRead(frameNo * 
-					(1 << pageShift) + PAGETABLESLOCAL
-					 + i * BITMAP_BYTES + 
-					j * sizeof(uint64_t)));
-				waitATick();
-				masterTile->writeLong(fetchAddressWrite(
-					physicalAddress + i * BITMAP_BYTES
-					 + j * sizeof(uint64_t)), toGo);
-			}
-		}
-		bitToRead++;
+    long byteToRead = -1;
+    uint8_t byteBit = 0;
+    for (unsigned int i = 0; i < bitmapSize; i++)
+    {
+        long nextByte = bitToRead / 8;
+	if (nextByte != byteToRead) {
+	    byteBit = localMemory->readByte(bitmapOffset + nextByte);
+	    byteToRead = nextByte;
 	}
+	uint8_t actualBit = bitToRead%8;
+	if (byteBit & (1 << actualBit)) {
+		for (unsigned int j = 0;
+                    j < BITMAP_BYTES/sizeof(uint64_t); j++)
+	    {
+		waitATick();
+		uint64_t toGo = masterTile->readLong(
+	            fetchAddressRead(frameNo * (1 << pageShift) + 
+                        PAGETABLESLOCAL + i * BITMAP_BYTES + 
+	                j * sizeof(uint64_t)));
+		waitATick();
+		masterTile->writeLong(fetchAddressWrite(
+			physicalAddress + i * BITMAP_BYTES
+			+ j * sizeof(uint64_t)), toGo);
+	    }
+	}
+	bitToRead++;
+    }
 }
 
 void Processor::loadMemory(const uint64_t& frameNo,
@@ -399,12 +396,12 @@ void Processor::fixPageMap(const uint64_t& frameNo,
 	const uint64_t& address) 
 {
 	const uint64_t pageAddress = address & pageMask;
+        const uint64_t writeBase =
+                (1 << pageShift) + frameNo * PAGETABLEENTRY;
 	waitATick();
-	localMemory->writeLong((1 << pageShift) +
-        frameNo * PAGETABLEENTRY + VOFFSET, pageAddress);
+	localMemory->writeLong(writeBase + VOFFSET, pageAddress);
 	waitATick();
-	localMemory->writeWord32((1 << pageShift) +
-		frameNo * PAGETABLEENTRY + FLAGOFFSET, 0x05);
+	localMemory->writeWord32(writeBase + FLAGOFFSET, 0x05);
 }
 
 void Processor::fixPageMapStart(const uint64_t& frameNo,
@@ -412,9 +409,9 @@ void Processor::fixPageMapStart(const uint64_t& frameNo,
 {
 	const uint64_t pageAddress = address & pageMask;
 	localMemory->writeLong((1 << pageShift) +
-        frameNo * PAGETABLEENTRY + VOFFSET, pageAddress);
+            frameNo * PAGETABLEENTRY + VOFFSET, pageAddress);
 	localMemory->writeWord32((1 << pageShift) +
-		frameNo * PAGETABLEENTRY + FLAGOFFSET, 0x05);
+	    frameNo * PAGETABLEENTRY + FLAGOFFSET, 0x05);
 }
 
 void Processor::fixBitmap(const uint64_t& frameNo)
@@ -504,9 +501,9 @@ const pair<uint64_t, uint8_t>
 uint64_t Processor::triggerHardFault(const uint64_t& address)
 {
     emit hardFault();
-	interruptBegin();
-	const pair<const uint64_t, bool> frameData = getFreeFrame();
-	if (frameData.second) {
+    interruptBegin();
+    const pair<const uint64_t, bool> frameData = getFreeFrame();
+    if (frameData.second) {
         writeBackMemory(frameData.first);
     }
     fixBitmap(frameData.first);
@@ -518,7 +515,7 @@ uint64_t Processor::triggerHardFault(const uint64_t& address)
     fixPageMap(frameData.first, translatedAddress.first);
     markBitmapStart(frameData.first, translatedAddress.first +
         (address & bitMask));
-	interruptEnd();
+    interruptEnd();
     return generateAddress(frameData.first, translatedAddress.first +
         (address & bitMask));
 }
