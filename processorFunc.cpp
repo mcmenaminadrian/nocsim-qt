@@ -570,12 +570,7 @@ void ProcessorFunctor::normaliseLine() const
 {
     cout << "Normalising line " << (proc->getRegister(REG2) & 0xFF) << endl;
 
-    //reset processor count
-    andi_(REG30, REG2, 0xFF);
-    swi_(REG30, REG0, 0x110);
     push_(REG1);
-    addi_(REG1, REG0, proc->getProgramCounter());
-    flushPages();
 
     //copy REG2 to REG30;
     push_(REG2);
@@ -681,6 +676,13 @@ store:
     br_(0);
     goto loop1;
 ending:
+    //flush results to global memory
+    addi_(REG1, REG0, proc->getProgramCounter());
+    flushPages();
+    //update processor count
+    lwi_(REG30, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3); 
+    swi_(REG30, REG0, 0x110);
+    addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
     pop_(REG1);
     br_(0);
@@ -754,6 +756,7 @@ void ProcessorFunctor::operator()()
     uint64_t holdingPoint;
     uint64_t tickReadingDown;
     uint64_t testNextRound;
+    uint64_t normaliseDelayLoop;
     const uint64_t order = tile->getOrder();
     Tile *masterTile = proc->getTile();
     if (order >= SETSIZE) {
@@ -776,7 +779,6 @@ void ProcessorFunctor::operator()()
     swi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
 
     const uint64_t readCommandPoint = proc->getProgramCounter();
-
 read_command:
     proc->setProgramCounter(readCommandPoint);
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);    
@@ -792,10 +794,10 @@ read_command:
     }
 
     addi_(REG30, REG0, 0x101);
-    sub_(REG30, REG30, REG1);
+    sub_(REG30, REG30, REG4);
 
-    //wait longer if we have low processor number
-    muli_(REG3, REG30, 0x17);
+    //wait longer if we have low processor number signalled
+    muli_(REG3, REG30, 0x7);
     tickReadingDown = proc->getProgramCounter();
 tick_read_down:
     proc->setProgramCounter(tickReadingDown);
@@ -809,11 +811,11 @@ tick_read_down:
 
 keep_reading_command:
     lwi_(REG2, REG0, 0x100);
-    //REG3 holds signal
+    //REG3 holds instruction portion of signal
     andi_(REG3, REG2, 0xFF00);
-    //REG7 holds signal to match against
+    //REG7 holds instruction to match against
     addi_(REG7, REG0, 0xFF00);
-    //REG4 holds register
+    //REG4 holds register protion of signal
     andi_(REG4, REG2, 0xFF);
  
     //test for signal
@@ -832,6 +834,25 @@ test_for_processor:
 
 normalise_line:
     push_(REG1);
+    lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
+    if (beq(REG1, REG0, 0)) {
+	goto now_for_normalise;
+    }
+
+    cout << "Waiting to begin normalisation" << endl;
+    normaliseDelayLoop = proc->getProgramCounter();
+wait_for_normalise:
+    proc->setProgramCounter(normaliseDelayLoop);
+    addi_(REG1, REG0, 0x700);
+    nop();
+    subi_(REG1, REG1, 1);
+    if (beq_(REG1, REG0, 0)) {
+	goto now_for_normalise;
+    }
+    br_(0);
+    goto wait_for_normalise;
+
+now_for_normalise:
     push_(REG15);
     br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
@@ -852,6 +873,7 @@ ready_for_next_normalisation:
     goto prepare_to_normalise_next;
 
 wait_for_next_signal:
+    cout << "Processor " << proc->getNumber() << "now waiting." << endl;
     push_(REG15);
     //try a back off
     addi_(REG5, REG0, 0x400);
