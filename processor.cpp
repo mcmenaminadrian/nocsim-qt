@@ -49,6 +49,7 @@ Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
 	currentTLB = 0;
 	inInterrupt = false;
     processorNumber = numb;
+    clockDue = false;
     QObject::connect(this, SIGNAL(hardFault()),
         mW, SLOT(updateHardFaults()));
     QObject::connect(this, SIGNAL(smallFault()),
@@ -696,7 +697,11 @@ void Processor::waitATick()
 	ControlThread *pBarrier = masterTile->getBarrier();
 	pBarrier->releaseToRun();
 	totalTicks++;
-	if (totalTicks%clockTicks == 0 && inClock == false) {
+	if (totalTicks%clockTicks == 0) {
+		clockDue = true;
+	}	
+	if (clockDue && inClock == false) {
+		clockDue = false;
 		activateClock();
 	}
 }

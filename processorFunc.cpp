@@ -576,14 +576,13 @@ void ProcessorFunctor::normaliseLine() const
     push_(REG1);
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
-    pop_(REG1);
 
     //copy REG2 to REG30;
     push_(REG2);
     pop_(REG30);
     andi_(REG30, REG30, 0xFF);
-    push_(REG1);
     //read in the data
+    //some constants
     addi_(REG1, REG0, SETSIZE + 1);
     addi_(REG2, REG0, APNUMBERSIZE);
     add_(REG3, REG0, REG30);
@@ -599,12 +598,15 @@ void ProcessorFunctor::normaliseLine() const
     lw_(REG5, REG0, REG4);
     //set REG6 to 1
     addi_(REG6, REG0, 1);
-    //read first number
+    //read first numerator
     lwi_(REG7, REG4, sizeof(uint64_t));
+    //read first denominator
+    lwi_(REG19, REG4, (APNUMBERSIZE + 1) * sizeof(uint64_t)); 
     //convert number to 1
     swi_(REG6, REG4, sizeof(uint64_t));
+    swi_(REG6, REG4, (APNUMBERSIZE + 1) * sizeof(uint64_t));
     //increment loop counter
-    addi_(REG3, REG0, 1);
+    add_(REG3, REG0, REG6);
     //set REG6 to sign
     //and store positive sign
     andi_(REG6, REG5, 0xFF);
@@ -638,18 +640,24 @@ loop1:
         proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
         goto zero;
     }
+    mul_(REG10, REG10, REG19);
     br_(0);
-    proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t) * 2);
+    proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t) * 3);
     goto notzero;
 zero:
     addi_(REG11, REG0, 1);
+    //set sign as positive
+    lw_(REG31, REG9, REG4);
+    andi_(REG31, REG31, 0xFFFFFFFFFFFFFF00);
+    sw_(REG31, REG9, REG4);
     br_(0);
     proc->setProgramCounter(proc->getProgramCounter() + 9 * sizeof(uint64_t));
     goto store;
 
 notzero:
     //process
-    add_(REG11, REG0, REG7);
+    lw_(REG11, REG4, REG8);
+    mul_(REG11, REG11, REG7);
     push_(REG3);
     push_(REG1);
     addi_(REG1, REG0, proc->getProgramCounter());

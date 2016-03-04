@@ -78,6 +78,7 @@ private:
     uint64_t processorNumber;
 	bool inInterrupt;
 	bool inClock;
+	bool clockDue;
 	void markUpBasicPageEntries(const uint64_t& reqPTEPages,
 		const uint64_t& reqBitmapPages);
 	void writeOutBasicPageEntries(const uint64_t& reqPTEPages);
