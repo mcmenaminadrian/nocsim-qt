@@ -379,16 +379,18 @@ void Processor::writeBackMemory(const uint64_t& frameNo)
         }
         uint8_t actualBit = bitToRead%8;
         if (byteBit & (1 << actualBit)) {
-            transferLocalToGlobal();
+            //simulate transfer
+            transferLocalToGlobal(frameNo * (1 << pageShift) + PAGETABLESLOCAL +
+                i * BITMAP_BYTES, tlbs[frameNo], BITMAP_BYTES);
             for (unsigned int j = 0;
                     j < BITMAP_BYTES/sizeof(uint64_t); j++)
             {
+                //actual transfer done in here
                 waitATick();
                 uint64_t toGo = masterTile->readLong(
                     fetchAddressRead(frameNo * (1 << pageShift) +
                     PAGETABLESLOCAL + i * BITMAP_BYTES +
                     j * sizeof(uint64_t)));
-                waitATick();
                 masterTile->writeLong(fetchAddressWrite(
                     physicalAddress + i * BITMAP_BYTES
                     + j * sizeof(uint64_t)), toGo);
