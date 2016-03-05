@@ -111,6 +111,8 @@ private:
 	void fixBitmap(const uint64_t& frameNo);
 	void markBitmapStart(const uint64_t& frameNo,
 		const uint64_t& address);
+    void markBitmap(const uint64_t& frameNo,
+        const uint64_t& address);
 	void fixTLB(const uint64_t& frameNo,
 		const uint64_t& address);
 	const std::vector<uint8_t>
@@ -162,8 +164,9 @@ public:
         fetchAddressRead(address);
     }
     void checkCarryBit();
-
-
+    void transferLocalToGlobal(const uint64_t& address,
+        const std::tuple<uint64_t, uint64_t, bool>& tlbEntry,
+        const uint64_t& size);
 	void waitATick();
 	void waitGlobalTick();
 	Tile* getTile() const { return masterTile; }
@@ -171,6 +174,5 @@ public:
     void flushPagesStart();
     void flushPagesEnd();
     void dumpPageFromTLB(const uint64_t& address);
-
 };
 #endif
