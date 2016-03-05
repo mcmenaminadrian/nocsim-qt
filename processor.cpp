@@ -158,7 +158,7 @@ void Processor::createMemoryMap(Memory *local, long pShift)
 	pagesAvailable = memoryAvailable >> pageShift;
 	uint64_t requiredPTESize = pagesAvailable * PAGETABLEENTRY;
     uint64_t requiredPTEPages = requiredPTESize >> pageShift;
-	if ((requiredPTEPages << pageShift) != requiredPTESize) {
+    if ((requiredPTEPages << pageShift) < requiredPTESize) {
 		requiredPTEPages++;
 	}
 
@@ -181,7 +181,7 @@ void Processor::createMemoryMap(Memory *local, long pShift)
 			PAGETABLESLOCAL + i * (1 << pageShift);
 		fixTLB(i, pageStart);
   	}
-    //TLB and bitmap for stack
+    //TLB for stack
     const uint64_t stackPage = PAGETABLESLOCAL + TILE_MEM_SIZE -
             (1 << pageShift);
     const uint64_t stackPageNumber = pagesAvailable - 1;
@@ -394,16 +394,16 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address)
     if (mode == VIRTUAL) {
         uint64_t pageSought = address & pageMask;
         uint64_t y = 0;
-	for (auto x: tlbs) {
+        for (auto x: tlbs) {
             if (get<2>(x) && ((pageSought) == (get<0>(x) & pageMask))) {
                 return generateAddress(y, address);
             }
             y++;
-	}
-	//not in TLB - but check if it is in page table
-	waitATick(); 
-	for (unsigned int i = 0; i < TOTAL_LOCAL_PAGES; i++) {
-	    waitATick();
+        }
+        //not in TLB - but check if it is in page table
+        waitATick();
+        for (unsigned int i = 0; i < TOTAL_LOCAL_PAGES; i++) {
+            waitATick();
             uint64_t addressInPageTable = PAGETABLESLOCAL +
                     (i * PAGETABLEENTRY) + (1 << pageShift);
             uint64_t flags = masterTile->readWord32(addressInPageTable
@@ -414,9 +414,9 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address)
             waitATick();
             uint64_t storedPage =
                 masterTile->readLong(addressInPageTable + VOFFSET);
-	    waitATick();
+            waitATick();
             if (pageSought == storedPage) {
-		waitATick();
+                waitATick();
                 flags |= 0x04;
                 masterTile->writeWord32(addressInPageTable + FLAGOFFSET,
                     flags);
@@ -429,12 +429,12 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address)
         }
         waitATick();
         return triggerHardFault(address);
-	} else {
+    } else {
 		//what do we do if it's physical address?
 		return address;
 	}
 }
-		
+
 void Processor::writeAddress(const uint64_t& address,
 	const uint64_t& value)
 {
