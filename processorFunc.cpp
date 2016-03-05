@@ -507,6 +507,8 @@ void ProcessorFunctor::euclidAlgorithm() const
     push_(REG10);
     push_(REG11);
     push_(REG4);
+    push_(REG9);
+    addi_(REG9, REG0, 0x02); //constant
     uint64_t anchor1 = proc->getProgramCounter();
 test:
     proc->setProgramCounter(anchor1);
@@ -517,8 +519,8 @@ test:
         goto answer;
     }
     getsw_(REG1);
-    andi_(REG1, REG1, 0x02);
-    addi_(REG3, REG0, 0x02);
+    and_(REG1, REG1, REG9);
+    add_(REG3, REG0, REG9);
     if (beq_(REG1, REG3, 0)) {
         proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
         goto swap;
@@ -554,6 +556,7 @@ remainder:
 
 answer:
     add_(REG3, REG0, REG11);
+    pop_(REG9);
     pop_(REG4);
     pop_(REG11);
     pop_(REG10);
@@ -573,13 +576,12 @@ void ProcessorFunctor::normaliseLine() const
     push_(REG1);
 
     //copy REG2 to REG30;
-    push_(REG2);
-    pop_(REG30);
+    add_(REG2, REG0, REG30);
     andi_(REG30, REG30, 0xFF);
     //read in the data
     //some constants
     addi_(REG1, REG0, SETSIZE + 1);
-    addi_(REG2, REG0, APNUMBERSIZE);
+    addi_(REG2, REG0, sizeof(uint64_t));
     add_(REG3, REG0, REG30);
     //REG28 takes offset on line
     muli_(REG28, REG30, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
@@ -594,11 +596,11 @@ void ProcessorFunctor::normaliseLine() const
     //set REG6 to 1
     addi_(REG6, REG0, 1);
     //read first numerator
-    lwi_(REG7, REG4, sizeof(uint64_t));
+    lw_(REG7, REG4, REG2);
     //read first denominator
     lwi_(REG19, REG4, (APNUMBERSIZE + 1) * sizeof(uint64_t)); 
     //convert number to 1
-    swi_(REG6, REG4, sizeof(uint64_t));
+    sw_(REG6, REG4, REG2);
     swi_(REG6, REG4, (APNUMBERSIZE + 1) * sizeof(uint64_t));
     //increment loop counter
     add_(REG3, REG0, REG6);
@@ -629,7 +631,7 @@ loop1:
     addi_(REG8, REG9, (APNUMBERSIZE + 1) * sizeof(uint64_t));
 
     //load number
-    addi_(REG9, REG9, sizeof(uint64_t));
+    add_(REG9, REG9, REG2);
     lw_(REG10, REG9, REG4);
     if (beq_(REG10, REG0, 0)) {
         proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
@@ -639,12 +641,15 @@ loop1:
     br_(0);
     proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t) * 3);
     goto notzero;
+
 zero:
     addi_(REG11, REG0, 1);
     //set sign as positive
+    sub_(REG9, REG9, REG2);
     lw_(REG31, REG9, REG4);
     andi_(REG31, REG31, 0xFFFFFFFFFFFFFF00);
     sw_(REG31, REG9, REG4);
+    add_(REG9, REG9, REG2);
     br_(0);
     proc->setProgramCounter(proc->getProgramCounter() + 9 * sizeof(uint64_t));
     goto store;
@@ -700,7 +705,6 @@ void ProcessorFunctor::forcePageReload() const
     //Enter interrupt context
     //find page, wipe TLB and page table,
     //then exit interrupt and read address
-    uint64_t reloadStartAddress = proc->getProgramCounter();
     proc->flushPagesStart();
     //REG6 holds page address
     andi_(REG6, REG3, PAGE_ADDRESS_MASK);
@@ -752,10 +756,7 @@ void ProcessorFunctor::operator()()
     uint64_t hangingPoint, waitingOnZero;
     uint64_t loopingWaitingForProcessorCount;
     uint64_t waitingForTurn;
-    uint64_t normaliseTickDown;
-    uint64_t holdingPoint;
     uint64_t tickReadingDown;
-    uint64_t testNextRound;
     uint64_t normaliseDelayLoop;
     const uint64_t order = tile->getOrder();
     Tile *masterTile = proc->getTile();
@@ -835,16 +836,16 @@ test_for_processor:
 normalise_line:
     push_(REG1);
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
-    if (beq(REG1, REG0, 0)) {
+    if (beq_(REG1, REG0, 0)) {
 	goto now_for_normalise;
     }
 
     cout << "Waiting to begin normalisation" << endl;
+    addi_(REG1, REG0, 0x700);
     normaliseDelayLoop = proc->getProgramCounter();
 wait_for_normalise:
     proc->setProgramCounter(normaliseDelayLoop);
-    addi_(REG1, REG0, 0x700);
-    nop();
+    nop_();
     subi_(REG1, REG1, 1);
     if (beq_(REG1, REG0, 0)) {
 	goto now_for_normalise;
@@ -865,15 +866,13 @@ now_for_normalise:
     addi_(REG1, REG0, proc->getProgramCounter()); 
     br_(0);
     flushPages();
-
-ready_for_next_normalisation:
     pop_(REG15);
     pop_(REG1);
     br_(0);
     goto prepare_to_normalise_next;
 
 wait_for_next_signal:
-    cout << "Processor " << proc->getNumber() << "now waiting." << endl;
+    cout << "Processor " << proc->getNumber() << " now waiting." << endl;
     push_(REG15);
     //try a back off
     addi_(REG5, REG0, 0x400);
@@ -1003,8 +1002,6 @@ write_out_next_processor:
     pop_(REG1);
     pop_(REG15);
     cout << "sending signal " << hex << proc->getRegister(REG20) << " from " << dec << proc->getRegister(REG1) << endl;
-
-moving_on:
     br_(0);
     goto read_command;
     //construct next signal

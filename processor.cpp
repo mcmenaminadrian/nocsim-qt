@@ -27,6 +27,7 @@
 //bit 0 - 0 for invalid entry, 1 for valid
 //bit 1 - 0 for moveable, 1 for fixed
 //bit 2 - 0 for CLOCKed out, 1 for CLOCKed in
+//bit 3 - 0 for read/write, 1 for read only
 
 //TLB model
 //first entry - virtual address 
