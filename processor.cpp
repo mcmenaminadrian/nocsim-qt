@@ -395,15 +395,19 @@ void Processor::loadMemory(const uint64_t& frameNo,
 }
 
 void Processor::fixPageMap(const uint64_t& frameNo,
-	const uint64_t& address) 
+    const uint64_t& address, const bool& readOnly)
 {
 	const uint64_t pageAddress = address & pageMask;
-        const uint64_t writeBase =
-                (1 << pageShift) + frameNo * PAGETABLEENTRY;
+    const uint64_t writeBase =
+        (1 << pageShift) + frameNo * PAGETABLEENTRY;
 	waitATick();
 	localMemory->writeLong(writeBase + VOFFSET, pageAddress);
 	waitATick();
-	localMemory->writeWord32(writeBase + FLAGOFFSET, 0x05);
+    if (readOnly) {
+        localMemory->writeWord32(writeBase + FLAGOFFSET, 0x0D);
+    } else {
+        localMemory->writeWord32(writeBase + FLAGOFFSET, 0x05);
+    }
 }
 
 void Processor::fixPageMapStart(const uint64_t& frameNo,
@@ -500,7 +504,8 @@ const pair<uint64_t, uint8_t>
 
 }
 
-uint64_t Processor::triggerHardFault(const uint64_t& address)
+uint64_t Processor::triggerHardFault(const uint64_t& address,
+    const bool& readOnly)
 {
     emit hardFault();
     interruptBegin();
@@ -514,7 +519,7 @@ uint64_t Processor::triggerHardFault(const uint64_t& address)
     transferGlobalToLocal(translatedAddress.first + (address & bitMask),
             tlbs[frameData.first],
             BITMAP_BYTES);
-    fixPageMap(frameData.first, translatedAddress.first);
+    fixPageMap(frameData.first, translatedAddress.first, readOnly);
     markBitmapStart(frameData.first, translatedAddress.first +
         (address & bitMask));
     interruptEnd();
@@ -524,7 +529,8 @@ uint64_t Processor::triggerHardFault(const uint64_t& address)
 	
 
 //when this returns, address guarenteed to be present at returned local address
-uint64_t Processor::fetchAddressRead(const uint64_t& address)
+uint64_t Processor::fetchAddressRead(const uint64_t& address,
+    const bool& readOnly)
 {
 	//implement paging logic
 	if (mode == VIRTUAL) {
@@ -568,7 +574,7 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address)
             waitATick();
         }
         waitATick();
-        return triggerHardFault(address);
+        return triggerHardFault(address, readOnly);
 	} else {
 		//what do we do if it's physical address?
 		return address;
@@ -689,7 +695,7 @@ void Processor::start()
 void Processor::pcAdvance(const long count)
 {
 	programCounter += count;
-	fetchAddressRead(programCounter);
+    fetchAddressRead(programCounter, true);
 	waitATick();
 }
 
