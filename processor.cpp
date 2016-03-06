@@ -195,7 +195,7 @@ void Processor::createMemoryMap(Memory *local, long pShift)
 			PAGETABLESLOCAL + i * (1 << pageShift);
 		fixTLB(i, pageStart);
         for (unsigned int j = 0; j < bitmapSize * BITS_PER_BYTE; j++) {
-			markBitmapStart(i, pageStart + j * BITMAP_BYTES);
+            markBitmap(i, pageStart + j * BITMAP_BYTES);
 		}
 	}
     //TLB and bitmap for stack
@@ -204,7 +204,7 @@ void Processor::createMemoryMap(Memory *local, long pShift)
     const uint64_t stackPageNumber = pagesAvailable - 1;
     fixTLB(stackPageNumber, stackPage);
     for (unsigned int i = 0; i < bitmapSize * BITS_PER_BYTE; i++) {
-        markBitmapStart(stackPageNumber, stackPage + i * BITMAP_BYTES);
+        markBitmap(stackPageNumber, stackPage + i * BITMAP_BYTES);
     }
 }
 
@@ -305,8 +305,7 @@ void Processor::transferLocalToGlobal(const uint64_t& address,
     //to advance the PC
     uint64_t maskedAddress = address & BITMAP_MASK;
     //make the call - ignore the results
-    requestRemoteMemory(size, maskedAddress,
-        get<1>(tlbEntry) + (maskedAddress & bitMask));
+    requestRemoteMemory(size, get<0>(tlbEntry), maskedAddress);
 }
 
 uint64_t Processor::triggerSmallFault(
@@ -478,7 +477,8 @@ void Processor::markBitmapStart(const uint64_t &frameNo,
     const uint64_t bitmapSizeBytes =
         (1 << pageShift) / (BITMAP_BYTES * 8);
     for (unsigned int i = 0; i < bitmapSizeBytes; i++) {
-        localMemory->writeByte(frameNo * bitmapSizeBytes + i, '\0');
+        localMemory->writeByte(frameNo * bitmapSizeBytes + i + bitmapOffset,
+            '\0');
     }
     uint64_t bitToMark = (address & bitMask) / BITMAP_BYTES;
     const uint64_t byteToFetch = (bitToMark / 8) +
