@@ -410,74 +410,9 @@ check_page_status:
     goto next_pte;
 
 flush_page:
-    //REG16 holds bytes traversed
-    add_(REG16, REG0, REG0);
     //get frame number
     lwi_(REG5, REG17, FRAMEOFFSET);
-    //REG7 - points into bitmap
-    mul_(REG7, REG10, REG5);
-    //now get REG5 to point to base of page in local memory
-    muli_(REG5, REG5, 1 << PAGE_SHIFT);
-    addi_(REG5, REG5, PAGETABLESLOCAL);
-    add_(REG7, REG7, REG9);
-
-start_check_off:
-    //REG13 holds single bit
-    addi_(REG13, REG0, 0x01);
-    //REG12 holds bitmap (64 bits at a time)
-    lw_(REG12, REG7, REG0);
-    andi_(REG12, REG12, BITMAP_FILTER);
-
-check_next_bit:
-    and_(REG14, REG13, REG12);
-    if (beq_(REG14, REG0, 0)) {
-        goto next_bit;
-    }
-    addi_(REG15, REG0, BITMAP_BYTES);
-
-    writeOutBytes = proc->getProgramCounter();
-write_out_bytes:
-    proc->setProgramCounter(writeOutBytes);
-    //REG31 holds contents
-    lw_(REG31, REG5, REG16);
-    sw_(REG31, REG4, REG16);
-    sub_(REG15, REG15, REG21);
-    add_(REG16, REG16, REG21);
-    if (beq_(REG15, REG0, 0)) {
-        goto next_bit_no_add;
-    }
-    br_(0);
-    goto write_out_bytes;
-
-next_bit:
-    addi_(REG16, REG16, BITMAP_BYTES);
-next_bit_no_add:
-    shiftli_(REG13, 1);
-    if (beq_(REG13, REG0, 0)) {
-        //used up all our bits
-        goto read_next_bitmap_word;
-    }
-    br_(0);
-    goto check_next_bit;
-
-read_next_bitmap_word:
-    subi_(REG15, REG16, 1 << PAGE_SHIFT);
-    if (beq_(REG15, REG0, 0)) {
-        //have done whole page
-        goto ready_next_pte;
-    }
-    add_(REG7, REG7, REG21);
-    br_(0);
-    goto start_check_off;
-
-ready_next_pte:
-    //drop page from TLB and
-    //mark page as invalid
-    lwi_(REG30, REG17, VOFFSET);
-    proc->dumpPageFromTLB(proc->getRegister(REG30));
-    lwi_(REG30, REG17, FLAGOFFSET);
-    andi_(REG30, REG30, 0xFFFFFFFFFFFFFF00);
-    swi_(REG30, REG17, FLAGOFFSET);
+    proc->writeBackMemory(proc->getRegister(REG5));
 
 next_pte:
     addi_(REG3, REG3, 0x01);

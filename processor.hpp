@@ -101,7 +101,6 @@ private:
 		const uint64_t& size); 
     uint64_t triggerHardFault(const uint64_t& address, const bool& readOnly);
 	const std::pair<const uint64_t, bool> getFreeFrame() const;
-	void writeBackMemory(const uint64_t& frameNo);
 	void loadMemory(const uint64_t& frameNo,
 		const uint64_t& address);
 	void fixPageMap(const uint64_t& frameNo,
@@ -123,7 +122,7 @@ private:
         mapToGlobalAddress(const uint64_t& address);
 	void activateClock();
 	//adjust numbers below to change how CLOCK fuctions
-    const uint8_t clockWipe = 4;
+    const uint8_t clockWipe = 8;
     const uint16_t clockTicks = 40000;
 	uint64_t totalTicks;
 	uint64_t currentTLB;
@@ -164,6 +163,7 @@ public:
         fetchAddressRead(address);
     }
     void checkCarryBit();
+    void writeBackMemory(const uint64_t& frameNo);
     void transferLocalToGlobal(const uint64_t& address,
         const std::tuple<uint64_t, uint64_t, bool>& tlbEntry,
         const uint64_t& size);
