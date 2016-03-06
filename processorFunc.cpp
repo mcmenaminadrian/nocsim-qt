@@ -357,17 +357,10 @@ void ProcessorFunctor::flushPages() const
     addi_(REG1, REG0, PAGETABLESLOCAL + (1 << PAGE_SHIFT));
     //REG2 counts number of pages
     addi_(REG2, REG0, TILE_MEM_SIZE >> PAGE_SHIFT);
-    //REG9 points to start of bitmaps
-    lwi_(REG9, REG0, PAGETABLESLOCAL);
-    muli_(REG9, REG9, 1 << PAGE_SHIFT);
-    add_(REG9, REG9, REG1);
-    //REG10 holds bitmap bytes per page
-    addi_(REG10, REG0, 1 << PAGE_SHIFT);
-    shiftri_(REG10, BITMAP_SHIFT + 0x03);
     //REG3 holds pages done so far
     add_(REG3, REG0, REG0);
     addi_(REG29, REG0, 0x02); //constant
-    addi_(REG21, REG0, sizeof(uint64_t)); //constant
+    addi_(REG21, REG0, 0x01); //constant
     uint64_t aboutToCheck = proc->getProgramCounter();
 
 check_page_status:
@@ -383,7 +376,7 @@ check_page_status:
         goto next_pte;
     }
     //don't flush an invalid page
-    andi_(REG4, REG4, 0x01);
+    and_(REG4, REG4, REG21);
     if (beq_(REG4, REG0, 0)) {
         goto next_pte;
     }
@@ -415,7 +408,7 @@ flush_page:
     proc->writeBackMemory(proc->getRegister(REG5));
 
 next_pte:
-    addi_(REG3, REG3, 0x01);
+    add_(REG3, REG3, REG21);
     sub_(REG13, REG2, REG3);
     if (beq_(REG13, REG0, 0)) {
         goto finished_flushing;
