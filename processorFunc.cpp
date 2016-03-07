@@ -957,8 +957,110 @@ work_here_is_done:
         cout << ",";
     }
     cout << endl;
+    //now scan for completed processes
+    addi_(REG20, REG0, 0x800);
+    addi_(REG21, REG0, 0x100);
+    addi_(REG22, REG0, 0x01);
+    add_(REG23, REG22, REG22);
+
+    //zero out the space
+    uint64_t zeroAddresses = proc->getProgramCounter();
+loop_zero_addresses:
+    proc->setProgramCounter(zeroAddresses);
+    sw_(REG0, REG20, REG21);
+    sub_(REG21, REG21, REG22);
+    if (beq_(REG21, REG0, 0)) {
+        goto zero_loop_done;
+    }
+    br_(0);
+    goto loop_zero_addresses;
+
+zero_loop_done:
+    add_(REG24, REG0, REG0);
+    uint64_t filledAddresses = proc->getProgramCounter();
+loop_completed_addresses:
+    proc->setProgramCounter(filledAddresses);
+    sw_(REG23, REG20, REG24);
+    if (beq_(REG24, REG10, 0)) {
+        goto complete_loop_done;
+    }
+    add_(REG24, REG24, REG22);
+    br_(0);
+    goto loop_completed_addresses;
+
+
+    uint64_t readUpNumbers = proc->getProgramCounter();
+complete_loop_done:
+    proc->setProgramCounter(readUpNumbers);
+    addi_(REG3, REG0, 0x110);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    br_(0);
+    forcePageReload();
+    lw_(REG25, REG20, REG4);
+    //zero - not signalled
+    if (beq_(REG25, REG0, 0)) {
+        goto new_processor_ready;
+    }
+    //two - completed
+    if (beq_(REG25, REG23, 0)) {
+        goto test_for_completion;
+    }
+    //one - signalled and waiting
+    br_(0);
+    goto test_for_write;
+
+new_processor_ready:
+   sw_(REG22, REG20, REG4); //write 1
+test_for_write:
+   lw_(REG25, REG10, REG20);
+   if (beq_(REG25, REG23) {
+       goto advance_write;
+   }
+   if (beq_(REG25, REG0)) {
+       //not yet signalled - go back and wait
+       goto short_delay_loop;
+   }
+
+   //now check the status of 0x410
+   addi_(REG3, REG0, 0x410);
+   addi_(REG1, REG0, proc->getProgramCounter());
+   br_(0);
+   forcePageReload();
+   if (beq_(REG4, REG0, 0)) {
+       goto advance_write;
+   }
+
+short_delay_loop:
+   addi_(REG7, REG0, 0x100);
+   uint64_t shortDelayLoop = proc->getProgramCounter(); 
+short_delay_loop_nop:
+   proc->setProgramCounter(shortDelayLoop);
+   nop_();
+   sub_(REG7, REG7, REG22);
+   if (beq_(REG7, REG0, 0)) {
+       goto complete_loop_done;
+   }
+   br_(0);
+   goto short_delay_loop_nop;
+
+advance_write:
+   addi_(REG30, REG0, 0x101);
+   add_(REG10, REG10, REG22);
+   if (beq_(REG10, REG30, 0)) {
+	goto signal_completion;
+   }
+   swi_(REG10, REG0, 0x410);
+   addi_(REG1, REG0, proc->getProgramCounter());
+   flushPages();
+   br_(0);
+   goto short_delay_loop;
+
+
+
     masterTile->getBarrier()->decrementTaskCount();
  }
+
+   
 
 //this function just to break code up
 void ProcessorFunctor::nextRound() const
