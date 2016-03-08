@@ -874,61 +874,40 @@ prepare_to_normalise_next:
     waitingForTurn = proc->getProgramCounter();
 wait_for_turn_to_complete:
     proc->setProgramCounter(waitingForTurn);
-    push_(REG3);
-    push_(REG4);
     addi_(REG3, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     forcePageReload();
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
-    push_(REG5);
-    addi_(REG5, REG4, 0x01);
-    if (beq_(REG5, REG1, 0)) {
+    if (beq_(REG4, REG1, 0)) {
         goto write_out_next_processor;
     }
-    sub_(REG5, REG1, REG4);
     //delay loop dependent on how much further we have to go
-    muli_(REG5, REG5, 0x130);
+    muli_(REG4, REG4, 0x130);
 
     loopingWaitingForProcessorCount = proc->getProgramCounter();
 loop_wait_processor_count:
     proc->setProgramCounter(loopingWaitingForProcessorCount);
     nop_();
-    subi_(REG5, REG5, 0x01);
-    if (beq_(REG5, REG0, 0)) {
-	goto ready_to_loop_again;
+    subi_(REG4, REG4, 0x01);
+    if (beq_(REG4, REG0, 0)) {
+	goto wait_for_turn_to_complete;
     }
     br_(0);
     goto loop_wait_processor_count;
 
-ready_to_loop_again:
-    pop_(REG5);
-    pop_(REG4);
-    pop_(REG3);
-    br_(0);
-    goto wait_for_turn_to_complete;
-
 write_out_next_processor:
-    swi_(REG1, REG0, 0x110);
-    push_(REG1);
+    swi_(REG0, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     flushPages();
-    pop_(REG1);
-    cout << "Wrote " << proc->getRegister(REG1) << " to 0x110" << endl;
-    pop_(REG5);
-    pop_(REG4);
-    pop_(REG3);
     addi_(REG20, REG0, 0xFF00);
     or_(REG20, REG20, REG15);
     swi_(REG20, REG0, 0x100);
     push_(REG15);
-    push_(REG1);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     flushPages();
-    pop_(REG1);
-    pop_(REG15);
     cout << "sending signal " << hex << proc->getRegister(REG20) << " from " << dec << proc->getRegister(REG1) << endl;
     br_(0);
     goto read_command;
@@ -939,7 +918,6 @@ work_here_is_done:
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
     addi_(REG10, REG0, proc->getNumber());
-    cout << " - our work here is done - " << proc->getRegister(REG10) << endl;
     //some C++ to write out normalised line
     uint64_t myProcessor = proc->getRegister(REG10);
     uint64_t numberSize = (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t);
@@ -958,77 +936,32 @@ work_here_is_done:
     }
     cout << endl;
     //now scan for completed processes
-    addi_(REG20, REG0, 0x800);
-    addi_(REG21, REG0, 0x100);
+    addi_(REG21, REG0, 0x101);
     addi_(REG22, REG0, 0x01);
-    add_(REG23, REG22, REG22);
 
-    //zero out the space
-    uint64_t zeroAddresses = proc->getProgramCounter();
-loop_zero_addresses:
-    proc->setProgramCounter(zeroAddresses);
-    sw_(REG0, REG20, REG21);
-    sub_(REG21, REG21, REG22);
-    if (beq_(REG21, REG0, 0)) {
-        goto zero_loop_done;
-    }
-    br_(0);
-    goto loop_zero_addresses;
-
-zero_loop_done:
-    add_(REG24, REG0, REG0);
-    uint64_t filledAddresses = proc->getProgramCounter();
-loop_completed_addresses:
-    proc->setProgramCounter(filledAddresses);
-    sw_(REG23, REG20, REG24);
-    if (beq_(REG24, REG10, 0)) {
-        goto complete_loop_done;
-    }
-    add_(REG24, REG24, REG22);
-    br_(0);
-    goto loop_completed_addresses;
-
-    uint64_t readUpNumbers = proc->getProgramCounter();
+    uint64_t completeLoopDone = proc->getProgramCounter();
 complete_loop_done:
-    proc->setProgramCounter(readUpNumbers);
-    addi_(REG3, REG0, 0x110);
+    proc->setProgramCounter(completeLoopDone);
+    add_(REG10, REG10, REG22);
+    if (beq_(REG10, REG21, 0)) {
+	goto completed_wait;
+    }
+    swi_(REG10, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
+    flushPages();
+
+    uint64_t testValue = proc->getProgramCounter();
+test_value:
+    proc->setProgramCounter(testValue);
+    addi_(REG3, REG0, 0x110);
+    addi_(REG1, REG0, proc->getProgramCounter();
     forcePageReload();
-    lw_(REG25, REG20, REG4);
-    //zero - not signalled
-    if (beq_(REG25, REG0, 0)) {
-        goto new_processor_ready;
+
+    if (beq_(REG4, REG0, 0)) {
+	goto complete_loop_done;
     }
-    //two - completed
-    if (beq_(REG25, REG23, 0)) {
-        goto test_for_completion;
-    }
-    //one - signalled and waiting
-    br_(0);
-    goto test_for_write;
-
-new_processor_ready:
-   sw_(REG22, REG20, REG4); //write 1
-test_for_write:
-   lw_(REG25, REG10, REG20);
-   if (beq_(REG25, REG23) {
-       goto advance_write;
-   }
-   if (beq_(REG25, REG0)) {
-       //not yet signalled - go back and wait
-       goto short_delay_loop;
-   }
-
-   //now check the status of 0x410
-   addi_(REG3, REG0, 0x410);
-   addi_(REG1, REG0, proc->getProgramCounter());
-   br_(0);
-   forcePageReload();
-   if (beq_(REG4, REG0, 0)) {
-       goto advance_write;
-   }
-
+ 
 short_delay_loop:
    addi_(REG7, REG0, 0x100);
    uint64_t shortDelayLoop = proc->getProgramCounter(); 
@@ -1042,20 +975,8 @@ short_delay_loop_nop:
    br_(0);
    goto short_delay_loop_nop;
 
-advance_write:
-   addi_(REG30, REG0, 0x101);
-   add_(REG10, REG10, REG22);
-   if (beq_(REG10, REG30, 0)) {
-	goto signal_completion;
-   }
-   swi_(REG10, REG0, 0x410);
-   addi_(REG1, REG0, proc->getProgramCounter());
-   flushPages();
-   br_(0);
-   goto short_delay_loop;
-
-
-
+completed_wait:
+    cout << proc->getRegister(REG10) << ": our work here is done" << endl;
     masterTile->getBarrier()->decrementTaskCount();
  }
 
