@@ -686,6 +686,8 @@ void ProcessorFunctor::operator()()
     uint64_t waitingForTurn;
     uint64_t tickReadingDown;
     uint64_t normaliseDelayLoop;
+    uint64_t testValue;
+    uint64_t shortDelayLoop;
     const uint64_t order = tile->getOrder();
     Tile *masterTile = proc->getTile();
     if (order >= SETSIZE) {
@@ -881,13 +883,13 @@ wait_for_turn_to_complete:
     if (beq_(REG4, REG1, 0)) {
         goto write_out_next_processor;
     }
-    if (beq_(REG4, REG0)) {
+    if (beq_(REG4, REG0, 0)) {
         goto standard_delay;
     }
     sub_(REG4, REG1, REG4);
     muli_(REG4, REG4, 0x130);
     br_(0);
-    goto setup_loop_wait_processor_count
+    goto setup_loop_wait_processor_count;
 
 standard_delay:
     addi_(REG4, REG0, 0x7500);
@@ -955,11 +957,11 @@ complete_loop_done:
     br_(0);
     flushPages();
 
-    uint64_t testValue = proc->getProgramCounter();
+    testValue = proc->getProgramCounter();
 test_value:
     proc->setProgramCounter(testValue);
     addi_(REG3, REG0, 0x110);
-    addi_(REG1, REG0, proc->getProgramCounter();
+    addi_(REG1, REG0, proc->getProgramCounter());
     forcePageReload();
 
     if (beq_(REG4, REG0, 0)) {
@@ -968,7 +970,7 @@ test_value:
  
 short_delay_loop:
    addi_(REG7, REG0, 0x100);
-   uint64_t shortDelayLoop = proc->getProgramCounter(); 
+   shortDelayLoop = proc->getProgramCounter();
 short_delay_loop_nop:
    proc->setProgramCounter(shortDelayLoop);
    nop_();
