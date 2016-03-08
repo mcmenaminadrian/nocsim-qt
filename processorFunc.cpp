@@ -699,8 +699,8 @@ void ProcessorFunctor::operator()()
     //initial commands
     addi_(REG1, REG0, 0xFF00);
     swi_(REG1, REG0, 0x100);
-    addi_(REG1, REG0, 0xFF);
-    swi_(REG1, REG0, 0x110);
+    addi_(REG1, REG0, 0x101);
+    swi_(REG3, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
     //store processor number
@@ -717,7 +717,7 @@ read_command:
     br_(0);
     forcePageReload();
     pop_(REG1);
-    addi_(REG3, REG0, 0xFF);
+    addi_(REG3, REG0, 0x101);
     if (beq_(REG3, REG4, 0)) {
         goto keep_reading_command;
     }
@@ -769,7 +769,7 @@ normalise_line:
     }
 
     cout << "Waiting to begin normalisation" << endl;
-    addi_(REG1, REG0, 0x700);
+    addi_(REG1, REG0, 0x100);
     normaliseDelayLoop = proc->getProgramCounter();
 wait_for_normalise:
     proc->setProgramCounter(normaliseDelayLoop);
@@ -868,8 +868,7 @@ prepare_to_normalise_next:
     if (beq_(REG15, REG1, 0)) {
         goto work_here_is_done;
     }
-    addi_(REG15, REG15, 0x1);
-    //construct next signal
+    addi_(REG15, REG15, 0x01);
 
     waitingForTurn = proc->getProgramCounter();
 wait_for_turn_to_complete:
@@ -882,9 +881,18 @@ wait_for_turn_to_complete:
     if (beq_(REG4, REG1, 0)) {
         goto write_out_next_processor;
     }
-    //delay loop dependent on how much further we have to go
+    if (beq_(REG4, REG0)) {
+        goto standard_delay;
+    }
+    sub_(REG4, REG1, REG4);
     muli_(REG4, REG4, 0x130);
+    br_(0);
+    goto setup_loop_wait_processor_count
 
+standard_delay:
+    addi_(REG4, REG0, 0x7500);
+
+setup_loop_wait_processor_count:
     loopingWaitingForProcessorCount = proc->getProgramCounter();
 loop_wait_processor_count:
     proc->setProgramCounter(loopingWaitingForProcessorCount);
@@ -898,13 +906,9 @@ loop_wait_processor_count:
 
 write_out_next_processor:
     swi_(REG0, REG0, 0x110);
-    addi_(REG1, REG0, proc->getProgramCounter());
-    br_(0);
-    flushPages();
     addi_(REG20, REG0, 0xFF00);
     or_(REG20, REG20, REG15);
     swi_(REG20, REG0, 0x100);
-    push_(REG15);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     flushPages();
@@ -917,9 +921,8 @@ work_here_is_done:
     br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
-    addi_(REG10, REG0, proc->getNumber());
     //some C++ to write out normalised line
-    uint64_t myProcessor = proc->getRegister(REG10);
+    uint64_t myProcessor = proc->getNumber();
     uint64_t numberSize = (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t);
     uint64_t lineOffset = numberSize * 0x101 * myProcessor;
     uint64_t halfNumber = (APNUMBERSIZE + 1) * sizeof(uint64_t);
@@ -935,6 +938,7 @@ work_here_is_done:
         cout << ",";
     }
     cout << endl;
+
     //now scan for completed processes
     addi_(REG21, REG0, 0x101);
     addi_(REG22, REG0, 0x01);
@@ -976,7 +980,11 @@ short_delay_loop_nop:
    goto short_delay_loop_nop;
 
 completed_wait:
-    cout << proc->getRegister(REG10) << ": our work here is done" << endl;
+    addi_(REG1, REG0, 0x101);
+    swi_(REG1, REG0, 0x110);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    flushPages();
+    cout << proc->getNumber() << ": our work here is done" << endl;
     masterTile->getBarrier()->decrementTaskCount();
  }
 
