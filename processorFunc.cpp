@@ -988,7 +988,6 @@ loop_completed_addresses:
     br_(0);
     goto loop_completed_addresses;
 
-
     uint64_t readUpNumbers = proc->getProgramCounter();
 complete_loop_done:
     proc->setProgramCounter(readUpNumbers);
