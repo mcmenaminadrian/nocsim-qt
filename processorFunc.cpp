@@ -702,7 +702,7 @@ void ProcessorFunctor::operator()()
     addi_(REG1, REG0, 0xFF00);
     swi_(REG1, REG0, 0x100);
     addi_(REG1, REG0, 0x101);
-    swi_(REG3, REG0, 0x110);
+    swi_(REG1, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
     //store processor number
@@ -950,40 +950,34 @@ complete_loop_done:
     proc->setProgramCounter(completeLoopDone);
     add_(REG10, REG10, REG22);
     if (beq_(REG10, REG21, 0)) {
-	goto completed_wait;
+        goto completed_wait;
     }
     swi_(REG10, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     flushPages();
 
-    testValue = proc->getProgramCounter();
-test_value:
-    proc->setProgramCounter(testValue);
     addi_(REG3, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
     forcePageReload();
 
     if (beq_(REG4, REG0, 0)) {
-	goto complete_loop_done;
+        goto complete_loop_done;
     }
- 
-short_delay_loop:
-   addi_(REG7, REG0, 0x100);
-   shortDelayLoop = proc->getProgramCounter();
+    addi_(REG7, REG0, 0x100);
+    shortDelayLoop = proc->getProgramCounter();
 short_delay_loop_nop:
-   proc->setProgramCounter(shortDelayLoop);
-   nop_();
-   sub_(REG7, REG7, REG22);
-   if (beq_(REG7, REG0, 0)) {
+    proc->setProgramCounter(shortDelayLoop);
+    nop_();
+    sub_(REG7, REG7, REG22);
+    if (beq_(REG7, REG0, 0)) {
        goto complete_loop_done;
-   }
-   br_(0);
-   goto short_delay_loop_nop;
+    }
+    br_(0);
+    goto short_delay_loop_nop;
 
 completed_wait:
-    addi_(REG1, REG0, 0x101);
-    swi_(REG1, REG0, 0x110);
+    swi_(REG21, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
     cout << proc->getNumber() << ": our work here is done" << endl;
