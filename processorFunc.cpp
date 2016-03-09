@@ -876,11 +876,9 @@ prepare_to_normalise_next:
 wait_for_turn_to_complete:
     proc->setProgramCounter(waitingForTurn);
     addi_(REG3, REG0, 0x110);
-    push_(REG1);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     forcePageReload();
-    pop_(REG1);
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     if (beq_(REG4, REG1, 0)) {
         goto write_out_next_processor;
@@ -903,7 +901,7 @@ loop_wait_processor_count:
     nop_();
     subi_(REG4, REG4, 0x01);
     if (beq_(REG4, REG0, 0)) {
-	goto wait_for_turn_to_complete;
+        goto wait_for_turn_to_complete;
     }
     br_(0);
     goto loop_wait_processor_count;
@@ -959,8 +957,10 @@ complete_loop_done:
     br_(0);
     flushPages();
 
+test_proc_update:
     addi_(REG3, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
+    br_(0);
     forcePageReload();
 
     if (beq_(REG4, REG0, 0)) {
@@ -973,7 +973,7 @@ short_delay_loop_nop:
     nop_();
     sub_(REG7, REG7, REG22);
     if (beq_(REG7, REG0, 0)) {
-       goto complete_loop_done;
+       goto test_proc_update;
     }
     br_(0);
     goto short_delay_loop_nop;
@@ -981,12 +981,11 @@ short_delay_loop_nop:
 completed_wait:
     swi_(REG21, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
+    br_(0);
     flushPages();
     cout << proc->getNumber() << ": our work here is done" << endl;
     masterTile->getBarrier()->decrementTaskCount();
- }
-
-   
+ }  
 
 //this function just to break code up
 void ProcessorFunctor::nextRound() const
