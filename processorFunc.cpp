@@ -876,9 +876,11 @@ prepare_to_normalise_next:
 wait_for_turn_to_complete:
     proc->setProgramCounter(waitingForTurn);
     addi_(REG3, REG0, 0x110);
+    push_(REG1);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     forcePageReload();
+    pop_(REG1);
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     if (beq_(REG4, REG1, 0)) {
         goto write_out_next_processor;
