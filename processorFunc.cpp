@@ -944,6 +944,7 @@ work_here_is_done:
     //now scan for completed processes
     addi_(REG21, REG0, 0x101);
     addi_(REG22, REG0, 0x01);
+    lwi_(REG10, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
 
     uint64_t completeLoopDone = proc->getProgramCounter();
 complete_loop_done:
