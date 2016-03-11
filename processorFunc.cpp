@@ -914,7 +914,8 @@ write_out_next_processor:
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     flushPages();
-    cout << "sending signal " << hex << proc->getRegister(REG20) << " from " << dec << proc->getRegister(REG1) << endl;
+    cout << "sending signal " << hex << proc->getRegister(REG20) << " from " 
+		<< dec << proc->getNumber() << endl;
     br_(0);
     goto read_command;
     //construct next signal
@@ -967,7 +968,7 @@ test_proc_update:
     if (beq_(REG4, REG0, 0)) {
         goto complete_loop_done;
     }
-    addi_(REG7, REG0, 0x100);
+    addi_(REG7, REG0, 0x10);
     shortDelayLoop = proc->getProgramCounter();
 short_delay_loop_nop:
     proc->setProgramCounter(shortDelayLoop);
