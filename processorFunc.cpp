@@ -968,7 +968,7 @@ test_proc_update:
     if (beq_(REG4, REG0, 0)) {
         goto complete_loop_done;
     }
-    addi_(REG7, REG0, 0x10);
+    addi_(REG7, REG0, 0x400);
     shortDelayLoop = proc->getProgramCounter();
 short_delay_loop_nop:
     proc->setProgramCounter(shortDelayLoop);
