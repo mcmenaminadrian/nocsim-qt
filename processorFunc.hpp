@@ -64,6 +64,7 @@ private:
         const;
     void normaliseLine() const;
     void euclidAlgorithm() const;
+    void flushSelectedPage() const;
     void flushPages() const;
     void forcePageReload() const;
     void nextRound() const;

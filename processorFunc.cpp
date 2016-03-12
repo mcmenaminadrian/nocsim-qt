@@ -346,10 +346,79 @@ ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 {
 }
 
+//flush the page referenced in REG3
+//return address in REG1 
+void ProcessorFunctor::flushSelectedPage() const
+{
+   push_(REG1);
+   br_(0);
+   proc->flushPagesStart();
+   //REG1 points to start of page table
+   addi_(REG1, REG0, PAGETABLESLOCAL + (1 << PAGE_SHIFT));
+   //REG3 page we are looking for
+   shiftri_(REG3, PAGE_SHIFT);
+   //REG2 total pages
+   addi_(REG2, REG0, TILE_MEM_SIZE >> PAGE_SHIFT);
+   //REG4 - how many pages we have checked
+   add_(REG4, REG0, REG0);
+   //constants
+   addi_(REG5, REG0, PAGETABLEENTRY);
+   addi_(REG6, REG0, FLAGOFFSET);
+   addi_(REG7, REG0, VOFFSET);
+   addi_(REG21, REG0, 0x02);
+   addi_(REG22, REG0, 0x01);
+
+   uint64_t keepCheckingFlushSelected = proc->getProgramCounter();
+keep_checking_flush_selected:
+   proc->setProgramCounter(keepCheckingFlushSelected);
+   //REG8 offset in page table
+   mul_(REG8, REG4, REG5);
+   //check validity
+   add_(REG9, REG8, REG6);
+   lw_(REG10, REG9, REG0);
+   //is page valid?
+   and_(REG11, REG10, REG22);
+   if (beq_(REG11, REG0, 0)) {
+       goto check_next_page;
+   }
+   //is page flushable?
+   and_(REG11, REG10, REG21);
+   if (beq_(REG11, REG0, 0)) {
+       goto check_page_address;
+   }
+   br_(0);
+   goto check_next_page;
+
+check_page_address:
+   add_(REG9, REG8, REG7);
+   lw_(REG10, REG9, REG0);
+   sub_(REG11, REG10, REG3);
+   if (beq_(REG11, REG0, 0)) {
+       goto flush_selected_page;
+   }
+
+check_next_page:
+   add_(REG4, REG4, REG22);
+   sub_(REG11, REG2, REG4);
+   if (beq_(REG11, REG0, 0)) {
+       goto finish_flushing_selected;
+   }
+   br_(0);
+   goto keep_checking_flush_selected;
+
+flush_selected_page:
+   addi_(REG5, REG8, FRAMEOFFSET);
+   proc->writeBackMemory(proc->getRegister(REG5));
+
+finish_flushing_selected:
+    proc->flushPagesEnd();
+    pop_(REG1);
+    proc->setProgramCounter(proc->getRegister(REG1));
+}
+
 //return address in REG1
 void ProcessorFunctor::flushPages() const
 {
-    uint64_t writeOutBytes;
     push_(REG1);
     br_(0);
     proc->flushPagesStart();
@@ -735,7 +804,7 @@ tick_read_down:
     nop_();
     subi_(REG3, REG3, 0x01);
     if (beq_(REG3, REG0, 0)) {
-	goto read_command;
+        goto read_command;
     }
     br_(0);
     goto tick_read_down;
