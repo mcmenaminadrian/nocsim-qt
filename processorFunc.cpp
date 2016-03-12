@@ -375,6 +375,7 @@ keep_checking_flush_selected:
    mul_(REG8, REG4, REG5);
    //check validity
    add_(REG9, REG8, REG6);
+   add_(REG9, REG9, REG1);
    lw_(REG10, REG9, REG0);
    //is page valid?
    and_(REG11, REG10, REG22);
@@ -391,6 +392,7 @@ keep_checking_flush_selected:
 
 check_page_address:
    add_(REG9, REG8, REG7);
+   add_(REG9, REG9, REG1);
    lw_(REG10, REG9, REG0);
    sub_(REG11, REG10, REG3);
    if (beq_(REG11, REG0, 0)) {
@@ -407,13 +409,15 @@ check_next_page:
    goto keep_checking_flush_selected;
 
 flush_selected_page:
-   addi_(REG5, REG8, FRAMEOFFSET);
+   add_(REG5, REG0, REG4);
    proc->writeBackMemory(proc->getRegister(REG5));
 
 finish_flushing_selected:
+    br_(0);
     proc->flushPagesEnd();
     pop_(REG1);
     proc->setProgramCounter(proc->getRegister(REG1));
+    br_(0);
 }
 
 //return address in REG1
@@ -684,8 +688,10 @@ ending:
     //update processor count
     lwi_(REG30, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3); 
     swi_(REG30, REG0, 0x110);
+    addi_(REG3, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
-    flushPages();
+    br_(0);
+    flushSelectedPage();
     pop_(REG1);
     br_(0);
     proc->setProgramCounter(proc->getRegister(REG1));
@@ -745,7 +751,6 @@ page_walk_done:
     pop_(REG1);
     br_(0);
     proc->setProgramCounter(proc->getRegister(REG1));
-    nop_();
 }
 
 void ProcessorFunctor::operator()()
@@ -773,7 +778,8 @@ void ProcessorFunctor::operator()()
     addi_(REG1, REG0, 0x101);
     swi_(REG1, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
-    flushPages();
+    addi_(REG3, REG0, 0x100);
+    flushSelectedPage();
     //store processor number
     addi_(REG1, REG0, proc->getNumber());
     swi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
@@ -864,7 +870,8 @@ now_for_normalise:
     swi_(REG3, REG0, 0x100);
     addi_(REG1, REG0, proc->getProgramCounter()); 
     br_(0);
-    flushPages();
+    addi_(REG3, REG0, 0x100);
+    flushSelectedPage();
     pop_(REG15);
     pop_(REG1);
     br_(0);
@@ -982,7 +989,10 @@ write_out_next_processor:
     swi_(REG20, REG0, 0x100);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
-    flushPages();
+    push_(REG3);
+    addi_(REG3, REG0, 0x100);
+    flushSelectedPage();
+    pop_(REG3);
     cout << "sending signal " << hex << proc->getRegister(REG20) << " from " 
 		<< dec << proc->getNumber() << endl;
     br_(0);
@@ -1025,8 +1035,9 @@ complete_loop_done:
     }
     swi_(REG10, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
+    addi_(REG3, REG0, 0x110);
     br_(0);
-    flushPages();
+    flushSelectedPage();
 
 test_proc_update:
     addi_(REG3, REG0, 0x110);
@@ -1053,7 +1064,8 @@ completed_wait:
     swi_(REG21, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
-    flushPages();
+    addi_(REG3, REG0, 0x110);
+    flushSelectedPage();
     cout << proc->getNumber() << ": our work here is done" << endl;
     masterTile->getBarrier()->decrementTaskCount();
  }  
