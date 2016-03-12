@@ -174,5 +174,6 @@ public:
     void flushPagesStart();
     void flushPagesEnd();
     void dumpPageFromTLB(const uint64_t& address);
+    const uint64_t& getTicks() const { return totalTicks; }
 };
 #endif

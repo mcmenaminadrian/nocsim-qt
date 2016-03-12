@@ -572,7 +572,8 @@ answer:
 //REG2 tells us which line
 void ProcessorFunctor::normaliseLine() const
 {
-    cout << "Normalising line " << (proc->getRegister(REG2) & 0xFF) << endl;
+    cout << "Normalising line " << (proc->getRegister(REG2) & 0xFF);
+    cout <<" - ticks: " << proc->getTicks() << endl;
 
     push_(REG1);
 
@@ -760,7 +761,6 @@ void ProcessorFunctor::operator()()
     uint64_t waitingForTurn;
     uint64_t tickReadingDown;
     uint64_t normaliseDelayLoop;
-    uint64_t testValue;
     uint64_t shortDelayLoop;
     const uint64_t order = tile->getOrder();
     Tile *masterTile = proc->getTile();
@@ -942,7 +942,8 @@ on_to_next_round:
     pop_(REG1);
     pop_(REG15);
 prepare_to_normalise_next:
-    cout << "Pass " << proc->getRegister(REG15) << " on processor " << proc->getRegister(REG1) << " complete." << endl;
+    cout << "Pass " << proc->getRegister(REG15) << " on processor " << proc->getRegister(REG1) << " complete";
+    cout <<" - ticks: " << proc->getTicks() << endl;
     if (beq_(REG15, REG1, 0)) {
         goto work_here_is_done;
     }
@@ -994,7 +995,8 @@ write_out_next_processor:
     flushSelectedPage();
     pop_(REG3);
     cout << "sending signal " << hex << proc->getRegister(REG20) << " from " 
-		<< dec << proc->getNumber() << endl;
+        << dec << proc->getNumber();
+    cout <<" - ticks: " << proc->getTicks() << endl;
     br_(0);
     goto read_command;
     //construct next signal
@@ -1020,6 +1022,7 @@ work_here_is_done:
         cout << ",";
     }
     cout << endl;
+    cout <<"Ticks: " << proc->getTicks() << endl;
 
     //now scan for completed processes
     addi_(REG21, REG0, 0x101);
@@ -1067,6 +1070,7 @@ completed_wait:
     addi_(REG3, REG0, 0x110);
     flushSelectedPage();
     cout << proc->getNumber() << ": our work here is done" << endl;
+    cout << "Ticks: " << proc->getTicks() << endl;
     masterTile->getBarrier()->decrementTaskCount();
  }  
 
