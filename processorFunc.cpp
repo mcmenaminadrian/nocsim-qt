@@ -775,7 +775,7 @@ void ProcessorFunctor::operator()()
     //initial commands
     addi_(REG1, REG0, 0xFF00);
     swi_(REG1, REG0, 0x100);
-    addi_(REG1, REG0, 0x101);
+    addi_(REG1, REG0, SETSIZE);
     swi_(REG1, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
     addi_(REG3, REG0, 0x100);
@@ -794,16 +794,16 @@ read_command:
     br_(0);
     forcePageReload();
     pop_(REG1);
-    addi_(REG3, REG0, 0x101);
+    addi_(REG3, REG0, SETSIZE);
     if (beq_(REG3, REG4, 0)) {
         goto keep_reading_command;
     }
 
-    addi_(REG30, REG0, 0x101);
+    addi_(REG30, REG0, SETSIZE);
     sub_(REG30, REG30, REG4);
 
     //wait longer if we have low processor number signalled
-    muli_(REG3, REG30, 0x700);
+    muli_(REG3, REG30, 0x75);
     tickReadingDown = proc->getProgramCounter();
 tick_read_down:
     proc->setProgramCounter(tickReadingDown);
@@ -964,12 +964,12 @@ wait_for_turn_to_complete:
         goto standard_delay;
     }
     sub_(REG4, REG1, REG4);
-    muli_(REG4, REG4, 0x130);
+    muli_(REG4, REG4, 0x45);
     br_(0);
     goto setup_loop_wait_processor_count;
 
 standard_delay:
-    addi_(REG4, REG0, 0x7500);
+    addi_(REG4, REG0, 0x750);
 
 setup_loop_wait_processor_count:
     loopingWaitingForProcessorCount = proc->getProgramCounter();
@@ -1008,10 +1008,10 @@ work_here_is_done:
     //some C++ to write out normalised line
     uint64_t myProcessor = proc->getNumber();
     uint64_t numberSize = (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t);
-    uint64_t lineOffset = numberSize * 0x101 * myProcessor;
+    uint64_t lineOffset = numberSize * sumCount * myProcessor;
     uint64_t halfNumber = (APNUMBERSIZE + 1) * sizeof(uint64_t);
     startingPoint = masterTile->readLong(sizeof(uint64_t) * 2);
-    for (int i = 0; i < 0x101; i++) {
+    for (int i = 0; i < sumCount; i++) {
         uint64_t position = startingPoint + lineOffset + i * numberSize;
         if (masterTile->readLong(position) & 0x01) {
             cout << "-";
@@ -1025,25 +1025,29 @@ work_here_is_done:
     cout <<"Ticks: " << proc->getTicks() << endl;
 
     //now scan for completed processes
-    addi_(REG21, REG0, 0x101);
+    addi_(REG21, REG0, SETSIZE);
     addi_(REG22, REG0, 0x01);
+    addi_(REG23, REG0, 0x110);
     lwi_(REG10, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
 
     uint64_t completeLoopDone = proc->getProgramCounter();
+    uint64_t testProcUpdate;
 complete_loop_done:
     proc->setProgramCounter(completeLoopDone);
     add_(REG10, REG10, REG22);
     if (beq_(REG10, REG21, 0)) {
         goto completed_wait;
     }
-    swi_(REG10, REG0, 0x110);
+    sw_(REG10, REG0, REG23);
+    add_(REG3, REG0, REG23);
     addi_(REG1, REG0, proc->getProgramCounter());
-    addi_(REG3, REG0, 0x110);
     br_(0);
     flushSelectedPage();
-
+    
+    testProcUpdate = proc->getProgramCounter();
 test_proc_update:
-    addi_(REG3, REG0, 0x110);
+    proc->setProgramCounter(testProcUpdate);
+    add_(REG3, REG0, REG23);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     forcePageReload();
@@ -1051,7 +1055,7 @@ test_proc_update:
     if (beq_(REG4, REG0, 0)) {
         goto complete_loop_done;
     }
-    addi_(REG7, REG0, 0x400);
+    addi_(REG7, REG0, 0x40);
     shortDelayLoop = proc->getProgramCounter();
 short_delay_loop_nop:
     proc->setProgramCounter(shortDelayLoop);
@@ -1064,10 +1068,10 @@ short_delay_loop_nop:
     goto short_delay_loop_nop;
 
 completed_wait:
-    swi_(REG21, REG0, 0x110);
+    sw_(REG21, REG0, REG23);
+    add_(REG3, REG0, REG23);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
-    addi_(REG3, REG0, 0x110);
     flushSelectedPage();
     cout << proc->getNumber() << ": our work here is done" << endl;
     cout << "Ticks: " << proc->getTicks() << endl;
