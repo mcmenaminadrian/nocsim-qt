@@ -578,7 +578,7 @@ void ProcessorFunctor::normaliseLine() const
     push_(REG1);
 
     //copy REG2 to REG30;
-    add_(REG2, REG0, REG30);
+    add_(REG30, REG0, REG2);
     andi_(REG30, REG30, 0xFF);
     //read in the data
     //some constants
@@ -605,7 +605,7 @@ void ProcessorFunctor::normaliseLine() const
     sw_(REG6, REG4, REG2);
     swi_(REG6, REG4, (APNUMBERSIZE + 1) * sizeof(uint64_t));
     //increment loop counter
-    add_(REG3, REG0, REG6);
+    add_(REG3, REG30, REG6);
     //set REG6 to sign
     //and store positive sign
     andi_(REG6, REG5, 0xFF);
