@@ -668,7 +668,7 @@ notzero:
     pop_(REG1);
     //calculate
     div_(REG10, REG10, REG3);
-    div_(REG11, REG7, REG3);
+    div_(REG11, REG11, REG3);
     pop_(REG3);
 
 store:
