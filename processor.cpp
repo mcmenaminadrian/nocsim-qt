@@ -195,7 +195,7 @@ void Processor::createMemoryMap(Memory *local, long pShift)
 			PAGETABLESLOCAL + i * (1 << pageShift);
 		fixTLB(i, pageStart);
         for (unsigned int j = 0; j < bitmapSize * BITS_PER_BYTE; j++) {
-            markBitmap(i, pageStart + j * BITMAP_BYTES);
+            markBitmapInit(i, pageStart + j * BITMAP_BYTES);
 		}
 	}
     //TLB and bitmap for stack
@@ -505,9 +505,27 @@ void Processor::markBitmap(const uint64_t& frameNo,
 	uint8_t bitmapByte = localMemory->readByte(byteToFetch);
 	bitmapByte |= (1 << bitToMark);
 	localMemory->writeByte(byteToFetch, bitmapByte);
-        for (int i = 0; i < 6; i++) {
-                waitATick();
-        }
+    for (int i = 0; i < 6; i++) {
+        waitATick();
+    }
+}
+
+void Processor::markBitmapInit(const uint64_t& frameNo,
+    const uint64_t& address)
+{
+    const uint64_t totalPTEPages =
+        masterTile->readLong(PAGETABLESLOCAL);
+    uint64_t bitmapOffset =
+        (1 + totalPTEPages) * (1 << pageShift);
+    const uint64_t bitmapSizeBytes =
+        (1 << pageShift) / (BITMAP_BYTES * 8);
+    uint64_t bitToMark = (address & bitMask) / BITMAP_BYTES;
+    const uint64_t byteToFetch = (bitToMark / 8) +
+        frameNo * bitmapSizeBytes + bitmapOffset;
+    bitToMark %= 8;
+    uint8_t bitmapByte = localMemory->readByte(byteToFetch);
+    bitmapByte |= (1 << bitToMark);
+    localMemory->writeByte(byteToFetch, bitmapByte);
 }
 
 

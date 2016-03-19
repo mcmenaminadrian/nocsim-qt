@@ -110,6 +110,8 @@ private:
 	void fixBitmap(const uint64_t& frameNo);
 	void markBitmapStart(const uint64_t& frameNo,
 		const uint64_t& address);
+    void markBitmapInit(const uint64_t& frameNo,
+        const uint64_t& address);
     void markBitmap(const uint64_t& frameNo,
         const uint64_t& address);
 	void fixTLB(const uint64_t& frameNo,
