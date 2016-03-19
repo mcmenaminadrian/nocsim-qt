@@ -505,6 +505,9 @@ void Processor::markBitmap(const uint64_t& frameNo,
 	uint8_t bitmapByte = localMemory->readByte(byteToFetch);
 	bitmapByte |= (1 << bitToMark);
 	localMemory->writeByte(byteToFetch, bitmapByte);
+        for (int i = 0; i < 6; i++) {
+                waitATick();
+        }
 }
 
 
@@ -565,6 +568,9 @@ uint64_t Processor::triggerHardFault(const uint64_t& address,
     fixPageMap(frameData.first, translatedAddress.first, readOnly);
     markBitmapStart(frameData.first, translatedAddress.first +
         (address & bitMask));
+    for (int i = 0; i < 6; i++) {
+         waitATick();
+    }
     interruptEnd();
     return generateAddress(frameData.first, translatedAddress.first +
         (address & bitMask));
