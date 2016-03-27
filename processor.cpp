@@ -21,8 +21,6 @@
 #include "processor.hpp"
 #include "router.hpp"
 
-
-
 //page table flags
 //bit 0 - 0 for invalid entry, 1 for valid
 //bit 1 - 0 for moveable, 1 for fixed
@@ -37,6 +35,8 @@
 //statusWord
 //Bit 0 :   true = REAL, false = VIRTUAL
 //Bit 1 :   CarryBit
+
+const static uint64_t BITMAPDELAY = 0;
 
 using namespace std;
 
@@ -204,7 +204,7 @@ void Processor::createMemoryMap(Memory *local, long pShift)
     const uint64_t stackPageNumber = pagesAvailable - 1;
     fixTLB(stackPageNumber, stackPage);
     for (unsigned int i = 0; i < bitmapSize * BITS_PER_BYTE; i++) {
-        markBitmap(stackPageNumber, stackPage + i * BITMAP_BYTES);
+        markBitmapInit(stackPageNumber, stackPage + i * BITMAP_BYTES);
     }
 }
 
@@ -505,7 +505,7 @@ void Processor::markBitmap(const uint64_t& frameNo,
 	uint8_t bitmapByte = localMemory->readByte(byteToFetch);
 	bitmapByte |= (1 << bitToMark);
 	localMemory->writeByte(byteToFetch, bitmapByte);
-    for (int i = 0; i < 6; i++) {
+    for (auto i = 0; i < BITMAPDELAY; i++) {
         waitATick();
     }
 }
@@ -586,7 +586,7 @@ uint64_t Processor::triggerHardFault(const uint64_t& address,
     fixPageMap(frameData.first, translatedAddress.first, readOnly);
     markBitmapStart(frameData.first, translatedAddress.first +
         (address & bitMask));
-    for (int i = 0; i < 6; i++) {
+    for (auto i = 0; i < BITMAPDELAY; i++) {
          waitATick();
     }
     interruptEnd();
@@ -606,6 +606,9 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address,
 		for (auto x: tlbs) {
             if (get<2>(x) && ((pageSought) == (get<0>(x) & pageMask))) {
 				//entry in TLB - check bitmap
+                                for (auto i = 0; i < BITMAPDELAY; i++) {
+                                    waitATick();
+                                }
 				if (!isBitmapValid(address, get<1>(x))) {
                     return triggerSmallFault(x, address);
 				}

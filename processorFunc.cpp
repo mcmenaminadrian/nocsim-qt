@@ -846,7 +846,7 @@ normalise_line:
     }
 
     cout << "Waiting to begin normalisation" << endl;
-    addi_(REG1, REG0, 0x100);
+    addi_(REG1, REG0, 0x1000);
     normaliseDelayLoop = proc->getProgramCounter();
 wait_for_normalise:
     proc->setProgramCounter(normaliseDelayLoop);
