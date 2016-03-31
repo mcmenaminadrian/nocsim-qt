@@ -36,8 +36,6 @@
 //Bit 0 :   true = REAL, false = VIRTUAL
 //Bit 1 :   CarryBit
 
-const static uint64_t BITMAPDELAY = 0;
-
 using namespace std;
 
 Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
@@ -97,8 +95,6 @@ void Processor::writeOutPageAndBitmapLengths(const uint64_t& reqPTEPages,
 	const uint64_t& reqBitmapPages)
 {
 	masterTile->writeLong(PAGETABLESLOCAL, reqPTEPages);
-	masterTile->writeLong(PAGETABLESLOCAL + sizeof(uint64_t),
-		reqBitmapPages);
 }
 
 void Processor::writeOutBasicPageEntries(const uint64_t& pagesAvailable)
@@ -121,8 +117,7 @@ void Processor::writeOutBasicPageEntries(const uint64_t& pagesAvailable)
 	}
 }
 
-void Processor::markUpBasicPageEntries(const uint64_t& reqPTEPages,
-	const uint64_t& reqBitmapPages)
+void Processor::markUpBasicPageEntries(const uint64_t& reqPTEPages)
 {
 	//mark for page tables, bit map and 1 notional page for kernel
 	for (unsigned int i = 0; i <= reqPTEPages + reqBitmapPages; i++) {
@@ -182,47 +177,24 @@ void Processor::createMemoryMap(Memory *local, long pShift)
 	if ((requiredBitmapPages << pageShift) != totalBitmapSpace) {
 		requiredBitmapPages++;
 	}
-	writeOutPageAndBitmapLengths(requiredPTEPages, requiredBitmapPages);
+    writeOutPageAndBitmapLengths(requiredPTEPages);
 	writeOutBasicPageEntries(pagesAvailable);
 	markUpBasicPageEntries(requiredPTEPages, requiredBitmapPages);
 	pageMask = 0xFFFFFFFFFFFFFFFF;
 	pageMask = pageMask >> pageShift;
 	pageMask = pageMask << pageShift;
 	bitMask = ~ pageMask;
-	uint64_t pageCount = requiredPTEPages + requiredBitmapPages + 1;
+    uint64_t pageCount = requiredPTEPages + 1;
 	for (unsigned int i = 0; i <= pageCount; i++) {
 		const uint64_t pageStart =
 			PAGETABLESLOCAL + i * (1 << pageShift);
 		fixTLB(i, pageStart);
-        for (unsigned int j = 0; j < bitmapSize * BITS_PER_BYTE; j++) {
-            markBitmapInit(i, pageStart + j * BITMAP_BYTES);
-		}
 	}
     //TLB and bitmap for stack
     const uint64_t stackPage = PAGETABLESLOCAL + TILE_MEM_SIZE -
             (1 << pageShift);
     const uint64_t stackPageNumber = pagesAvailable - 1;
     fixTLB(stackPageNumber, stackPage);
-    for (unsigned int i = 0; i < bitmapSize * BITS_PER_BYTE; i++) {
-        markBitmapInit(stackPageNumber, stackPage + i * BITMAP_BYTES);
-    }
-}
-
-bool Processor::isBitmapValid(const uint64_t& address,
-	const uint64_t& physAddress) const
-{
-	const uint64_t totalPages = masterTile->readLong(PAGETABLESLOCAL);
-	const uint64_t bitmapSize = (1 << pageShift) / (BITMAP_BYTES * 8);
-	const uint64_t bitmapOffset = (1 + totalPages) * (1 << pageShift);
-	uint64_t bitToCheck = ((address & bitMask) / BITMAP_BYTES);
-	const uint64_t bitToCheckOffset = bitToCheck / 8;
-	bitToCheck %= 8;
-	const uint64_t frameNo =
-		(physAddress - PAGETABLESLOCAL) >> pageShift;
-	const uint8_t bitFromBitmap = 
-		masterTile->readByte(PAGETABLESLOCAL + bitmapOffset +
-		frameNo * bitmapSize + bitToCheckOffset);
-	return bitFromBitmap & (1 << bitToCheck);
 }
 
 uint64_t Processor::generateAddress(const uint64_t& frame,
@@ -306,20 +278,6 @@ void Processor::transferLocalToGlobal(const uint64_t& address,
     uint64_t maskedAddress = address & BITMAP_MASK;
     //make the call - ignore the results
     requestRemoteMemory(size, get<0>(tlbEntry), maskedAddress);
-}
-
-uint64_t Processor::triggerSmallFault(
-	const tuple<uint64_t, uint64_t, bool>& tlbEntry,
-	const uint64_t& address)
-{
-    emit smallFault();
-	interruptBegin();
-	transferGlobalToLocal(address, tlbEntry, BITMAP_BYTES);
-	const uint64_t frameNo =
-		(get<1>(tlbEntry) - PAGETABLESLOCAL) >> pageShift;
-    markBitmap(frameNo, address);
-	interruptEnd();
-    return generateAddress(frameNo, address);
 }
 
 //nominate a frame to be used
@@ -467,68 +425,6 @@ void Processor::fixBitmap(const uint64_t& frameNo)
 	}
 }
 
-void Processor::markBitmapStart(const uint64_t &frameNo,
-    const uint64_t &address)
-{
-    const uint64_t totalPTEPages =
-        masterTile->readLong(PAGETABLESLOCAL);
-    uint64_t bitmapOffset =
-        (1 + totalPTEPages) * (1 << pageShift);
-    const uint64_t bitmapSizeBytes =
-        (1 << pageShift) / (BITMAP_BYTES * 8);
-    for (unsigned int i = 0; i < bitmapSizeBytes; i++) {
-        localMemory->writeByte(frameNo * bitmapSizeBytes + i + bitmapOffset,
-            '\0');
-    }
-    uint64_t bitToMark = (address & bitMask) / BITMAP_BYTES;
-    const uint64_t byteToFetch = (bitToMark / 8) +
-        frameNo * bitmapSizeBytes + bitmapOffset;
-    bitToMark %= 8;
-    uint8_t bitmapByte = localMemory->readByte(byteToFetch);
-    bitmapByte |= (1 << bitToMark);
-    localMemory->writeByte(byteToFetch, bitmapByte);
-}
-
-void Processor::markBitmap(const uint64_t& frameNo,
-	const uint64_t& address)
-{
-	const uint64_t totalPTEPages =
-		masterTile->readLong(PAGETABLESLOCAL);
-	uint64_t bitmapOffset =
-		(1 + totalPTEPages) * (1 << pageShift);
-	const uint64_t bitmapSizeBytes =
-		(1 << pageShift) / (BITMAP_BYTES * 8);
-	uint64_t bitToMark = (address & bitMask) / BITMAP_BYTES;
-	const uint64_t byteToFetch = (bitToMark / 8) +
-		frameNo * bitmapSizeBytes + bitmapOffset;
-	bitToMark %= 8;
-	uint8_t bitmapByte = localMemory->readByte(byteToFetch);
-	bitmapByte |= (1 << bitToMark);
-	localMemory->writeByte(byteToFetch, bitmapByte);
-    for (auto i = 0; i < BITMAPDELAY; i++) {
-        waitATick();
-    }
-}
-
-void Processor::markBitmapInit(const uint64_t& frameNo,
-    const uint64_t& address)
-{
-    const uint64_t totalPTEPages =
-        masterTile->readLong(PAGETABLESLOCAL);
-    uint64_t bitmapOffset =
-        (1 + totalPTEPages) * (1 << pageShift);
-    const uint64_t bitmapSizeBytes =
-        (1 << pageShift) / (BITMAP_BYTES * 8);
-    uint64_t bitToMark = (address & bitMask) / BITMAP_BYTES;
-    const uint64_t byteToFetch = (bitToMark / 8) +
-        frameNo * bitmapSizeBytes + bitmapOffset;
-    bitToMark %= 8;
-    uint8_t bitmapByte = localMemory->readByte(byteToFetch);
-    bitmapByte |= (1 << bitToMark);
-    localMemory->writeByte(byteToFetch, bitmapByte);
-}
-
-
 void Processor::fixTLB(const uint64_t& frameNo,
 	const uint64_t& address)
 {
@@ -584,8 +480,6 @@ uint64_t Processor::triggerHardFault(const uint64_t& address,
             tlbs[frameData.first],
             BITMAP_BYTES);
     fixPageMap(frameData.first, translatedAddress.first, readOnly);
-    markBitmapStart(frameData.first, translatedAddress.first +
-        (address & bitMask));
     for (auto i = 0; i < BITMAPDELAY; i++) {
          waitATick();
     }
