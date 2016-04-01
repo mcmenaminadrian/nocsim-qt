@@ -251,7 +251,7 @@ void Processor::transferGlobalToLocal(const uint64_t& pageAddress,
 {
     //fill a page with memory
     //mimic a DMA call - so no need to advance PC
-    for (uint i = 0; i < PAGE_BYTES; i += MEM_REQ_SIZE) {
+    for (uint i = 0; i < (1 << PAGE_SHIFT); i += MEM_REQ_SIZE) {
         vector<uint8_t> answer = requestRemoteMemory(MEM_REQ_SIZE,
             pageAddress + i, get<1>(tlbEntry) + i);
         uint offset = 0;
@@ -269,7 +269,7 @@ void Processor::transferLocalToGlobal(const uint64_t& address,
     //to advance the PC
     uint64_t maskedAddress = address & BITMAP_MASK;
     //make the call - ignore the results - just for timing delay
-    for (uint i = 0; i < PAGE_BYTES; i += MEM_REQ_SIZE) {
+    for (uint i = 0; i < (1 << PAGE_SHIFT); i += MEM_REQ_SIZE) {
         requestRemoteMemory(MEM_REQ_SIZE, get<0>(tlbEntry), maskedAddress);
     }
 }
@@ -310,9 +310,9 @@ void Processor::writeBackMemory(const uint64_t& frameNo)
         frameNo * PAGETABLEENTRY)).first;
     //code to simulate the delay
     transferLocalToGlobal(frameNo * (1 << pageShift) + PAGETABLESLOCAL,
-        tlbs[frameNo], PAGE_BYTES);
+        tlbs[frameNo]);
     //code to do the actual work - no delay
-    for (unsigned int i = 0; i < PAGE_BYTES; i += uint64_t) {
+    for (unsigned int i = 0; i < (1 << PAGE_SHIFT); i += sizeof(uint64_t)) {
         uint64_t toGo = masterTile->readLong(fetchAddressRead(frameNo *
             (1 << pageShift) + PAGETABLESLOCAL + i));
         masterTile->writeLong(fetchAddressWrite(physicalAddress + i), toGo);
@@ -393,8 +393,7 @@ uint64_t Processor::triggerHardFault(const uint64_t& address)
     pair<uint64_t, uint8_t> translatedAddress = mapToGlobalAddress(address);
     fixTLB(frameData.first, translatedAddress.first);
     transferGlobalToLocal(translatedAddress.first,
-            tlbs[frameData.first],
-            PAGE_BYTES);
+            tlbs[frameData.first]);
     fixPageMap(frameData.first, translatedAddress.first);
     interruptEnd();
     return generateAddress(frameData.first, translatedAddress.first +
