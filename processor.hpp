@@ -83,7 +83,8 @@ private:
 	void writeOutBasicPageEntries(const uint64_t& reqPTEPages);
     void writeOutPageAndBitmapLengths(const uint64_t& reqPTESize);
 	void zeroOutTLBs(const uint64_t& reqPTEPages);
-    uint64_t fetchAddressRead(const uint64_t& address);
+    uint64_t fetchAddressRead(const uint64_t& address,
+                              const bool& readOnly = false);
 	bool isBitmapValid(const uint64_t& address,
 		const uint64_t& physAddress) const;
     uint64_t generateAddress(const uint64_t& frame,
@@ -94,14 +95,14 @@ private:
         const std::tuple<uint64_t, uint64_t, bool>& tlbEntry);
     void transferLocalToGlobal(const uint64_t& address,
         const std::tuple<uint64_t, uint64_t, bool>& tlbEntry);
-    uint64_t triggerHardFault(const uint64_t& address);
+    uint64_t triggerHardFault(const uint64_t& address, const bool& readOnly);
 	const std::pair<const uint64_t, bool> getFreeFrame() const;
 	void loadMemory(const uint64_t& frameNo,
 		const uint64_t& address);
 	void fixPageMap(const uint64_t& frameNo,
-        const uint64_t& address);
+        const uint64_t& address, const bool& readOnly);
 	void fixPageMapStart(const uint64_t& frameNo,
-		const uint64_t& address);
+        const uint64_t& address);
 	void fixBitmap(const uint64_t& frameNo);
 	void markBitmapStart(const uint64_t& frameNo,
 		const uint64_t& address);
