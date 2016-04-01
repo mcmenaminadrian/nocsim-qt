@@ -37,6 +37,8 @@
 //Bit 0 :   true = REAL, false = VIRTUAL
 //Bit 1 :   CarryBit
 
+static const uint64_t MEM_REQ_SIZE = 0x20;
+
 using namespace std;
 
 Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
@@ -245,8 +247,7 @@ const vector<uint8_t> Processor::requestRemoteMemory(
 }
 
 void Processor::transferGlobalToLocal(const uint64_t& pageAddress,
-    const tuple<uint64_t, uint64_t, bool>& tlbEntry,
-    const uint64_t& size)
+    const tuple<uint64_t, uint64_t, bool>& tlbEntry)
 {
     //fill a page with memory
     //mimic a DMA call - so no need to advance PC
@@ -258,6 +259,18 @@ void Processor::transferGlobalToLocal(const uint64_t& pageAddress,
             masterTile->writeByte(get<1>(tlbEntry) + i + offset, x);
             offset++;
         }
+    }
+}
+
+void Processor::transferLocalToGlobal(const uint64_t& address,
+    const tuple<uint64_t, uint64_t, bool>& tlbEntry)
+{
+    //again - this is like a DMA call, there is a delay, but no need
+    //to advance the PC
+    uint64_t maskedAddress = address & BITMAP_MASK;
+    //make the call - ignore the results - just for timing delay
+    for (uint i = 0; i < PAGE_BYTES; i += MEM_REQ_SIZE) {
+        requestRemoteMemory(MEM_REQ_SIZE, get<0>(tlbEntry), maskedAddress);
     }
 }
 
@@ -291,15 +304,17 @@ const pair<const uint64_t, bool> Processor::getFreeFrame() const
 void Processor::writeBackMemory(const uint64_t& frameNo)
 {
     const uint64_t totalPTEPages =
-    masterTile->readLong(fetchAddressRead(PAGETABLESLOCAL));
+        masterTile->readLong(fetchAddressRead(PAGETABLESLOCAL));
     const uint64_t physicalAddress = mapToGlobalAddress(
     localMemory->readLong((1 << pageShift) +
         frameNo * PAGETABLEENTRY)).first;
-    for (unsigned int i = 0; i < PAGE_BYTES; i += sizeof(uint64_t)) {
-        waitATick();
+    //code to simulate the delay
+    transferLocalToGlobal(frameNo * (1 << pageShift) + PAGETABLESLOCAL,
+        tlbs[frameNo], PAGE_BYTES);
+    //code to do the actual work - no delay
+    for (unsigned int i = 0; i < PAGE_BYTES; i += uint64_t) {
         uint64_t toGo = masterTile->readLong(fetchAddressRead(frameNo *
             (1 << pageShift) + PAGETABLESLOCAL + i));
-        waitATick();
         masterTile->writeLong(fetchAddressWrite(physicalAddress + i), toGo);
     }
 }
