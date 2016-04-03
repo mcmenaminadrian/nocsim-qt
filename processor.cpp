@@ -254,7 +254,7 @@ void Processor::transferGlobalToLocal(const uint64_t& pageAddress,
         vector<uint8_t> answer = requestRemoteMemory(MEM_REQ_SIZE,
             pageAddress + i, get<1>(tlbEntry) + i);
         uint offset = 0;
-        for (const auto x&: answer) {
+        for (const auto& x: answer) {
             masterTile->writeByte(get<1>(tlbEntry) + i + offset, x);
             offset++;
         }
@@ -417,7 +417,7 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address,
     if (mode == VIRTUAL) {
         uint64_t pageSought = address & pageMask;
         uint64_t frameCnt = 0;
-        for (auto tlbEnt&: tlbs) {
+        for (auto& tlbEnt: tlbs) {
             if (get<2>(tlbEnt) &&
 		((pageSought) == (get<0>(tlbEnt) & pageMask))) {
                 return generateAddress(frameCnt, address);
