@@ -248,7 +248,7 @@ void Processor::transferGlobalToLocal(const uint64_t& address,
     vector<uint8_t> answer = requestRemoteMemory(size,
         address, get<1>(tlbEntry) +
         (address & bitMask));
-    for (const auto& fetchedByte: answer) {
+    for (const auto fetchedByte: answer) {
         masterTile->writeByte(get<1>(tlbEntry) + offset +
             (address & bitMask), fetchedByte);
         offset++;
