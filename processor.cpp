@@ -653,6 +653,10 @@ void Processor::dumpPageFromTLB(const uint64_t& address)
     for (auto& x: tlbs) {
         if (get<0>(x) == pageAddress) {
             get<2>(x) = false;
+	    //wipe the page
+	    for (uint i = 0; i < (1 << pageShift); i += sizeof(uint64_t)){
+		masterTile->writeLong(get<1>(x) + i, 0);
+	    }
             break;
         }
     }
