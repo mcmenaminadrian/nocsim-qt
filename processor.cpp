@@ -292,6 +292,21 @@ const pair<const uint64_t, bool> Processor::getFreeFrame() const
     return pair<const uint64_t, bool>(7, true);
 }
 
+//drop page from TLBs and page tables - no write back
+void Processor::dropPage(const uint64_t& frameNo)
+{
+    waitATick();
+    //firstly get the address
+    const uint64_t pageAddress = masterTile->readLong(
+        frameNo * PAGETABLEENTRY + PAGETABLESLOCAL + VOFFSET +
+        (1 << pageShift));
+    dumpPageFromTLB(pageAddress);
+    //mark as invalid in page table
+    waitATick();
+    masterTile->writeWord32(frameNo * PAGETABLEENTRY + PAGETABLESLOCAL +
+        FLAGOFFSET + (1 << pageShift), 0);
+}
+
 //only used to dump a frame
 void Processor::writeBackMemory(const uint64_t& frameNo)
 {
@@ -655,7 +670,7 @@ void Processor::dumpPageFromTLB(const uint64_t& address)
             get<2>(x) = false;
 	    //wipe the page
 	    for (uint i = 0; i < (1 << pageShift); i += sizeof(uint64_t)){
-		masterTile->writeLong(get<1>(x) + i, 0);
+            masterTile->writeLong(get<1>(x) + i, 0);
 	    }
             break;
         }
