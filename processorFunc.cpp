@@ -774,8 +774,7 @@ ending:
 }
 
 //'interrupt' function to force clean read of a page
-// - dumps the page (not flushed) and reads address in
-//REG3, returning value in REG4
+//REG3 address targeted, returning value in REG4
 //REG1 holds return address
 void ProcessorFunctor::forcePageReload() const
 {
@@ -815,13 +814,12 @@ matched_page:
     if (beq_(REG13, REG0, 0)) {
         goto walk_next_page;
     }
-    andi_(REG11, REG11, 0xFFFFFFFFFFFFFFFE);
-    swi_(REG11, REG12, PAGETABLESLOCAL + FLAGOFFSET + (1 << PAGE_SHIFT));
-    //dump the page
-    proc->dumpPageFromTLB(proc->getRegister(REG6));
+    //found page so get rid of it
+    proc->dropPage(proc->getRegister(REG5));
 
 page_walk_done:
     proc->flushPagesEnd();
+    //force page back in
     lw_(REG4, REG3, REG0);
     pop_(REG1);
     br_(0);
@@ -1201,6 +1199,15 @@ void ProcessorFunctor::nextRound() const
     mul_(REG16, REG12, REG2);
     //REG3 - points to start of numbers
     lwi_(REG3, REG0, sizeof(uint64_t) * 2);
+    //dump the page without writeback
+    push_(REG3);
+    push_(REG1);
+    addi_(REG3, REG0, sizeof(uint64_t) * 2);
+    br_(0);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    dropPage();
+    pop_(REG1);
+    pop_(REG3);
     //REG29 points to first number in our reference line
     add_(REG29, REG0, REG3);
     add_(REG29, REG29, REG9);

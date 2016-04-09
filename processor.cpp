@@ -273,8 +273,8 @@ const pair<const uint64_t, bool> Processor::getFreeFrame() const
     uint64_t frames = (localMemory->getSize()) >> pageShift;
     uint64_t couldBe = 0xFFFF;
     for (uint64_t i = 0; i < frames; i++) {
-        uint32_t flags = masterTile->readWord32((1 << pageShift)
-            + i * PAGETABLEENTRY + FLAGOFFSET + PAGETABLESLOCAL);
+        uint32_t flags = masterTile->readWord32(i * PAGETABLEENTRY
+            + (1 << pageShift) + FLAGOFFSET + PAGETABLESLOCAL);
         if (!(flags & 0x01)) {
             return pair<const uint64_t, bool>(i, false);
         }
@@ -286,9 +286,17 @@ const pair<const uint64_t, bool> Processor::getFreeFrame() const
         }
     }
     if (couldBe < 0xFFFF) {
+        if (masterTile->readLong((1 << pageShift) + couldBe * PAGETABLEENTRY + VOFFSET + PAGETABLESLOCAL) ==
+                0x0) {
+            cout << endl;
+        }
         return pair<const uint64_t, bool>(couldBe, true);
     }
     //no free frames, so we have to pick one
+    if (masterTile->readLong((1 << pageShift) + 7 * PAGETABLEENTRY + VOFFSET + PAGETABLESLOCAL) ==
+            0x0) {
+        cout << endl;
+    }
     return pair<const uint64_t, bool>(7, true);
 }
 
@@ -668,10 +676,6 @@ void Processor::dumpPageFromTLB(const uint64_t& address)
     for (auto& x: tlbs) {
         if (get<0>(x) == pageAddress) {
             get<2>(x) = false;
-	    //wipe the page
-	    for (uint i = 0; i < (1 << pageShift); i += sizeof(uint64_t)){
-            masterTile->writeLong(get<1>(x) + i, 0);
-	    }
             break;
         }
     }
