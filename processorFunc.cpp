@@ -414,6 +414,7 @@ void ProcessorFunctor::cleanCaches() const
  clean_selected_page:
     add_(REG5, REG0, REG4);
     proc->dropPage(proc->getRegister(REG5));
+    goto check_next_page_clean;
 
  finish_cleaning_selected:
      br_(0);
