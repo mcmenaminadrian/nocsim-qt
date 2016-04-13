@@ -728,6 +728,9 @@ void ProcessorFunctor::normaliseLine() const
     cout <<" - ticks: " << proc->getTicks() << endl;
 
     push_(REG1);
+    br_(0);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    cleanCaches();
 
     //copy REG2 to REG30;
     add_(REG30, REG0, REG2);
@@ -765,6 +768,9 @@ void ProcessorFunctor::normaliseLine() const
     andi_(REG5, REG5, 0xFFFFFFFFFFFFFF00);
     or_(REG5, REG5, REG9);
     sw_(REG5, REG0, REG4);
+
+    //correct for start of rest of numbers
+    sub_(REG4, REG4, REG28);
 
     uint64_t anchor1 = proc->getProgramCounter();
 loop1:
