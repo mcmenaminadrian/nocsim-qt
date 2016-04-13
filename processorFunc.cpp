@@ -412,8 +412,9 @@ void ProcessorFunctor::cleanCaches() const
     goto round_cache_loop;
 
  clean_selected_page:
-    add_(REG5, REG0, REG4);
-    proc->dropPage(proc->getRegister(REG5));
+    push_(REG4);
+    proc->dropPage(proc->getRegister(REG4));
+    pop_(REG4);
     goto check_next_page_clean;
 
  finish_cleaning_selected:
@@ -743,7 +744,8 @@ void ProcessorFunctor::normaliseLine() const
     //REG28 takes offset on line
     muli_(REG28, REG30, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
     //REG29 takes offset to line
-    muli_(REG29, REG30, ((APNUMBERSIZE * 2 + 1) * sumCount) * sizeof(uint64_t));
+    muli_(REG29, REG30, ((APNUMBERSIZE * 2 + 1) * sumCount)
+		* sizeof(uint64_t));
     //REG4 takes address of start of numbers
     lwi_(REG4, REG0, sizeof(uint64_t) * 2);
     add_(REG4, REG4, REG29);
@@ -841,6 +843,7 @@ store:
     br_(0);
     goto loop1;
 ending:
+    br_(0);
     //flush results to global memory
     addi_(REG1, REG0, proc->getProgramCounter());
     flushPages();
