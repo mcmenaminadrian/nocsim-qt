@@ -435,7 +435,7 @@ void ProcessorFunctor::dropPage() const
     //REG1 points to start of page table
     addi_(REG1, REG0, PAGETABLESLOCAL + (1 << PAGE_SHIFT));
     //REG3 page we are looking for
-    shiftri_(REG3, PAGE_SHIFT);
+    andi_(REG3, REG3, PAGE_ADDRESS_MASK);
     //REG2 total pages
     addi_(REG2, REG0, TILE_MEM_SIZE >> PAGE_SHIFT);
     //REG4 - how many pages we have checked
@@ -488,8 +488,7 @@ void ProcessorFunctor::dropPage() const
     goto keep_checking_drop_selected;
 
  drop_selected_page:
-    add_(REG5, REG0, REG4);
-    proc->dropPage(proc->getRegister(REG5));
+    proc->dropPage(proc->getRegister(REG4));
 
  finish_dropping_selected:
      br_(0);
@@ -509,7 +508,7 @@ void ProcessorFunctor::flushSelectedPage() const
    //REG1 points to start of page table
    addi_(REG1, REG0, PAGETABLESLOCAL + (1 << PAGE_SHIFT));
    //REG3 page we are looking for
-   shiftri_(REG3, PAGE_SHIFT);
+   andi_(REG3, REG3, PAGE_ADDRESS_MASK);
    //REG2 total pages
    addi_(REG2, REG0, TILE_MEM_SIZE >> PAGE_SHIFT);
    //REG4 - how many pages we have checked
@@ -562,8 +561,7 @@ check_next_page:
    goto keep_checking_flush_selected;
 
 flush_selected_page:
-   add_(REG5, REG0, REG4);
-   proc->writeBackMemory(proc->getRegister(REG5));
+   proc->writeBackMemory(proc->getRegister(REG4));
 
 finish_flushing_selected:
     br_(0);
@@ -597,8 +595,7 @@ check_page_status:
     lwi_(REG4, REG17, FLAGOFFSET);
     //don't flush an unmovable page
     and_(REG30, REG4, REG29);
-    add_(REG31, REG0, REG29);
-    if (beq_(REG30, REG31, 0)) {
+    if (beq_(REG30, REG29, 0)) {
         goto next_pte;
     }
     //don't flush an invalid page
@@ -612,16 +609,14 @@ check_page_status:
     subi_(REG5, REG4, PAGETABLESLOCAL);
     getsw_(REG5);
     and_(REG5, REG5, REG29);
-    add_(REG6, REG0, REG29);
-    if (beq_(REG5, REG6, 0)) {
+    if (beq_(REG5, REG29, 0)) {
         goto flush_page;
     }
     addi_(REG6, REG0, PAGETABLESLOCAL + TILE_MEM_SIZE);
     sub_(REG5, REG6, REG4);
     getsw_(REG5);
     and_(REG5, REG5, REG29);
-    add_(REG6, REG0, REG29);
-    if (beq_(REG5, REG6, 0)) {
+    if (beq_(REG5, REG29, 0)) {
         goto flush_page;
     }
     //not a remote address
@@ -641,7 +636,6 @@ next_pte:
     }
     br_(0);
     goto check_page_status;
-
 
 finished_flushing:
     br_(0);
@@ -731,7 +725,6 @@ void ProcessorFunctor::normaliseLine() const
     push_(REG1);
     br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
-    cleanCaches();
 
     //copy REG2 to REG30;
     add_(REG30, REG0, REG2);
@@ -900,7 +893,7 @@ matched_page:
     andi_(REG13, REG11, 0x01);
     if (beq_(REG13, REG0, 0)) {
         goto walk_next_page;
-    }
+   } 
     //found page so get rid of it
     proc->dropPage(proc->getRegister(REG5));
 
