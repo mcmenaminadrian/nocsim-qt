@@ -24,7 +24,7 @@ const uint64_t ProcessorFunctor::sumCount = 0x101;
 //alter filter to trap per page bitmaps of less than 64bits
 static const uint64_t BITMAP_FILTER = 0xFFFFFFFFFFFFFFFF;
 //alter to adjust for page size
-static const uint64_t PAGE_ADDRESS_MASK = 0xFFFFFFFFFFFFFC00;
+static const uint64_t PAGE_ADDRESS_MASK = 0xFFFFFFFFFFFFF800;
 
 //Number format
 //numerator

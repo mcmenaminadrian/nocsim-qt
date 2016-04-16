@@ -119,7 +119,7 @@ private:
         mapToGlobalAddress(const uint64_t& address);
     void activateClock();
     //adjust numbers below to change how CLOCK fuctions
-    const uint8_t clockWipe = 8;
+    const uint8_t clockWipe = 6;
     const uint16_t clockTicks = 40000;
     uint64_t totalTicks;
     uint64_t currentTLB;
