@@ -286,18 +286,10 @@ const pair<const uint64_t, bool> Processor::getFreeFrame() const
         }
     }
     if (couldBe < 0xFFFF) {
-        if (masterTile->readLong((1 << pageShift) + couldBe * PAGETABLEENTRY + VOFFSET + PAGETABLESLOCAL) ==
-                0x0) {
-            cout << endl;
-        }
         return pair<const uint64_t, bool>(couldBe, true);
     }
     //no free frames, so we have to pick one
-    if (masterTile->readLong((1 << pageShift) + 5 * PAGETABLEENTRY + VOFFSET + PAGETABLESLOCAL) ==
-            0x0) {
-        cout << endl;
-    }
-    return pair<const uint64_t, bool>(7, true);
+    return pair<const uint64_t, bool>(6, true);
 }
 
 //drop page from TLBs and page tables - no write back
