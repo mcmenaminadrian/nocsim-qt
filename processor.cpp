@@ -293,7 +293,7 @@ const pair<const uint64_t, bool> Processor::getFreeFrame() const
         return pair<const uint64_t, bool>(couldBe, true);
     }
     //no free frames, so we have to pick one
-    if (masterTile->readLong((1 << pageShift) + 7 * PAGETABLEENTRY + VOFFSET + PAGETABLESLOCAL) ==
+    if (masterTile->readLong((1 << pageShift) + 5 * PAGETABLEENTRY + VOFFSET + PAGETABLESLOCAL) ==
             0x0) {
         cout << endl;
     }
