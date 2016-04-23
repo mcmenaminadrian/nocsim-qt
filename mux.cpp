@@ -83,6 +83,7 @@ void Mux::fillBottomBuffer(bool& buffer, mutex *botMutex,
 			muxBelow->topMutex->unlock();
 		}
 		botMutex->unlock();
+        packet.getProcessor()->incrementBlocks();
 	}
 }
 
@@ -129,6 +130,7 @@ void Mux::fillTopBuffer(
 		} else {
 			topMutex->unlock();
 		}
+        packet.getProcessor()->incrementBlocks();
 	}
 }				
 

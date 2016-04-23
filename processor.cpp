@@ -603,6 +603,12 @@ void Processor::waitATick()
     }
 }
 
+void Processor::incrementBlocks() const
+{
+    ControlThread *pBarrier = masterTile->getBarrier();
+    pBarrier->incrementBlocks();
+}
+
 void Processor::waitGlobalTick()
 {
     for (uint64_t i = 0; i < GLOBALCLOCKSLOW; i++) {
