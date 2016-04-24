@@ -419,6 +419,79 @@ finish_flushing_selected:
     br_(0);
 }
 
+//drop the page referenced in REG3
+//return address in REG1
+void ProcessorFunctor::dropPage() const
+{
+    push_(REG1);
+    br_(0);
+    proc->flushPagesStart();
+    //REG1 points to start of page table
+    addi_(REG1, REG0, PAGETABLESLOCAL + (1 << PAGE_SHIFT));
+    //REG3 page we are looking for
+    andi_(REG3, REG3, PAGE_ADDRESS_MASK);
+    //REG2 total pages
+    addi_(REG2, REG0, TILE_MEM_SIZE >> PAGE_SHIFT);
+    //REG4 - how many pages we have checked
+    add_(REG4, REG0, REG0);
+    //constants
+    addi_(REG5, REG0, PAGETABLEENTRY);
+    addi_(REG6, REG0, FLAGOFFSET);
+    addi_(REG7, REG0, VOFFSET);
+    addi_(REG21, REG0, 0x02);
+    addi_(REG22, REG0, 0x01);
+
+    uint64_t keepCheckingDropSelected = proc->getProgramCounter();
+ keep_checking_drop_selected:
+    proc->setProgramCounter(keepCheckingDropSelected);
+    //REG8 offset in page table
+    mul_(REG8, REG4, REG5);
+    //check validity
+    add_(REG9, REG8, REG6);
+    add_(REG9, REG9, REG1);
+    lw_(REG10, REG9, REG0);
+    //is page valid?
+    and_(REG11, REG10, REG22);
+    if (beq_(REG11, REG0, 0)) {
+        goto check_next_page_drop;
+    }
+    //is page flushable?
+    and_(REG11, REG10, REG21);
+    if (beq_(REG11, REG0, 0)) {
+        goto check_page_address_drop;
+    }
+    br_(0);
+    goto check_next_page_drop;
+
+ check_page_address_drop:
+    add_(REG9, REG8, REG7);
+    add_(REG9, REG9, REG1);
+    lw_(REG10, REG9, REG0);
+    sub_(REG11, REG10, REG3);
+    if (beq_(REG11, REG0, 0)) {
+        goto drop_selected_page;
+    }
+
+ check_next_page_drop:
+    add_(REG4, REG4, REG22);
+    sub_(REG11, REG2, REG4);
+    if (beq_(REG11, REG0, 0)) {
+        goto finish_dropping_selected;
+    }
+    br_(0);
+    goto keep_checking_drop_selected;
+
+ drop_selected_page:
+    proc->dropPage(proc->getRegister(REG4));
+
+ finish_dropping_selected:
+     br_(0);
+     proc->flushPagesEnd();
+     pop_(REG1);
+     proc->setProgramCounter(proc->getRegister(REG1));
+     br_(0);
+}
+
 //return address in REG1
 void ProcessorFunctor::flushPages() const
 {
@@ -782,6 +855,9 @@ void ProcessorFunctor::operator()()
     addi_(REG1, REG0, proc->getProgramCounter());
     addi_(REG3, REG0, 0x100);
     flushSelectedPage();
+    br_(0);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    dropPage();
     //store processor number
     addi_(REG1, REG0, proc->getNumber());
     swi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
@@ -795,6 +871,9 @@ read_command:
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     forcePageReload();
+    br_(0);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    dropPage();
     pop_(REG1);
     addi_(REG3, REG0, SETSIZE);
     if (beq_(REG3, REG4, 0)) {
@@ -874,6 +953,9 @@ now_for_normalise:
     br_(0);
     addi_(REG3, REG0, 0x100);
     flushSelectedPage();
+    br_(0);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    dropPage();
     pop_(REG15);
     pop_(REG1);
     br_(0);
@@ -893,6 +975,9 @@ wait_on_zero:
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     forcePageReload(); //reads address in REG3, returning in REG4
+    br_(0);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    dropPage();
     push_(REG4);
     andi_(REG4, REG4, 0xFF00);
     addi_(REG8, REG0, 0xFE00);
@@ -958,6 +1043,11 @@ wait_for_turn_to_complete:
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     forcePageReload();
+    br_(0);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    dropPage();
+    addi_(REG1, REG0, proc->getProgramCounter());
+    dropPage();
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     if (beq_(REG4, REG1, 0)) {
         goto write_out_next_processor;
@@ -995,6 +1085,9 @@ write_out_next_processor:
     push_(REG3);
     addi_(REG3, REG0, 0x100);
     flushSelectedPage();
+    br_(0);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    dropPage();
     pop_(REG3);
     cout << "sending signal " << hex << proc->getRegister(REG20) << " from " 
         << dec << proc->getNumber();
@@ -1045,6 +1138,9 @@ complete_loop_done:
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     flushSelectedPage();
+    br(0);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    dropPage();
     
     testProcUpdate = proc->getProgramCounter();
 test_proc_update:
@@ -1053,6 +1149,9 @@ test_proc_update:
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     forcePageReload();
+    br_(0);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    dropPage();
 
     if (beq_(REG4, REG0, 0)) {
         goto complete_loop_done;
@@ -1103,6 +1202,15 @@ void ProcessorFunctor::nextRound() const
     mul_(REG16, REG12, REG2);
     //REG3 - points to start of numbers
     lwi_(REG3, REG0, sizeof(uint64_t) * 2);
+    //dump the page without writeback
+    push_(REG3);
+    push_(REG1);
+    addi_(REG3, REG0, sizeof(uint64_t) * 2);
+    br_(0);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    dropPage();
+    pop_(REG1);
+    pop_(REG3);
     //REG29 points to first number in our reference line
     add_(REG29, REG0, REG3);
     add_(REG29, REG29, REG9);
