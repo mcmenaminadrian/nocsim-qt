@@ -602,49 +602,49 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address,
 	//implement paging logic
 	if (mode == VIRTUAL) {
 		uint64_t pageSought = address & pageMask;
-        uint64_t y = 0;
+        	uint64_t y = 0;
 		for (auto x: tlbs) {
-            if (get<2>(x) && ((pageSought) == (get<0>(x) & pageMask))) {
-				//entry in TLB - check bitmap
-                                for (auto i = 0; i < BITMAPDELAY; i++) {
-                                    waitATick();
-                                }
-				if (!isBitmapValid(address, get<1>(x))) {
-                    return triggerSmallFault(x, address);
-				}
-                return generateAddress(y, address);
+                    if (get<2>(x) && ((pageSought) == (get<0>(x) & pageMask))){
+			//entry in TLB - check bitmap
+                        for (auto i = 0; i < BITMAPDELAY; i++) {
+                            waitATick();
+                        }
+			if (!isBitmapValid(address, get<1>(x))) {
+                            return triggerSmallFault(x, address);
 			}
-            y++;
+                        return generateAddress(y, address);
+		    }
+                    y++;
 		}
 		//not in TLB - but check if it is in page table
 		waitATick(); 
 		for (unsigned int i = 0; i < TOTAL_LOCAL_PAGES; i++) {
-			waitATick();
-            uint64_t addressInPageTable = PAGETABLESLOCAL +
-                    (i * PAGETABLEENTRY) + (1 << pageShift);
-            uint64_t flags = masterTile->readWord32(addressInPageTable
-                + FLAGOFFSET);
-            if (!(flags & 0x01)) {
-                continue;
-            }
-            waitATick();
-            uint64_t storedPage = masterTile->readLong(
-                addressInPageTable + VOFFSET);
-			waitATick();
-            if (pageSought == storedPage) {
-				waitATick();
-                flags |= 0x04;
-                masterTile->writeWord32(addressInPageTable + FLAGOFFSET,
-                    flags);
-                waitATick();
-                fixTLB(i, address);
-                waitATick();
-                return fetchAddressRead(address);
-            }
-            waitATick();
-        }
-        waitATick();
-        return triggerHardFault(address, readOnly);
+		    waitATick();
+                    uint64_t addressInPageTable = PAGETABLESLOCAL +
+                        (i * PAGETABLEENTRY) + (1 << pageShift);
+                    uint64_t flags = masterTile->readWord32(addressInPageTable
+                        + FLAGOFFSET);
+                    if (!(flags & 0x01)) {
+                        continue;
+                    }
+                    waitATick();
+                    uint64_t storedPage = masterTile->readLong(
+                        addressInPageTable + VOFFSET);
+	            waitATick();
+                    if (pageSought == storedPage) {
+		        waitATick();
+                        flags |= 0x04;
+                        masterTile->writeWord32(addressInPageTable + FLAGOFFSET,
+                            flags);
+                        waitATick();
+                        fixTLB(i, address);
+                        waitATick();
+                        return fetchAddressRead(address);
+                    }
+                    waitATick();
+               }
+               waitATick();
+               return triggerHardFault(address, readOnly);
 	} else {
 		//what do we do if it's physical address?
 		return address;

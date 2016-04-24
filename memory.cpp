@@ -55,7 +55,7 @@ uint64_t Memory::readLong(const uint64_t& address)
 		}
 		catch (const out_of_range& err)
 		{
-			contents[address] = 0;
+			contents[address + i] = 0;
 		}
 	}
 	memcpy(&retVal, in, sizeof(uint64_t));

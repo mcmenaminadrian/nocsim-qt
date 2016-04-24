@@ -356,7 +356,7 @@ void ProcessorFunctor::flushSelectedPage() const
    //REG1 points to start of page table
    addi_(REG1, REG0, PAGETABLESLOCAL + (1 << PAGE_SHIFT));
    //REG3 page we are looking for
-   shiftri_(REG3, PAGE_SHIFT);
+   andi_(REG3, REG3, PAGE_ADDRESS_MASK);
    //REG2 total pages
    addi_(REG2, REG0, TILE_MEM_SIZE >> PAGE_SHIFT);
    //REG4 - how many pages we have checked
@@ -409,8 +409,7 @@ check_next_page:
    goto keep_checking_flush_selected;
 
 flush_selected_page:
-   add_(REG5, REG0, REG4);
-   proc->writeBackMemory(proc->getRegister(REG5));
+   proc->writeBackMemory(proc->getRegister(REG4));
 
 finish_flushing_selected:
     br_(0);
@@ -613,6 +612,9 @@ void ProcessorFunctor::normaliseLine() const
     andi_(REG5, REG5, 0xFFFFFFFFFFFFFF00);
     or_(REG5, REG5, REG9);
     sw_(REG5, REG0, REG4);
+
+    //fix for start of numbers
+    sub_(REG4, REG4, REG28);
 
     uint64_t anchor1 = proc->getProgramCounter();
 loop1:
