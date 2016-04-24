@@ -66,6 +66,7 @@ private:
     void euclidAlgorithm() const;
     void dropPage() const;
     void flushSelectedPage() const;
+    void cleanCaches() const;
     void flushPages() const;
     void forcePageReload() const;
     void nextRound() const;
