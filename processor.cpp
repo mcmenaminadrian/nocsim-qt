@@ -784,6 +784,12 @@ void Processor::pcAdvance(const long count)
 	waitATick();
 }
 
+void Processor::incrementBlocks() const
+{
+    ControlThread *pBarrier = masterTile->getBarrier();
+    pBarrier->incrementBlocks();
+}
+
 void Processor::waitATick()
 {
 	ControlThread *pBarrier = masterTile->getBarrier();
