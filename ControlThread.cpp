@@ -15,6 +15,12 @@ ControlThread::ControlThread(unsigned long tcks, MainWindow *pWind):
         pWind, SLOT(updateLCD()));
 }
 
+void ControlThread::incrementBlocks()
+{
+    unique_lock<mutex> lck(blockLock);
+    blockedMem++;
+}
+
 void ControlThread::releaseToRun()
 {
 	unique_lock<mutex> lck(runLock);
@@ -47,7 +53,14 @@ void ControlThread::decrementTaskCount()
 void ControlThread::run()
 {
 	unique_lock<mutex> lck(runLock);
+        unique_lock<mutex> lck2(blockLock);
 	signedInCount = 0;
+        if (blockedMem > 0) {
+            cout << "On tick " << ticks << " total blocks " << blockedMem;
+            cout << endl;
+        }
+        blockedMem = 0;
+        lck2.unlock();
 	ticks++;
 	go.notify_all();
     //update LCD display

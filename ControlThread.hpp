@@ -20,7 +20,9 @@ private:
 	uint64_t ticks;
 	volatile uint16_t taskCount;
 	volatile uint16_t signedInCount;
+        volatile uint16_t blockedMem;
 	std::mutex runLock;
+        std::mutex blockLock;
 	bool beginnable;
 	std::condition_variable go;
 	std::mutex taskCountLock;
@@ -30,6 +32,7 @@ public:
     ControlThread(unsigned long count = 0, MainWindow *pWind = nullptr);
 	void incrementTaskCount();
 	void decrementTaskCount();
+        void incrementBlocks();
 	void run();
 	void begin();
 	void releaseToRun();
