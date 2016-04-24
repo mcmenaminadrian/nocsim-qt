@@ -1138,7 +1138,7 @@ complete_loop_done:
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     flushSelectedPage();
-    br(0);
+    br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
     dropPage();
     
