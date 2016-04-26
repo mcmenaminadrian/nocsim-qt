@@ -782,7 +782,7 @@ void ProcessorFunctor::forcePageReload() const
 {
     push_(REG1);
     br_(0);
-    addi_(REG1, REG0, proc->getProgramCounter();
+    addi_(REG1, REG0, proc->getProgramCounter());
     dropPage();
     lw_(REG4, REG3, REG0);
     pop_(REG1);

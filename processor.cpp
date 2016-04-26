@@ -464,7 +464,7 @@ void Processor::fixBitmap(const uint64_t& frameNo)
 		(1 + totalPTEPages) * (1 << pageShift);
 	const uint64_t bitmapSizeBytes =
 		(1 << pageShift) / (BITMAP_BYTES * 8);
-	for (uint64_t i = 0; i < bitmapSizeBits/8; i++) {
+	for (uint64_t i = 0; i < bitmapSizeBytes; i++) {
 		for (auto j = 0; j < BITMAPDELAY; j++) {
 			waitATick();
 		}
