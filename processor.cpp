@@ -464,21 +464,13 @@ void Processor::fixBitmap(const uint64_t& frameNo)
 		(1 + totalPTEPages) * (1 << pageShift);
 	const uint64_t bitmapSizeBytes =
 		(1 << pageShift) / (BITMAP_BYTES * 8);
-	const uint64_t bitmapSizeBits = bitmapSizeBytes * 8;
-	uint8_t bitmapByte = localMemory->readByte(
-		frameNo * bitmapSizeBytes + bitmapOffset);
 	uint8_t startBit = (frameNo * bitmapSizeBits) % 8;
-	for (uint64_t i = 0; i < bitmapSizeBits; i++) {
-		bitmapByte = bitmapByte & ~(1 << startBit);
-		startBit++;
-		startBit %= 8;
-		if (startBit == 0) {
-			localMemory->writeByte(
-				frameNo * bitmapSizeBytes + bitmapOffset,
-				bitmapByte);
-			bitmapByte = localMemory->readByte(
-				++bitmapOffset + frameNo * bitmapSizeBytes);
+	for (uint64_t i = 0; i < bitmapSizeBits/8; i++) {
+		for (auto j = 0; j < BITMAPDELAY; j++) {
+			waitATick();
 		}
+		localMemory->writeByte(frameNo * bitmapSizeBytes +
+			bitmapOffset + i, 0);
 	}
 }
 
@@ -866,10 +858,14 @@ void Processor::dumpPageFromTLB(const uint64_t& address)
 {
     waitATick();
     uint64_t pageAddress = address & pageMask;
+    uint16_t count = 0;
     for (auto& x: tlbs) {
         if (get<0>(x) == pageAddress) {
+            //zero the bitmap
+            fixBitmap(count);
             get<2>(x) = false;
             break;
         }
+        count++;
     }
 }

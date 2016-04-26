@@ -781,48 +781,9 @@ ending:
 void ProcessorFunctor::forcePageReload() const
 {
     push_(REG1);
-    //Enter interrupt context
-    //find page, wipe TLB and page table,
-    //then exit interrupt and read address
-    proc->flushPagesStart();
-    //REG6 holds page address
-    andi_(REG6, REG3, PAGE_ADDRESS_MASK);
-    //walk page table
-    //REG2 counts number of pages
-    addi_(REG2, REG0, TILE_MEM_SIZE >> PAGE_SHIFT);
-    //REG5 holds pages done so far
-    add_(REG5, REG0, REG0);
-    uint64_t walking_the_table = proc->getProgramCounter();
-
-table_walk:
-    proc->setProgramCounter(walking_the_table);
-    muli_(REG12, REG5, PAGETABLEENTRY);
-    lwi_(REG11, REG12, PAGETABLESLOCAL + VOFFSET + (1 << PAGE_SHIFT));
-    if (beq_(REG11, REG6, 0)) {
-        goto matched_page;
-    }
-
-walk_next_page:
-    addi_(REG5, REG5, 1);
-    if (beq_(REG5, REG2, 0)) {
-        goto page_walk_done;
-    }
     br_(0);
-    goto table_walk;
- 
-matched_page:
-    lwi_(REG11, REG12, PAGETABLESLOCAL + FLAGOFFSET + (1 << PAGE_SHIFT));
-    andi_(REG13, REG11, 0x01);
-    if (beq_(REG13, REG0, 0)) {
-        goto walk_next_page;
-    }
-    andi_(REG11, REG11, 0xFFFFFFFFFFFFFFFE);
-    swi_(REG11, REG12, PAGETABLESLOCAL + FLAGOFFSET + (1 << PAGE_SHIFT));
-    //dump the page - ie wipe the bitmap
-    proc->dumpPageFromTLB(proc->getRegister(REG6));
-
-page_walk_done:
-    proc->flushPagesEnd();
+    addi_(REG1, REG0, proc->getProgramCounter();
+    dropPage();
     lw_(REG4, REG3, REG0);
     pop_(REG1);
     br_(0);
