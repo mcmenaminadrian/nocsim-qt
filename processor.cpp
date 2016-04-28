@@ -36,7 +36,7 @@
 //Bit 0 :   true = REAL, false = VIRTUAL
 //Bit 1 :   CarryBit
 
-const static uint64_t BITMAPDELAY = 0;
+const static uint64_t BITMAPDELAY = 6;
 
 using namespace std;
 
@@ -370,6 +370,8 @@ void Processor::writeBackMemory(const uint64_t& frameNo)
     //is this a read-only frame?
     if (localMemory->readWord32((1 << pageShift) + frameNo * PAGETABLEENTRY
         + FLAGOFFSET) & 0x08) {
+	//clear bitmap
+	fixBitmap(frameNo);
         return;
     }
     //find bitmap for this frame
@@ -412,6 +414,7 @@ void Processor::writeBackMemory(const uint64_t& frameNo)
         }
         bitToRead++;
     }
+    fixBitmap(frameNo);
 }
 
 void Processor::loadMemory(const uint64_t& frameNo,
