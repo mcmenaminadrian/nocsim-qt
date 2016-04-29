@@ -34,9 +34,8 @@
 #define ENDOFFSET 28
 
 static const uint64_t REGISTER_FILE_SIZE = 32;
-static const uint64_t BITMAP_BYTES = 16;
-static const uint64_t BITMAP_SHIFT = 4;
-static const uint64_t BITMAP_MASK = 0xFFFFFFFFFFFFFFF0;
+static const uint64_t BITMAP_BYTES = 32;
+static const uint64_t BITMAP_MASK = 0xFFFFFFFFFFFFFFE0;
 //page mappings
 static const uint64_t PAGETABLESLOCAL = 0xA000000000000000;
 static const uint64_t GLOBALCLOCKSLOW = 1;
