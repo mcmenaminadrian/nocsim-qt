@@ -346,6 +346,84 @@ ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 {
 }
 
+//drop all the pages except current code
+//return address in REG1
+void ProcessorFunctor::cleanCaches() const
+{
+    push_(REG1);
+    br_(0);
+    proc->flushPagesStart();
+    //REG1 points to start of page table
+    addi_(REG1, REG0, PAGETABLESLOCAL + (1 << PAGE_SHIFT));
+    //REG2 total pages
+    addi_(REG2, REG0, TILE_MEM_SIZE >> PAGE_SHIFT);
+    //REG4 - how many pages we have checked
+    add_(REG4, REG0, REG0);
+    //constants
+    addi_(REG5, REG0, PAGETABLEENTRY);
+    addi_(REG6, REG0, FLAGOFFSET);
+    addi_(REG7, REG0, VOFFSET);
+    addi_(REG21, REG0, 0x02);
+    addi_(REG22, REG0, 0x01);
+
+    uint64_t roundCacheLoop = proc->getProgramCounter();
+ round_cache_loop:
+    proc->setProgramCounter(roundCacheLoop);
+    //REG8 offset in page table
+    mul_(REG8, REG4, REG5);
+    //check validity
+    add_(REG9, REG8, REG6);
+    add_(REG9, REG9, REG1);
+    lw_(REG10, REG9, REG0);
+    //is page valid?
+    and_(REG11, REG10, REG22);
+    if (beq_(REG11, REG0, 0)) {
+        goto check_next_page_clean;
+    }
+    //is page flushable?
+    and_(REG11, REG10, REG21);
+    if (beq_(REG11, REG0, 0)) {
+        goto check_page_address_clean;
+    }
+    br_(0);
+    goto check_next_page_clean;
+
+ check_page_address_clean:
+    add_(REG9, REG8, REG7);
+    add_(REG9, REG9, REG1);
+    lw_(REG10, REG9, REG0);
+    addi_(REG3, REG0, proc->getProgramCounter() + sizeof(uint64_t));
+    andi_(REG3, REG3, PAGE_ADDRESS_MASK);
+    sub_(REG11, REG10, REG3);
+    if (beq_(REG11, REG0, 0)) {
+        goto check_next_page_clean;
+    }
+    br_(0);
+    goto clean_selected_page;
+
+ check_next_page_clean:
+    add_(REG4, REG4, REG22);
+    sub_(REG11, REG2, REG4);
+    if (beq_(REG11, REG0, 0)) {
+        goto finish_cleaning_selected;
+    }
+    br_(0);
+    goto round_cache_loop;
+
+ clean_selected_page:
+    push_(REG4);
+    proc->dropPage(proc->getRegister(REG4));
+    pop_(REG4);
+    goto check_next_page_clean;
+
+ finish_cleaning_selected:
+     br_(0);
+     proc->flushPagesEnd();
+     pop_(REG1);
+     proc->setProgramCounter(proc->getRegister(REG1));
+     br_(0);
+}
+
 //flush the page referenced in REG3
 //return address in REG1 
 void ProcessorFunctor::flushSelectedPage() const
@@ -1145,6 +1223,10 @@ void ProcessorFunctor::nextRound() const
 {
     uint64_t beforeCallEuclid;
     uint64_t beforeSecondCallEuclid;
+    //clean out any junk
+    br_(0);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    cleanCaches();
     //calculate factor for this line
     //REG1 - hold processor number
     //REG12 - the 'top' line
