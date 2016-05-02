@@ -36,7 +36,7 @@
 //Bit 0 :   true = REAL, false = VIRTUAL
 //Bit 1 :   CarryBit
 
-static const uint64_t MEM_REQ_SIZE = 0x20;
+static const uint64_t MEM_REQ_SIZE = 0x10;
 
 using namespace std;
 
