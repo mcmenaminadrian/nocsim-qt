@@ -36,7 +36,7 @@
 //Bit 0 :   true = REAL, false = VIRTUAL
 //Bit 1 :   CarryBit
 
-const static uint64_t BITMAPDELAY = 1;
+const static uint64_t BITMAPDELAY = 6;
 
 using namespace std;
 
