@@ -29,7 +29,7 @@ public:
 	~Mux();
 	void initialiseMutex();
 	void fillBottomBuffer(bool& buffer,
-		std::mutex *botMutex, Mux* muxBelow, MemoryPacket& packet);
+		std::mutex *botMutex, MemoryPacket& packet);
 	void routeDown(MemoryPacket& packet);
 	void assignGlobalMemory(Memory *gMem){ globalMemory = gMem; }
 	void joinUpMux(const Mux& left, const Mux& right);
@@ -38,6 +38,9 @@ public:
 	const std::tuple<const uint64_t, const uint64_t,
 		const uint64_t, const uint64_t> fetchNumbers() const;
 	void routePacket(MemoryPacket& pack);
-    bool acceptPacketUp(const MemoryPacket& mPack) const;
+    	bool acceptPacketUp(const MemoryPacket& mPack) const;
+	void postPacketUp(MemoryPacket& packet);
+	void keepRoutingPacket(MemoryPacket& packet);
+
 };	
 #endif

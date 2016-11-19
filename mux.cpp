@@ -59,25 +59,15 @@ const tuple<const uint64_t, const uint64_t, const uint64_t,
 }
 
 void Mux::fillBottomBuffer(bool& buffer, mutex *botMutex,
-	Mux* muxBelow, MemoryPacket& packet)
+	MemoryPacket& packet)
 {
 	while (true) {
 		packet.getProcessor()->waitGlobalTick();
 		botMutex->lock();
-		if (muxBelow) {
-			muxBelow->topMutex->lock();
-		}
 		if (buffer == false) {
-			if (muxBelow) {
-				muxBelow->topBuffer = false;
-				muxBelow->topMutex->unlock();
-			}
 			buffer = true;
 			botMutex->unlock();
 			return;
-		}
-		if (muxBelow) {
-			muxBelow->topMutex->unlock();
 		}
 		botMutex->unlock();
 	}
@@ -115,12 +105,12 @@ void Mux::postPacketUp(MemoryPacket& packet)
 	//first step - what is the buffer we are targetting
 	const uint64_t processorIndex = packet.getProcessor()->
 		getTile()->getOrder();
-	mutex *targetMutex = upstreamMux.bottomRightMutex;
-	bool& targetBuffer = upstreamMux.rightBuffer;
+	mutex *targetMutex = upstreamMux->bottomRightMutex;
+	bool& targetBuffer = upstreamMux->rightBuffer;
 	if (processorIndex >= upstreamMux->lowerLeft.first &&
 		processorIndex <= upstreamMux->lowerLeft.second) {
-		targetBuffer = upstreamMux.leftBuffer;
-		targetMutex = upstreamMux.bottomRightMutex;
+		targetBuffer = upstreamMux->leftBuffer;
+		targetMutex = upstreamMux->bottomRightMutex;
 	}
 
 	while (true) {
@@ -157,14 +147,13 @@ void Mux::routePacket(MemoryPacket& packet)
 		getTile()->getOrder();
 	if (processorIndex >= lowerLeft.first &&
 		processorIndex <= lowerLeft.second) {
-		fillBottomBuffer(leftBuffer, bottomLeftMutex, downstreamMuxLow,
+		fillBottomBuffer(leftBuffer, bottomLeftMutex,
 			packet);
 	} else {
 		fillBottomBuffer(rightBuffer, bottomRightMutex,
-			downstreamMuxHigh, packet);
+			packet);
 	}
-	return postPacketUp(leftBuffer, rightBuffer, bottomLeftMutex,
-			bottomRightMutex, packet);
+	return postPacketUp(packet);
 }
 
 void Mux::joinUpMux(const Mux& left, const Mux& right)
