@@ -30,15 +30,12 @@ void Mux::disarmMutex()
 	bottomLeftMutex = nullptr;
 	delete bottomRightMutex;
 	bottomRightMutex = nullptr;
-	delete topMutex;
-	topMutex = nullptr;
 }
 
 void Mux::initialiseMutex()
 {
 	bottomLeftMutex = new mutex();
 	bottomRightMutex = new mutex();
-	topMutex = new mutex();
 }
 
 bool Mux::acceptPacketUp(const MemoryPacket& mPack) const
@@ -90,11 +87,7 @@ void Mux::routeDown(MemoryPacket& packet)
 {
 	//delay 1 tick
 	packet.getProcessor()->waitGlobalTick();
-	//release buffer
-	topMutex->lock();
-	topBuffer = false;
-	topMutex->unlock();
-	//cross to DDR
+	//cross to DDR and wait average time (DDR_DELAY)
 	for (unsigned int i = 0; i < DDR_DELAY; i++) {
 		packet.getProcessor()->waitGlobalTick();
 	}
@@ -111,6 +104,17 @@ void Mux::fillTopBuffer(
 	bool& bottomBuffer, mutex *botMutex,
 	MemoryPacket& packet)
 {
+	packet.getProcessor()->waitGlobalTick();
+	botMutex->lock();
+	if (upstreamMux == nullptr) {
+		bottomBuffer = false;
+		botMutex>unlock();
+		return routeDown(packet);
+	} else {
+		Mux *nextInChain = nullptr;
+
+
+		
 	while (true) {
 		packet.getProcessor()->waitGlobalTick();
 		topMutex->lock();
@@ -130,7 +134,62 @@ void Mux::fillTopBuffer(
 			topMutex->unlock();
 		}
 	}
-}				
+}
+
+void Mux::keepRoutingPacket(MemoryPacket& packet)
+{
+	if (upstreamMux == nullptr) {
+		return routeDown(packet);
+	} else {
+		return postPacketUp(packet);
+	}
+}
+
+
+void Mux::postPacketUp(MemoryPacket& packet)
+{
+	//one method here allows us to vary priorities between left and right
+	
+	//first step - what is the buffer we are targetting
+	const uint64_t processorIndex = packet.getProcessor()->
+		getTile()->getOrder();
+	mutex *targetMutex = upstreamMux.bottomRightMutex;
+	bool& targetBuffer = upstreamMux.rightBuffer;
+	if (processorIndex >= upstreamMux->lowerLeft.first &&
+		processorIndex <= upstreamMux->lowerLeft.second) {
+		targetBuffer = upstreamMux.leftBuffer;
+		targetMutex = upstreamMux.bottomRightMutex;
+	}
+
+	while (true) {
+		packet.getProcessor()->waitGlobalTick();
+		//left always priority in this implementation
+		bottomLeftMutex->lock();
+		bottomRightMutex->lock();
+		if (leftBuffer) {
+			bottomRightMutex->unlock();
+			if (targetMutex->try_lock()) {
+				leftBuffer = false;
+				bottomLeftMutex->unlock();
+				targetBuffer = true;
+				targetMutex->unlock();
+				return upstreamMux->keepRoutingPacket(packet);
+			}
+		} else {
+			bottomLeftMutex->unlock();
+			if (targetMutex->try_lock()) {
+				rightBuffer = false;
+				bottomRightMutex->unlock();
+				targetBuffer = true;
+				targetMutex->unlock();
+				return upstreamMux->keepRoutingPacket(packet);
+			}
+		}
+	}
+}
+
+
+
 
 void Mux::routePacket(MemoryPacket& packet)
 {
@@ -141,13 +200,12 @@ void Mux::routePacket(MemoryPacket& packet)
 		processorIndex <= lowerLeft.second) {
 		fillBottomBuffer(leftBuffer, bottomLeftMutex, downstreamMuxLow,
 			packet);
-		return fillTopBuffer(leftBuffer, bottomLeftMutex,
-			packet);
 	} else {
 		fillBottomBuffer(rightBuffer, bottomRightMutex,
 			downstreamMuxHigh, packet);
-		return fillTopBuffer(rightBuffer, bottomRightMutex, packet);
 	}
+	return postPacketUp(leftBuffer, rightBuffer, bottomLeftMutex,
+			bottomRightMutex, packet);
 }
 
 void Mux::joinUpMux(const Mux& left, const Mux& right)
