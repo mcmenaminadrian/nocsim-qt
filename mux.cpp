@@ -99,43 +99,6 @@ void Mux::routeDown(MemoryPacket& packet)
 	return;
 }	
 
-
-void Mux::fillTopBuffer(
-	bool& bottomBuffer, mutex *botMutex,
-	MemoryPacket& packet)
-{
-	packet.getProcessor()->waitGlobalTick();
-	botMutex->lock();
-	if (upstreamMux == nullptr) {
-		bottomBuffer = false;
-		botMutex>unlock();
-		return routeDown(packet);
-	} else {
-		Mux *nextInChain = nullptr;
-
-
-		
-	while (true) {
-		packet.getProcessor()->waitGlobalTick();
-		topMutex->lock();
-		if (topBuffer == false) {
-			botMutex->lock();
-			bottomBuffer = false;
-			botMutex->unlock();
-			topBuffer = true;
-			topMutex->unlock();
-			//if we are top layer, then route into memory
-			if (upstreamMux == nullptr) {
-				return routeDown(packet);
-			} else {
-				return upstreamMux->routePacket(packet);
-			}
-		} else {
-			topMutex->unlock();
-		}
-	}
-}
-
 void Mux::keepRoutingPacket(MemoryPacket& packet)
 {
 	if (upstreamMux == nullptr) {
@@ -144,7 +107,6 @@ void Mux::keepRoutingPacket(MemoryPacket& packet)
 		return postPacketUp(packet);
 	}
 }
-
 
 void Mux::postPacketUp(MemoryPacket& packet)
 {
@@ -187,9 +149,6 @@ void Mux::postPacketUp(MemoryPacket& packet)
 		}
 	}
 }
-
-
-
 
 void Mux::routePacket(MemoryPacket& packet)
 {

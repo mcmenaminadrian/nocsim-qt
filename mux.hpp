@@ -11,12 +11,10 @@ private:
 	Memory* globalMemory;
 	std::pair<uint64_t, uint64_t> lowerLeft;
 	std::pair<uint64_t, uint64_t> lowerRight;
-	bool topBuffer;
 	bool leftBuffer;
 	bool rightBuffer;
 	std::mutex *bottomLeftMutex;
 	std::mutex *bottomRightMutex;
-	std::mutex *topMutex;
 	void disarmMutex();
 
 public:
@@ -25,16 +23,14 @@ public:
 	Mux* downstreamMuxHigh;
 	Mux():upstreamMux(nullptr), downstreamMuxLow(nullptr),
 		downstreamMuxHigh(nullptr), bottomLeftMutex(nullptr),
-		bottomRightMutex(nullptr), topMutex(nullptr), topBuffer(false),
-		leftBuffer(false), rightBuffer(false) {};
+		bottomRightMutex(nullptr), leftBuffer(false),
+		rightBuffer(false) {};
 	Mux(Memory *gMem): globalMemory(gMem) {};
 	~Mux();
 	void initialiseMutex();
 	void fillBottomBuffer(bool& buffer,
 		std::mutex *botMutex, Mux* muxBelow, MemoryPacket& packet);
 	void routeDown(MemoryPacket& packet);
-	void fillTopBuffer(bool& bottomBuffer,
-		std::mutex *botMutex, MemoryPacket& packet);
 	void assignGlobalMemory(Memory *gMem){ globalMemory = gMem; }
 	void joinUpMux(const Mux& left, const Mux& right);
 	void assignNumbers(const uint64_t& ll, const uint64_t& ul,
