@@ -119,30 +119,31 @@ void Mux::postPacketUp(MemoryPacket& packet)
 		bottomLeftMutex->lock();
 		bottomRightMutex->lock();
 		if (leftBuffer) {
-			bottomRightMutex->unlock();
 			if (targetMutex->try_lock()) {
 				leftBuffer = false;
+				bottomRightMutex->unlock();
 				bottomLeftMutex->unlock();
 				targetBuffer = true;
 				targetMutex->unlock();
 				return upstreamMux->keepRoutingPacket(packet);
 			}
 		} else {
-			bottomLeftMutex->unlock();
 			if (targetMutex->try_lock()) {
 				rightBuffer = false;
 				bottomRightMutex->unlock();
+				bottomLeftMutex->unlock();
 				targetBuffer = true;
 				targetMutex->unlock();
 				return upstreamMux->keepRoutingPacket(packet);
 			}
 		}
+		bottomRightMutex->unlock();
+		bottomLeftMutex->unlock();
 	}
 }
 
 void Mux::routePacket(MemoryPacket& packet)
 {
-	//is the buffer free?
 	const uint64_t processorIndex = packet.getProcessor()->
 		getTile()->getOrder();
 	if (processorIndex >= lowerLeft.first &&
