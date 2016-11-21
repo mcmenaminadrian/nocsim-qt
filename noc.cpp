@@ -99,7 +99,7 @@ Tile* Noc::tileAt(long i)
 
 long Noc::readInVariables(const string& path)
 {
-    ifstream inputFile("/usr/userfs/a/acm538/nocsim-qt/variables.csv");
+    ifstream inputFile(path);
 	//first line is the answer
 	string rawAnswer;
 	getline(inputFile, rawAnswer);
