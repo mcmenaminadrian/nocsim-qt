@@ -31,9 +31,9 @@
 using namespace std;
 
 Noc::Noc(const long columns, const long rows, const long pageShift,
-    const long blocks, const long bSize, MainWindow* pWind):
-    columnCount(columns), rowCount(rows), memoryBlocks(blocks),
-    blockSize(bSize), mainWindow(pWind)
+    const long bSize, MainWindow* pWind, const long blocks):
+    columnCount(columns), rowCount(rows),
+    blockSize(bSize), mainWindow(pWind), memoryBlocks(blocks)
 {
     uint64_t number = 0;
     for (int i = 0; i < columns; i++) {
@@ -80,11 +80,6 @@ Noc::~Noc()
 	for (int i = 0; i < memoryBlocks; i++) {
 		delete trees[i];
 	}
-}
-
-bool Noc::attach(Tree& memoryTree, const long leafTile)
-{
-	return true;
 }
 
 Tile* Noc::tileAt(long i)

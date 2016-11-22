@@ -21,10 +21,10 @@ public:
 	Mux* upstreamMux;
 	Mux* downstreamMuxLow;
 	Mux* downstreamMuxHigh;
-	Mux():upstreamMux(nullptr), downstreamMuxLow(nullptr),
-		downstreamMuxHigh(nullptr), bottomLeftMutex(nullptr),
-		bottomRightMutex(nullptr), leftBuffer(false),
-		rightBuffer(false) {};
+	Mux():  leftBuffer(false), rightBuffer(false), 
+	        bottomLeftMutex(nullptr), bottomRightMutex(nullptr),
+	        upstreamMux(nullptr), downstreamMuxLow(nullptr),
+		downstreamMuxHigh(nullptr) {};
 	Mux(Memory *gMem): globalMemory(gMem) {};
 	~Mux();
 	void initialiseMutex();

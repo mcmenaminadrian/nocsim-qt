@@ -30,7 +30,7 @@ bool RegionList::addRegion(const unsigned long& number)
 
 bool RegionList::isAddressValid(const unsigned long& address) const
 {
-	long region = address >> 40; //Terabytes
+	ulong region = address >> 40; //Terabytes
 	for (auto x: regions) {
 		if (x == region) {
 			return true;

@@ -43,7 +43,7 @@ public:
 
     void operator() ()
     {
-        Noc networkTiles(columns, rows, pageShift, memoryBlocks, blockSize, mW);
+        Noc networkTiles(columns, rows, pageShift, blockSize, mW, memoryBlocks);
         //Let's Go!
         networkTiles.executeInstructions();
     }

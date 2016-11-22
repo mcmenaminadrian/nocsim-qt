@@ -55,7 +55,6 @@ signals:
     void smallFault();
 
 private:
-	Router router;
 	std::mutex interruptLock;
 	std::mutex waitMutex;
 	std::vector<uint64_t> registerFile;
@@ -65,6 +64,7 @@ private:
 	Tile *masterTile;
 	enum ProcessorMode { REAL, VIRTUAL };
 	ProcessorMode mode;
+	Router router;
 	Memory *localMemory;
     MainWindow *mainWindow;
 	long pageShift;

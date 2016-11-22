@@ -520,7 +520,7 @@ void Processor::markBitmap(const uint64_t& frameNo,
 	uint8_t bitmapByte = localMemory->readByte(byteToFetch);
 	bitmapByte |= (1 << bitToMark);
 	localMemory->writeByte(byteToFetch, bitmapByte);
-    for (auto i = 0; i < BITMAPDELAY; i++) {
+    for (uint64_t i = 0; i < BITMAPDELAY; i++) {
         waitATick();
     }
 }
@@ -601,7 +601,7 @@ uint64_t Processor::triggerHardFault(const uint64_t& address,
     fixPageMap(frameData.first, translatedAddress.first, readOnly);
     markBitmapStart(frameData.first, translatedAddress.first +
         (address & bitMask));
-    for (auto i = 0; i < BITMAPDELAY; i++) {
+    for (uint64_t i = 0; i < BITMAPDELAY; i++) {
          waitATick();
     }
     interruptEnd();
@@ -621,7 +621,7 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address,
 		for (auto x: tlbs) {
                     if (get<2>(x) && ((pageSought) == (get<0>(x) & pageMask))){
 			//entry in TLB - check bitmap
-                        for (auto i = 0; i < BITMAPDELAY; i++) {
+                        for (uint64_t i = 0; i < BITMAPDELAY; i++) {
                             waitATick();
                         }
 			if (!isBitmapValid(address, get<1>(x))) {
