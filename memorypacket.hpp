@@ -5,11 +5,11 @@ class Processor;
 
 class MemoryPacket {
 private:
-	const uint64_t requestSize;
 	uint64_t fulfilSize;
 	Processor *processorIndex;
 	const uint64_t remoteAddress;
 	const uint64_t localAddress;
+	const uint64_t requestSize;
 	std::vector<uint8_t> payload;
 	enum direction{OUT, IN} pd;
 

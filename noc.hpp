@@ -31,9 +31,8 @@ public:
 	const long memoryBlocks;
 	std::vector<Tree *> trees;
 	Noc(const long columns, const long rows, const long pageShift,
-        const long memBlocks, const long bSize, MainWindow *pWind);
+        const long bSize, MainWindow *pWind, const long memBlocks);
 	~Noc();
-	bool attach(Tree& memoryTree, const long leaf);
 	Tile* tileAt(long i);
 	long executeInstructions();
 	unsigned long getBasePageTables() const { return ptrBasePageTables; }

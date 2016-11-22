@@ -81,7 +81,7 @@ void Memory::writeLong(const uint64_t& address, const uint64_t& value)
 	}
 
 	uint8_t *valRep = (uint8_t *) &value;
-	for (int i = 0; i < sizeof(uint64_t); i++)
+	for (uint i = 0; i < sizeof(uint64_t); i++)
 	{
 		contents[address + i] = *(valRep + i);
 	}
