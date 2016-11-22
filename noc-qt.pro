@@ -10,7 +10,8 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = noc-qt
 TEMPLATE = app
-CONFIG += c++11 -std=c++11
+QMAKE_CXXFLAGS += -std=c++11
+CONFIG += c++11
 
 
 

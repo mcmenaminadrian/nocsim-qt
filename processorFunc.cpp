@@ -1042,7 +1042,7 @@ read_command:
     sub_(REG30, REG30, REG4);
 
     //wait longer if we have low processor number signalled
-    muli_(REG3, REG30, 0x75);
+    muli_(REG3, REG30, 0x20);
     tickReadingDown = proc->getProgramCounter();
 tick_read_down:
     proc->setProgramCounter(tickReadingDown);
@@ -1124,7 +1124,7 @@ wait_for_next_signal:
     cout << "Processor " << proc->getNumber() << " now waiting." << endl;
     push_(REG15);
     //try a back off
-    addi_(REG5, REG0, 0x400);
+    addi_(REG5, REG0, 0x40);
     addi_(REG6, REG0, 0x1000);
 
     waitingOnZero = proc->getProgramCounter();
@@ -1223,7 +1223,7 @@ wait_for_turn_to_complete:
     goto setup_loop_wait_processor_count;
 
 standard_delay:
-    addi_(REG4, REG0, 0x750);
+    addi_(REG4, REG0, 0x100);
 
 setup_loop_wait_processor_count:
     loopingWaitingForProcessorCount = proc->getProgramCounter();

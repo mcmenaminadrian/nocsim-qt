@@ -99,7 +99,7 @@ Tile* Noc::tileAt(long i)
 
 long Noc::readInVariables(const string& path)
 {
-    ifstream inputFile("/usr/userfs/a/acm538/nocsim-qt/variables.csv");
+    ifstream inputFile(path);
 	//first line is the answer
 	string rawAnswer;
 	getline(inputFile, rawAnswer);
@@ -251,14 +251,14 @@ unsigned long Noc::createBasicPageTables()
         uint8_t flagOut = 0x03;
         if (i > (2 + ((bottomOfPageTable + startOfPageTables) >> PAGE_SHIFT)))
         {
-            flagOut = 0x01;
+            	flagOut = 0x01;
         }
         globalMemory[0].writeByte(offsetB + sizeof(uint64_t), flagOut);
-    }
+    	}
 
-    runLength += tableLength * PAGE_TABLE_COUNT;
+    	runLength += tableLength * PAGE_TABLE_COUNT;
 
-    unsigned long pagesUsedForTables = runLength >> PAGE_SHIFT;
+    	unsigned long pagesUsedForTables = runLength >> PAGE_SHIFT;
 	if (runLength%1024) {
 		pagesUsedForTables++;
 	}
@@ -276,9 +276,9 @@ long Noc::executeInstructions()
 
 	ptrBasePageTables = createBasicPageTables();
 
-    readInVariables();
+    	readInVariables();
 	writeSystemToMemory();
-    pBarrier = new ControlThread(0, mainWindow);
+    	pBarrier = new ControlThread(0, mainWindow);
 	vector<thread *> threads;
 
 	for (int i = 0; i < columnCount * rowCount; i++) {
