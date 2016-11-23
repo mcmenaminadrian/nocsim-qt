@@ -26,7 +26,6 @@ SOURCES += main.cpp\
     paging.cpp \
     processor.cpp \
     processorFunc.cpp \
-    router.cpp \
     tile.cpp \
     tree.cpp
 
@@ -40,7 +39,6 @@ HEADERS  += mainwindow.h \
     paging.hpp \
     processor.hpp \
     processorFunc.hpp \
-    router.hpp \
     tile.hpp \
     tree.hpp
 

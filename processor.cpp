@@ -41,8 +41,7 @@ const static uint64_t BITMAPDELAY = 0;
 using namespace std;
 
 Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
-    masterTile(parent), mode(REAL), router(parent->getColumn(),
-    parent->getRow()), mainWindow(mW)
+    masterTile(parent), mode(REAL), mainWindow(mW)
 {
 	registerFile = vector<uint64_t>(REGISTER_FILE_SIZE, 0);
 	statusWord[0] = true;

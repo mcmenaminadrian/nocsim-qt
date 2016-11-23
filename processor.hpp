@@ -18,7 +18,6 @@
 #include "mux.hpp"
 #include "tile.hpp"
 #include "memory.hpp"
-#include "router.hpp"
 
 
 #ifndef _PROCESSOR_CLASS_
@@ -64,7 +63,6 @@ private:
 	Tile *masterTile;
 	enum ProcessorMode { REAL, VIRTUAL };
 	ProcessorMode mode;
-	Router router;
 	Memory *localMemory;
     MainWindow *mainWindow;
 	long pageShift;
