@@ -117,23 +117,27 @@ void Mux::postPacketUp(MemoryPacket& packet)
 		bottomLeftMutex->lock();
 		bottomRightMutex->lock();
 		if (leftBuffer) {
-			if (targetMutex->try_lock()) {
+			targetMutex->lock();
+			if (targetBuffer == false) {
 				leftBuffer = false;
-				bottomRightMutex->unlock();
-				bottomLeftMutex->unlock();
 				targetBuffer = true;
 				targetMutex->unlock();
+				bottomRightMutex->unlock();
+				bottomLeftMutex->unlock();
 				return upstreamMux->keepRoutingPacket(packet);
 			}
+			targetMutex->unlock();
 		} else {
-			if (targetMutex->try_lock()) {
+			targetMutex->lock();
+			if (targetBuffer == false) {
 				rightBuffer = false;
-				bottomRightMutex->unlock();
-				bottomLeftMutex->unlock();
 				targetBuffer = true;
 				targetMutex->unlock();
+				bottomRightMutex->unlock();
+				bottomLeftMutex->unlock();
 				return upstreamMux->keepRoutingPacket(packet);
 			}
+			targetMutex->unlock();
 		}
 		bottomRightMutex->unlock();
 		bottomLeftMutex->unlock();
