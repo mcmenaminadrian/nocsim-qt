@@ -19,7 +19,6 @@
 #include "tile.hpp"
 #include "memory.hpp"
 #include "processor.hpp"
-#include "router.hpp"
 
 //page table flags
 //bit 0 - 0 for invalid entry, 1 for valid

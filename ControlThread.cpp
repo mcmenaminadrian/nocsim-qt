@@ -44,7 +44,7 @@ void ControlThread::decrementTaskCount()
 	}
 }
 
-void ControlThread::countBlocks()
+void ControlThread::incrementBlocks()
 {
 	unique_lock<mutex> lck(blockLock);
 	blockedInTree++;

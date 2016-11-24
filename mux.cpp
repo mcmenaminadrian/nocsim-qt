@@ -14,9 +14,6 @@
 #include "processor.hpp"
 #include "mux.hpp"
 
-
-
-
 using namespace std;
 
 Mux::~Mux()
@@ -70,6 +67,7 @@ void Mux::fillBottomBuffer(bool& buffer, mutex *botMutex,
 			return;
 		}
 		botMutex->unlock();
+		packet.getProcessor()->incrementBlocks();
 	}
 }
 
@@ -139,6 +137,7 @@ void Mux::postPacketUp(MemoryPacket& packet)
 		}
 		bottomRightMutex->unlock();
 		bottomLeftMutex->unlock();
+		packet.getProcessor()->incrementBlocks();
 	}
 }
 

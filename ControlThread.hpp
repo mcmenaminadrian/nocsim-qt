@@ -32,7 +32,7 @@ public:
 	ControlThread(unsigned long count = 0, MainWindow *pWind = nullptr);
 	void incrementTaskCount();
 	void decrementTaskCount();
-	void countBlocks();
+	void incrementBlocks();
 	void run();
 	void begin();
 	void releaseToRun();
