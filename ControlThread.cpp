@@ -46,8 +46,10 @@ void ControlThread::decrementTaskCount()
 
 void ControlThread::incrementBlocks()
 {
-	unique_lock<mutex> lck(blockLock);
+	unique_lock<mutex> lck(runLock);
+	unique_lock<mutex> lckBlock(blockLock);
 	blockedInTree++;
+	lckBlock.unlock();
 }
 
 void ControlThread::run()

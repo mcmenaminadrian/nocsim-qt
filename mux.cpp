@@ -78,8 +78,14 @@ void Mux::routeDown(MemoryPacket& packet)
 	//now free packet
 	bottomLeftMutex->lock();
 	bottomRightMutex->lock();
-	if (leftBuffer) {
+	const uint64_t processorIndex = packet.getProcessor()->
+		getTile()->getOrder();
+	if (processorIndex >= lowerLeft.first && 
+	        processorIndex <= lowerLeft.second) {
 		leftBuffer = false;
+		if (rightBuffer) {
+                        packet.getProcessor()->incrementBlocks();
+		}
 	} else {
 		rightBuffer = false;
 	}
