@@ -75,6 +75,16 @@ void Mux::routeDown(MemoryPacket& packet)
 {
 	//delay 1 tick
 	packet.getProcessor()->waitGlobalTick();
+	//now free packet
+	bottomLeftMutex->lock();
+	bottomRightMutex->lock();
+	if (leftBuffer) {
+		leftBuffer = false;
+	} else {
+		rightBuffer = false;
+	}
+	bottomRightMutex->unlock();
+	bottomLeftMutex->unlock();
 	//cross to DDR and wait average time (DDR_DELAY)
 	for (unsigned int i = 0; i < DDR_DELAY; i++) {
 		packet.getProcessor()->waitGlobalTick();
