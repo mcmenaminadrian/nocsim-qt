@@ -44,16 +44,29 @@ void ControlThread::decrementTaskCount()
 	}
 }
 
+void ControlThread::countBlocks()
+{
+	unique_lock<mutex> lck(blockLock);
+	blockedInTree++;
+}
+
 void ControlThread::run()
 {
 	unique_lock<mutex> lck(runLock);
+	unique_lock<mutex> lckBlock(blockLock);
+	if (blockedInTree > 0) {
+		cout << "On tick " << ticks << " total blocks ";
+		cout << blockedInTree << endl;
+		blockedInTree = 0;
+	}
+	lckBlock.unlock();
 	signedInCount = 0;
 	ticks++;
 	go.notify_all();
-    //update LCD display
-    ++(mainWindow->currentCycles);
+	//update LCD display
+	++(mainWindow->currentCycles);
 	taskCountLock.unlock();
-    emit updateCycles();
+	emit updateCycles();
 }
 
 void ControlThread::waitForBegin()

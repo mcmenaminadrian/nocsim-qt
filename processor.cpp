@@ -607,7 +607,12 @@ uint64_t Processor::triggerHardFault(const uint64_t& address,
     return generateAddress(frameData.first, translatedAddress.first +
         (address & bitMask));
 }
-	
+
+void Processor::incrementBlocks() const
+{
+	ControlThread *pBarrier = masterTile->getBarrier();
+	pBarrier->incrementBlocks();
+}
 
 //when this returns, address guarenteed to be present at returned local address
 uint64_t Processor::fetchAddressRead(const uint64_t& address,
