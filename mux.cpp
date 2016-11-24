@@ -108,7 +108,7 @@ void Mux::postPacketUp(MemoryPacket& packet)
 	if (processorIndex >= upstreamMux->lowerLeft.first &&
 		processorIndex <= upstreamMux->lowerLeft.second) {
 		targetBuffer = upstreamMux->leftBuffer;
-		targetMutex = upstreamMux->bottomRightMutex;
+		targetMutex = upstreamMux->bottomLeftMutex;
 	}
 
 	while (true) {
