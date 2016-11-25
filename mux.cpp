@@ -148,7 +148,7 @@ void Mux::postPacketUp(MemoryPacket& packet)
 		//which are we, left or right?
 		if ((processorIndex < lowerRight.first) && leftBuffer) {
 			targetMutex->lock();
-			if (targetOnRight && upstreamMux->rightRuffer == false)
+			if (targetOnRight && upstreamMux->rightBuffer == false)
 			{
 				leftBuffer = false;
 				upStreamMux->rightBuffer = true;
