@@ -47,12 +47,12 @@ Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
 	totalTicks = 1;
 	currentTLB = 0;
 	inInterrupt = false;
-    processorNumber = numb;
-    clockDue = false;
-    QObject::connect(this, SIGNAL(hardFault()),
-        mW, SLOT(updateHardFaults()));
-    QObject::connect(this, SIGNAL(smallFault()),
-        mW, SLOT(updateSmallFaults()));
+    	processorNumber = numb;
+    	clockDue = false;
+    	QObject::connect(this, SIGNAL(hardFault()),
+        	mW, SLOT(updateHardFaults()));
+    	QObject::connect(this, SIGNAL(smallFault()),
+        	mW, SLOT(updateSmallFaults()));
 }
 
 void Processor::setMode()

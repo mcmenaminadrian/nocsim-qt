@@ -20,12 +20,12 @@
 using namespace std;
 
 Tile::Tile(Noc* n, const long c, const long r, const long pShift,
-           MainWindow *mW, uint64_t numb):
+	MainWindow *mW, uint64_t numb):
 	tileLocalMemory{new Memory(0, TILE_MEM_SIZE)},
-    coordinates{pair<const long, const long>(c, r)}, parentBoard{n},
-    mainWindow(mW)
+    	coordinates{pair<const long, const long>(c, r)}, parentBoard{n},
+    	mainWindow(mW)
 {
-    tileProcessor = new Processor(this, mainWindow, numb);
+    	tileProcessor = new Processor(this, mainWindow, numb);
 	tileProcessor->createMemoryMap(tileLocalMemory, pShift);
 }
 
