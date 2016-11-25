@@ -151,7 +151,7 @@ void Mux::postPacketUp(MemoryPacket& packet)
 			if (targetOnRight && upstreamMux->rightBuffer == false)
 			{
 				leftBuffer = false;
-				upStreamMux->rightBuffer = true;
+				upstreamMux->rightBuffer = true;
 				targetMutex->unlock();
 				bottomRightMutex->unlock();
 				bottomLeftMutex->unlock();
