@@ -79,11 +79,11 @@ void Mux::routeDown(MemoryPacket& packet)
 	bool packetOnLeft = false;
 	const uint64_t processorIndex = packet.getProcessor()->
 		getTile()->getOrder();
-	if (processorIndex < bottomRight.first) {
+	if (processorIndex < lowerRight.first) {
 		packetOnLeft = true;
 	}
 	while (true) {
-		packet.getProcessor->waitGlobalTick();
+		packet.getProcessor()->waitGlobalTick();
 		bottomLeftMutex->lock();
 		bottomRightMutex->lock();
 		if (packetOnLeft) {
