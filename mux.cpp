@@ -87,13 +87,13 @@ void Mux::routeDown(MemoryPacket& packet)
 		bottomLeftMutex->lock();
 		bottomRightMutex->lock();
 		if (packetOnLeft) {
-			leftBuffer == false;
+			leftBuffer = false;
 			bottomRightMutex->unlock();
 			bottomLeftMutex->unlock();
 			goto fillDDR;
 		} else {
 			if (!leftBuffer) {
-				rightBuffer == false;
+				rightBuffer = false;
 				bottomRightMutex->unlock();
 				bottomLeftMutex->unlock();
 				goto fillDDR;
