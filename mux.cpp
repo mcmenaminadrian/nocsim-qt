@@ -134,9 +134,9 @@ void Mux::postPacketUp(MemoryPacket& packet)
 	const uint64_t processorIndex = packet.getProcessor()->
 		getTile()->getOrder();
 	mutex *targetMutex = upstreamMux->bottomRightMutex;
-	bool& targetBuffer = upstreamMux->rightBuffer;
+	bool targetOnRight = true;
 	if (processorIndex <= upstreamMux->lowerLeft.second) {
-		targetBuffer = upstreamMux->leftBuffer;
+		targetOnRight = false;
 		targetMutex = upstreamMux->bottomLeftMutex;
 	}
 
@@ -148,9 +148,20 @@ void Mux::postPacketUp(MemoryPacket& packet)
 		//which are we, left or right?
 		if ((processorIndex < lowerRight.first) && leftBuffer) {
 			targetMutex->lock();
-			if (targetBuffer == false) {
+			if (targetOnRight && upstreamMux->rightRuffer == false)
+			{
 				leftBuffer = false;
-				targetBuffer = true;
+				upStreamMux->rightBuffer = true;
+				targetMutex->unlock();
+				bottomRightMutex->unlock();
+				bottomLeftMutex->unlock();
+				return upstreamMux->keepRoutingPacket(packet);
+			}
+			else if (!targetOnRight &&
+				upstreamMux->leftBuffer == false)
+			{
+				leftBuffer = false;
+				upstreamMux->leftBuffer = true;
 				targetMutex->unlock();
 				bottomRightMutex->unlock();
 				bottomLeftMutex->unlock();
@@ -161,9 +172,21 @@ void Mux::postPacketUp(MemoryPacket& packet)
 			//can only proceed on right if left is empty
 			if (!leftBuffer) {
 				targetMutex->lock();
-				if (targetBuffer == false) {
+				if (targetOnRight &&
+					upstreamMux->rightBuffer == false)
+				{
 					rightBuffer = false;
-					targetBuffer = true;
+					upstreamMux->rightBuffer = true;
+					targetMutex->unlock();
+					bottomRightMutex->unlock();
+					bottomLeftMutex->unlock();
+					return upstreamMux->keepRoutingPacket(packet);
+				}
+				else if (!targetOnRight &&
+					upstreamMux->leftBuffer == false)
+				{
+					rightBuffer = false;
+					upstreamMux->leftBuffer = true;
 					targetMutex->unlock();
 					bottomRightMutex->unlock();
 					bottomLeftMutex->unlock();
