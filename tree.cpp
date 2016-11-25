@@ -49,6 +49,7 @@ Tree::Tree(Memory& globalMemory, Noc& noc, const long columns, const long rows)
 	//root Mux - connects to global memory
 	nodesTree.push_back(vector<Mux>(1));
 	nodesTree[levels][0].assignGlobalMemory(&globalMemory);
+	nodesTree[levels][0].upstreamMux = nullptr;
 	for (int i = 0; i <= levels; i++) {
 		for (unsigned int j = 0; j < nodesTree[i].size(); j++) {
 			if (i > 0) {
@@ -57,7 +58,9 @@ Tree::Tree(Memory& globalMemory, Noc& noc, const long columns, const long rows)
 				nodesTree[i][j].downstreamMuxHigh = 
 					&(nodesTree[i - 1][j * 2 + 1]);
 			}
-			nodesTree[i][j].upstreamMux = &(nodesTree[i + 1][j/2]);
+			if (i < levels) {
+				nodesTree[i][j].upstreamMux = &(nodesTree[i + 1][j/2]);
+			}
 		}
 	}
 	//join the nodes internally
