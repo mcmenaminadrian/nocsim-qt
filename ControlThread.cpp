@@ -21,6 +21,7 @@ void ControlThread::releaseToRun()
 	taskCountLock.lock();
 	signedInCount++;
 	if (signedInCount >= taskCount) {
+		taskCountLock.unlock();
 		lck.unlock();
 		run();
 		return;
@@ -37,8 +38,11 @@ void ControlThread::incrementTaskCount()
 
 void ControlThread::decrementTaskCount()
 {
+	unique_lock<mutex> lck(runLock);
 	unique_lock<mutex> lock(taskCountLock);
 	taskCount--;
+	taskCountLock.unlock();
+	runLock.unlock();
 	if (signedInCount >= taskCount) {
 		run();
 	}
@@ -67,7 +71,6 @@ void ControlThread::run()
 	go.notify_all();
 	//update LCD display
 	++(mainWindow->currentCycles);
-	taskCountLock.unlock();
 	emit updateCycles();
 }
 

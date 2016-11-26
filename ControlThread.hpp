@@ -27,13 +27,13 @@ private:
 	std::mutex taskCountLock;
 	std::mutex blockLock;
 	MainWindow *mainWindow;
+	void run();
 
 public:
 	ControlThread(unsigned long count = 0, MainWindow *pWind = nullptr);
 	void incrementTaskCount();
 	void decrementTaskCount();
 	void incrementBlocks();
-	void run();
 	void begin();
 	void releaseToRun();
 	void waitForBegin();
