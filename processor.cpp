@@ -783,8 +783,20 @@ void Processor::start()
 void Processor::pcAdvance(const long count)
 {
 	programCounter += count;
-    fetchAddressRead(programCounter, true);
+	fetchAddressRead(programCounter, true);
 	waitATick();
+}
+
+bool Processor::tryCheatLock() const
+{
+	ControlThread *pBarrier = masterTile->getBarrier();
+	return pBarrier->tryCheatLock();
+}
+
+void Processor::cheatUnlock() const
+{
+	ControlThread *pBarrier = masterTile->getBarrier();
+	pBarrier->unlockCheatLock();
 }
 
 void Processor::waitATick()

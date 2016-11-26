@@ -176,5 +176,7 @@ public:
     	void dumpPageFromTLB(const uint64_t& address);
     	const uint64_t& getTicks() const { return totalTicks; }
 	void incrementBlocks() const;
+	bool tryCheatLock() const;
+	void cheatUnlock() const;
 };
 #endif

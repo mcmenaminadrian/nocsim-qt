@@ -419,6 +419,7 @@ finish_flushing_selected:
     br_(0);
 }
 
+
 //drop the page referenced in REG3
 //return address in REG1
 void ProcessorFunctor::dropPage() const
@@ -780,6 +781,7 @@ ending:
 //REG1 holds return address
 void ProcessorFunctor::forcePageReload() const
 {
+	cheatLock();
     push_(REG1);
     //Enter interrupt context
     //find page, wipe TLB and page table,
@@ -827,6 +829,7 @@ page_walk_done:
     pop_(REG1);
     br_(0);
     proc->setProgramCounter(proc->getRegister(REG1));
+	cheatUnlock();
 }
 
 void ProcessorFunctor::operator()()
@@ -1042,7 +1045,9 @@ wait_for_turn_to_complete:
     addi_(REG3, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
+	cheatLock();
     forcePageReload();
+	cheatUnlock();
     br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
     dropPage();
@@ -1076,6 +1081,7 @@ loop_wait_processor_count:
     goto loop_wait_processor_count;
 
 write_out_next_processor:
+	cheatLock();
     swi_(REG0, REG0, 0x110);
     addi_(REG20, REG0, 0xFF00);
     or_(REG20, REG20, REG15);
@@ -1089,6 +1095,7 @@ write_out_next_processor:
     addi_(REG1, REG0, proc->getProgramCounter());
     dropPage();
     pop_(REG3);
+	cheatUnlock();
     cout << "sending signal " << hex << proc->getRegister(REG20) << " from " 
         << dec << proc->getNumber();
     cout <<" - ticks: " << proc->getTicks() << endl;
@@ -1137,7 +1144,9 @@ complete_loop_done:
     add_(REG3, REG0, REG23);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
+	cheatLock();
     flushSelectedPage();
+	cheatUnlock();
     br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
     dropPage();
@@ -1403,3 +1412,21 @@ next_round_over:
     br_(0);
     flushPages();
 }
+
+void ProcessorFunctor::cheatLock() const
+{
+	uint64_t cheatingPoint = proc->getProgramCounter();
+	nop_();
+	while(!proc->tryCheatLock()) {
+		nop_();
+		br_(0);
+		proc->setProgramCounter(cheatingPoint);
+	}
+}
+
+void ProcessorFunctor::cheatUnlock() const
+{
+	nop_();
+	proc->cheatUnlock();
+}
+

@@ -87,3 +87,13 @@ void ControlThread::begin()
 	go.notify_all();
 	runLock.unlock();
 }
+
+bool ControlThread::tryCheatLock()
+{
+	return cheatLock.try_lock();
+}
+
+void ControlThread::unlockCheatLock()
+{
+	cheatLock.unlock();
+}

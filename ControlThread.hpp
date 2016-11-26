@@ -26,6 +26,7 @@ private:
 	std::condition_variable go;
 	std::mutex taskCountLock;
 	std::mutex blockLock;
+	std::mutex cheatLock;
 	MainWindow *mainWindow;
 	void run();
 
@@ -37,6 +38,8 @@ public:
 	void begin();
 	void releaseToRun();
 	void waitForBegin();
+	bool tryCheatLock();
+	void unlockCheatLock();
 };
 
 #endif
