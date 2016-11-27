@@ -25,7 +25,7 @@ SOURCES += main.cpp\
     numberpage.cpp \
     paging.cpp \
     processor.cpp \
-    processorFunc.cpp \
+    xmlFunctor.cpp \
     tile.cpp \
     tree.cpp
 
@@ -38,7 +38,7 @@ HEADERS  += mainwindow.h \
     packet.hpp \
     paging.hpp \
     processor.hpp \
-    processorFunc.hpp \
+    xmlFunctor.hpp \
     tile.hpp \
     tree.hpp
 

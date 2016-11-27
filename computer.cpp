@@ -21,13 +21,13 @@ using namespace std;
 
 
 void usage() {
-	cout << "nocSIM: simulate a large NOC array" << endl;
-	cout << "Copyright Adrian McMenamin, 2015" << endl;
+	cout << "nocSIM (benchmarked): simulate a large NOC array" << endl;
+	cout << "Copyright Adrian McMenamin, 2015, 16" << endl;
 	cout << "---------" << endl;
 	cout << "-b    Memory blocks: default 4" << endl;
 	cout << "-s    Memory block size: default 1GB" << endl;
-	cout << "-r    Rows of CPUs in NoC (default 16)" << endl;
-	cout << "-c    Columns of CPUs in NoC (default 16)" << endl;
+	cout << "-r    Rows of CPUs in NoC (default 2)" << endl;
+	cout << "-c    Columns of CPUs in NoC (default 4)" << endl;
 	cout << "-p    Page size in power of 2 (default 10)" << endl;
 	cout << "-?    Print this message and exit" << endl;
 }
@@ -36,8 +36,8 @@ int main(int argc, char *argv[])
 {
 	long memoryBlocks = 1;
 	long blockSize = 1024 * 1024 * 1024;
-	long rows = 16;
-	long columns = 16;
+	long rows = 2;
+	long columns = 4;
 	long pageShift = PAGE_SHIFT;
 
 	for (int i = 1; i < argc; i++) {

@@ -64,13 +64,6 @@ Noc::Noc(const long columns, const long rows, const long pageShift,
 
 	//in reality we are only using one tree and one memory block
 	trees.push_back(new Tree(globalMemory[0], *this, columns, rows));
-/*
-	for (int i = 0; i < memoryBlocks; i++)
-	{
-		trees.push_back(new Tree(globalMemory[i], *this, columns,
-			rows));
-	}
-*/
 	pBarrier = nullptr;
 }
 
@@ -98,32 +91,6 @@ Tile* Noc::tileAt(long i)
 	return tiles[columnAccessed][rowAccessed];
 }
 
-long Noc::readInVariables(const string& path)
-{
-	ifstream inputFile(path);
-	//first line is the answer
-	string rawAnswer;
-	getline(inputFile, rawAnswer);
-	istringstream stringy(rawAnswer);
-	string number;
-	while(getline(stringy, number, ',')) {
-		answers.push_back(atol(number.c_str()));
-	}
-
-	long lineCnt = 0;
-	//now read in the system
-	while(getline(inputFile, rawAnswer)) {
-		lineCnt++;
-		istringstream stringy(rawAnswer);
-		vector<long> innerLine;
-		while (getline(stringy, number, ',')) {
-			innerLine.push_back(atol(number.c_str()));
-		}
-		lines.push_back(innerLine);
-	}
-	return lineCnt;
-}
-
 unsigned long Noc::scanLevelFourTable(unsigned long offsetAddr)
 {
 	//scan through pages looking for first available, non-fixed
@@ -141,49 +108,6 @@ fail:
 	cerr << "Run out of pages" << endl;
 	throw "Error";
 }
-
-void Noc::writeSystemToMemory()
-{
-	//write variables out to memory as AP integers
-	//begin by looking through pages for first non-fixed pages
-	unsigned long levelTwoTableAddr =
-		globalMemory[0].readLong(ptrBasePageTables);
-	unsigned long levelThreeTableAddr =
-		globalMemory[0].readLong(levelTwoTableAddr);
-	unsigned long levelFourTableAddr = globalMemory[0].
-		readLong(levelThreeTableAddr);
-	unsigned long firstFreePageAddr =
-		scanLevelFourTable(levelFourTableAddr);
-	unsigned long address = globalMemory[0].readLong(firstFreePageAddr);
-	globalMemory[0].writeLong(sizeof(long) * 2, address);
-	for (uint32_t i = 0; i < lines.size(); i++) {
-		for (uint32_t j = 0; j <= lines.size(); j++) {
-			//nominator
-			long sign = sgn(lines[i][j]);
-			if (sign < 1) {
-				globalMemory[0].writeByte(address, 0x01);
-			} else {
-				globalMemory[0].writeByte(address, 0);
-			}
-			address++;
-			globalMemory[0].writeByte(address, APNUMBERSIZE);
-			address+= (sizeof(uint64_t) - 1);
-			globalMemory[0].writeLong(address,abs(lines[i][j]));
-			address += sizeof(uint64_t);
-			for (int k = 0; k < APNUMBERSIZE - 1; k++) {
-				globalMemory[0].writeLong(address, 0);
-                		address += sizeof(uint64_t);
-			}
-			//denominator
-            		globalMemory[0].writeLong(address , 1);
-            		address+= sizeof(uint64_t);
-            		for (int k = 0; k < APNUMBERSIZE - 1; k++) {
-				globalMemory[0].writeLong(address, 0);
-                		address += sizeof(uint64_t);
-			}	
-		}
-	}
-}	
 
 //memory regions - pair: 1st is number, 2nd is flag
 //on flag - bit 1 is valid
@@ -277,15 +201,13 @@ long Noc::executeInstructions()
 
 	ptrBasePageTables = createBasicPageTables();
 
-    	readInVariables();
-	writeSystemToMemory();
     	pBarrier = new ControlThread(0, mainWindow);
 	vector<thread *> threads;
 
 	for (int i = 0; i < columnCount * rowCount; i++) {
-		ProcessorFunctor funcky(tileAt(i));
+		xmlFunctor xmlFunc(tileAt(i));
 		//spawn a thread per tile
-		threads.push_back(new thread(funcky));
+		threads.push_back(new thread(xmlFunc));
 		pBarrier->incrementTaskCount();
 		
 	}

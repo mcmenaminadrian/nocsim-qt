@@ -18,14 +18,12 @@ private:
 	std::vector<std::vector<Tile * > > tiles;
 	std::vector<long> answers;
 	std::vector<std::vector<long> > lines;
-	void writeSystemToMemory();
-	long readInVariables(const std::string&
-		path = std::string("./variables.csv"));
 	unsigned long createBasicPageTables();
 	unsigned long scanLevelFourTable(unsigned long addr);
 	ControlThread *pBarrier;
 	std::vector<Memory> globalMemory;
-    MainWindow *mainWindow;
+    	MainWindow *mainWindow;
+
 public:
 	std::vector<Memory>& getGlobal() { return globalMemory;}
 	const long memoryBlocks;
@@ -36,13 +34,13 @@ public:
 	Tile* tileAt(long i);
 	long executeInstructions();
 	unsigned long getBasePageTables() const { return ptrBasePageTables; }
-    long getColumnCount() const { return columnCount;}
-    long getRowCount() const { return rowCount; }
+    	long getColumnCount() const { return columnCount;}
+    	long getRowCount() const { return rowCount; }
 	ControlThread *getBarrier();
 };
 
 #endif
 
 template <typename T> int sgn(T val) {
-    return (T(0) < val) - (val < T(0));
+    	return (T(0) < val) - (val < T(0));
 }

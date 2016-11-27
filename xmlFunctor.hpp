@@ -3,7 +3,7 @@
 
 #define OUTPOINT 0x1000
 
-class ProcessorFunctor {
+class XMLFunctor {
 
 private:
     	static const uint64_t sumCount;
