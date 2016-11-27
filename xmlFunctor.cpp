@@ -15,23 +15,17 @@
 #include "memory.hpp"
 #include "tile.hpp"
 #include "processor.hpp"
-#include "processorFunc.hpp"
+#include "xmlFunctor.hpp"
 
 using namespace std;
 
-const uint64_t ProcessorFunctor::sumCount = 0x101;
+const uint64_t XMLFunctor::sumCount = 0x101;
 
 //alter filter to trap per page bitmaps of less than 64bits
 static const uint64_t BITMAP_FILTER = 0xFFFFFFFFFFFFFFFF;
 //alter to adjust for page size
 static const uint64_t PAGE_ADDRESS_MASK = 0xFFFFFFFFFFFFFC00;
 
-//Number format
-//numerator
-//first 64 bits - sign in first byte (1 is negative)
-//size in second byte
-//further APUMBERSIZE 64 bit words follow
-//then denominator - APNUMBERSIZE 64 bit words
 
 //avoid magic numbers
 
@@ -40,40 +34,6 @@ enum reg {REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, REG8, REG9,
 	REG20, REG21, REG22, REG23, REG24, REG25, REG26, REG27, REG28, REG29,
 	REG30, REG31};
 
-//instructions
-//limited RISC instruction set
-//based on Ridiciulously Simple Computer concept
-//instructions:
-//	add_ 	rA, rB, rC	: rA <- rB + rC		add
-//	addi_	rA, rB, imm	: rA <- rB + imm	add immediate
-//	and_	rA, rB, rC	: rA <- rB & rC		and
-//  andi_   rA, rB, imm : rA <- rB & imm    and immediate
-//	sw_	rA, rB, rC	: rA -> *(rB + rC)	store word
-//	swi_	rA, rB, imm	: rA -> *(rB + imm)	store word immediate
-//	lw_	rA, rB, rC	: rA <- *(rB + rC)	load word
-//	lwi_	rA, rB, imm	: rA <-	*(rB + imm)	load word immediate
-//	beq_	rA, rB, imm	: PC <- imm iff rA == rB	branch if equal
-//	br_	imm		: PC <- imm		branch immediate
-//	mul_	rA, rB, rC	: rA <- rB * rC		multiply
-//	muli_	rA, rB, imm	: rA <- rB * imm	multiply immediate
-//  setsw_  rA          : set status word
-//  getsw_  rA          : get status word
-//  push_   rA          : rA -> *SP, SP++   push reg to stack
-//  pop_    rA          : *SP -> rA, SP--   pop stack to reg
-//  shiftl_ rA          : rA << 1           shift left
-//  shiftlr_ rA, rB     : rA << rB          shift left
-//  shiftli_ rA, imm    : rA << imm         shift left
-//  shiftr_ rA          : rA >> 1           shift right
-//  shiftrr_ rA, rB     : rA >> rB          shift right
-//  shiftri_ rA, imm    : rA >> imm         shift right
-//  div_    rA, rB, rC  : rA = rB/rC        integer division
-//  divi_   rA, rB, imm : rA = rB/imm       integer division by immediate
-//  sub_    rA, rB, rC  : rA = rB - rC      subtract (with carry)
-//  subi_   rA, rB, rC  : rA = rB - imm     subtract immediate (with carry)
-//  xor_    rA, rB, rC  : rA = rB xor rC    exclusive or
-//  or_     rA, rB, rC  : rA = rB or rC     or
-//  ori_    rA, rB, imm : rA = rB or imm    or immediate
-//  nop_                 : no operation
 
 void ProcessorFunctor::add_(const uint64_t& regA,
 	const uint64_t& regB, const uint64_t& regC) const
@@ -341,9 +301,17 @@ void ProcessorFunctor::ori_(const uint64_t& regA, const uint64_t& regB,
 
 #define SETSIZE 256
 
-ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
+XMLFunctor::XMLFunctor(Tile *tileIn):
 	tile{tileIn}, proc{tileIn->tileProcessor}
 {
+	//load in the files here
+	string path = "./lackeyml_";
+	path += to_string(tileIn->getOrder());
+	ifstream inputFile(path);
+	string lackeyLine;
+	while(getline(inputFile, lackeyLine)) {
+		xmlLines.push_back(lackeyLine);
+	}
 }
 
 //flush the page referenced in REG3

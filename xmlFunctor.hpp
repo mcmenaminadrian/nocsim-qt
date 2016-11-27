@@ -6,6 +6,8 @@
 class XMLFunctor {
 
 private:
+	std::vector<std::string> xmlLines;
+	
     	static const uint64_t sumCount;
 	Tile *tile;
 	Processor *proc;
