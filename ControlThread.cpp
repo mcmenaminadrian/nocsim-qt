@@ -21,6 +21,7 @@ void ControlThread::releaseToRun()
 	taskCountLock.lock();
 	signedInCount++;
 	if (signedInCount >= taskCount) {
+		taskCountLock.unlock();
 		lck.unlock();
 		run();
 		return;
@@ -37,23 +38,40 @@ void ControlThread::incrementTaskCount()
 
 void ControlThread::decrementTaskCount()
 {
+	unique_lock<mutex> lck(runLock);
 	unique_lock<mutex> lock(taskCountLock);
 	taskCount--;
+	taskCountLock.unlock();
+	runLock.unlock();
 	if (signedInCount >= taskCount) {
 		run();
 	}
 }
 
+void ControlThread::incrementBlocks()
+{
+	unique_lock<mutex> lck(runLock);
+	unique_lock<mutex> lckBlock(blockLock);
+	blockedInTree++;
+	lckBlock.unlock();
+}
+
 void ControlThread::run()
 {
 	unique_lock<mutex> lck(runLock);
+	unique_lock<mutex> lckBlock(blockLock);
+	if (blockedInTree > 0) {
+		cout << "On tick " << ticks << " total blocks ";
+		cout << blockedInTree << endl;
+		blockedInTree = 0;
+	}
+	lckBlock.unlock();
 	signedInCount = 0;
 	ticks++;
 	go.notify_all();
-    //update LCD display
-    ++(mainWindow->currentCycles);
-	taskCountLock.unlock();
-    emit updateCycles();
+	//update LCD display
+	++(mainWindow->currentCycles);
+	emit updateCycles();
 }
 
 void ControlThread::waitForBegin()
@@ -68,4 +86,14 @@ void ControlThread::begin()
 	beginnable = true;
 	go.notify_all();
 	runLock.unlock();
+}
+
+bool ControlThread::tryCheatLock()
+{
+	return cheatLock.try_lock();
+}
+
+void ControlThread::unlockCheatLock()
+{
+	cheatLock.unlock();
 }

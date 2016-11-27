@@ -14,9 +14,6 @@
 #include "processor.hpp"
 #include "mux.hpp"
 
-
-
-
 using namespace std;
 
 Mux::~Mux()
@@ -70,13 +67,45 @@ void Mux::fillBottomBuffer(bool& buffer, mutex *botMutex,
 			return;
 		}
 		botMutex->unlock();
+		packet.getProcessor()->incrementBlocks();
 	}
 }
 
 void Mux::routeDown(MemoryPacket& packet)
 {
-	//delay 1 tick
-	packet.getProcessor()->waitGlobalTick();
+	//packet is ready to traverse to DDR, but is DDR free
+	//and, again, may only shift from right if left is empty
+	// are we left or right?
+	bool packetOnLeft = false;
+	const uint64_t processorIndex = packet.getProcessor()->
+		getTile()->getOrder();
+	if (processorIndex < lowerRight.first) {
+		packetOnLeft = true;
+	}
+	while (true) {
+		packet.getProcessor()->waitGlobalTick();
+		bottomLeftMutex->lock();
+		bottomRightMutex->lock();
+		if (packetOnLeft) {
+			leftBuffer = false;
+			bottomRightMutex->unlock();
+			bottomLeftMutex->unlock();
+			goto fillDDR;
+		} else {
+			if (!leftBuffer) {
+				rightBuffer = false;
+				bottomRightMutex->unlock();
+				bottomLeftMutex->unlock();
+				goto fillDDR;
+			}
+		}
+		bottomRightMutex->unlock();
+		bottomLeftMutex->unlock();
+		packet.getProcessor()->incrementBlocks();
+	}
+
+fillDDR:
+
 	//cross to DDR and wait average time (DDR_DELAY)
 	for (unsigned int i = 0; i < DDR_DELAY; i++) {
 		packet.getProcessor()->waitGlobalTick();
@@ -101,15 +130,13 @@ void Mux::keepRoutingPacket(MemoryPacket& packet)
 void Mux::postPacketUp(MemoryPacket& packet)
 {
 	//one method here allows us to vary priorities between left and right
-	
 	//first step - what is the buffer we are targetting
 	const uint64_t processorIndex = packet.getProcessor()->
 		getTile()->getOrder();
 	mutex *targetMutex = upstreamMux->bottomRightMutex;
-	bool& targetBuffer = upstreamMux->rightBuffer;
-	if (processorIndex >= upstreamMux->lowerLeft.first &&
-		processorIndex <= upstreamMux->lowerLeft.second) {
-		targetBuffer = upstreamMux->leftBuffer;
+	bool targetOnRight = true;
+	if (processorIndex <= upstreamMux->lowerLeft.second) {
+		targetOnRight = false;
 		targetMutex = upstreamMux->bottomLeftMutex;
 	}
 
@@ -118,27 +145,59 @@ void Mux::postPacketUp(MemoryPacket& packet)
 		//left always priority in this implementation
 		bottomLeftMutex->lock();
 		bottomRightMutex->lock();
-		if (leftBuffer) {
-			if (targetMutex->try_lock()) {
+		//which are we, left or right?
+		if ((processorIndex < lowerRight.first) && leftBuffer) {
+			targetMutex->lock();
+			if (targetOnRight && upstreamMux->rightBuffer == false)
+			{
 				leftBuffer = false;
+				upstreamMux->rightBuffer = true;
+				targetMutex->unlock();
 				bottomRightMutex->unlock();
 				bottomLeftMutex->unlock();
-				targetBuffer = true;
-				targetMutex->unlock();
 				return upstreamMux->keepRoutingPacket(packet);
 			}
-		} else {
-			if (targetMutex->try_lock()) {
-				rightBuffer = false;
+			else if (!targetOnRight &&
+				upstreamMux->leftBuffer == false)
+			{
+				leftBuffer = false;
+				upstreamMux->leftBuffer = true;
+				targetMutex->unlock();
 				bottomRightMutex->unlock();
 				bottomLeftMutex->unlock();
-				targetBuffer = true;
-				targetMutex->unlock();
 				return upstreamMux->keepRoutingPacket(packet);
+			}
+			targetMutex->unlock();
+		} else {
+			//can only proceed on right if left is empty
+			if (!leftBuffer) {
+				targetMutex->lock();
+				if (targetOnRight &&
+					upstreamMux->rightBuffer == false)
+				{
+					rightBuffer = false;
+					upstreamMux->rightBuffer = true;
+					targetMutex->unlock();
+					bottomRightMutex->unlock();
+					bottomLeftMutex->unlock();
+					return upstreamMux->keepRoutingPacket(packet);
+				}
+				else if (!targetOnRight &&
+					upstreamMux->leftBuffer == false)
+				{
+					rightBuffer = false;
+					upstreamMux->leftBuffer = true;
+					targetMutex->unlock();
+					bottomRightMutex->unlock();
+					bottomLeftMutex->unlock();
+					return upstreamMux->keepRoutingPacket(packet);
+				}
+				targetMutex->unlock();
 			}
 		}
 		bottomRightMutex->unlock();
 		bottomLeftMutex->unlock();
+		packet.getProcessor()->incrementBlocks();
 	}
 }
 

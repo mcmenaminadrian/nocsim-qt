@@ -19,7 +19,6 @@
 #include "tile.hpp"
 #include "memory.hpp"
 #include "processor.hpp"
-#include "router.hpp"
 
 //page table flags
 //bit 0 - 0 for invalid entry, 1 for valid
@@ -48,12 +47,12 @@ Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
 	totalTicks = 1;
 	currentTLB = 0;
 	inInterrupt = false;
-    processorNumber = numb;
-    clockDue = false;
-    QObject::connect(this, SIGNAL(hardFault()),
-        mW, SLOT(updateHardFaults()));
-    QObject::connect(this, SIGNAL(smallFault()),
-        mW, SLOT(updateSmallFaults()));
+    	processorNumber = numb;
+    	clockDue = false;
+    	QObject::connect(this, SIGNAL(hardFault()),
+        	mW, SLOT(updateHardFaults()));
+    	QObject::connect(this, SIGNAL(smallFault()),
+        	mW, SLOT(updateSmallFaults()));
 }
 
 void Processor::setMode()
@@ -607,7 +606,12 @@ uint64_t Processor::triggerHardFault(const uint64_t& address,
     return generateAddress(frameData.first, translatedAddress.first +
         (address & bitMask));
 }
-	
+
+void Processor::incrementBlocks() const
+{
+	ControlThread *pBarrier = masterTile->getBarrier();
+	pBarrier->incrementBlocks();
+}
 
 //when this returns, address guarenteed to be present at returned local address
 uint64_t Processor::fetchAddressRead(const uint64_t& address,
@@ -779,8 +783,20 @@ void Processor::start()
 void Processor::pcAdvance(const long count)
 {
 	programCounter += count;
-    fetchAddressRead(programCounter, true);
+	fetchAddressRead(programCounter, true);
 	waitATick();
+}
+
+bool Processor::tryCheatLock() const
+{
+	ControlThread *pBarrier = masterTile->getBarrier();
+	return pBarrier->tryCheatLock();
+}
+
+void Processor::cheatUnlock() const
+{
+	ControlThread *pBarrier = masterTile->getBarrier();
+	pBarrier->unlockCheatLock();
 }
 
 void Processor::waitATick()
@@ -807,18 +823,18 @@ void Processor::waitGlobalTick()
 void Processor::pushStackPointer()
 {
 	stackPointer -= sizeof(uint64_t);
-    if (stackPointer >= stackPointerUnder) {
-        cerr << "Stack Underflow" << endl;
-        throw "Stack Underflow\n";
+    	if (stackPointer >= stackPointerUnder) {
+        	cerr << "Stack Underflow" << endl;
+        	throw "Stack Underflow\n";
 	}
 }
 
 void Processor::popStackPointer()
 {
 	stackPointer += sizeof(uint64_t);
-    if (stackPointer < stackPointerOver) {
-        cerr << "Stack Overflow" << endl;
-        throw "Stack Overflow\n";
+	if (stackPointer < stackPointerOver) {
+        	cerr << "Stack Overflow" << endl;
+        	throw "Stack Overflow\n";
 	}
 }
 

@@ -39,10 +39,12 @@ Noc::Noc(const long columns, const long rows, const long pageShift,
     for (int i = 0; i < columns; i++) {
 		tiles.push_back(vector<Tile *>(rows));
 		for (int j = 0; j < rows; j++) {
-            tiles[i][j] = new Tile(this, i, j, pageShift, mainWindow, number++);
+    		        tiles[i][j] = new Tile(
+				this, i, j, pageShift, mainWindow, number++);
 		}
 	}
 	//construct non-memory network
+	//NB currently not used
 	for (int i = 0; i < columns; i++) {
 		for (int j = 0; j < (rows - 1); j++) {
 			tiles[i][j]->addConnection(i, j + 1);
@@ -60,11 +62,15 @@ Noc::Noc(const long columns, const long rows, const long pageShift,
 		globalMemory.push_back(Memory(i * blockSize, blockSize));
 	}
 
+	//in reality we are only using one tree and one memory block
+	trees.push_back(new Tree(globalMemory[0], *this, columns, rows));
+/*
 	for (int i = 0; i < memoryBlocks; i++)
 	{
 		trees.push_back(new Tree(globalMemory[i], *this, columns,
 			rows));
 	}
+*/
 	pBarrier = nullptr;
 }
 
@@ -94,7 +100,7 @@ Tile* Noc::tileAt(long i)
 
 long Noc::readInVariables(const string& path)
 {
-    ifstream inputFile(path);
+	ifstream inputFile(path);
 	//first line is the answer
 	string rawAnswer;
 	getline(inputFile, rawAnswer);
@@ -150,8 +156,8 @@ void Noc::writeSystemToMemory()
 		scanLevelFourTable(levelFourTableAddr);
 	unsigned long address = globalMemory[0].readLong(firstFreePageAddr);
 	globalMemory[0].writeLong(sizeof(long) * 2, address);
-    for (uint32_t i = 0; i < lines.size(); i++) {
-        for (uint32_t j = 0; j <= lines.size(); j++) {
+	for (uint32_t i = 0; i < lines.size(); i++) {
+		for (uint32_t j = 0; j <= lines.size(); j++) {
 			//nominator
 			long sign = sgn(lines[i][j]);
 			if (sign < 1) {
@@ -161,19 +167,19 @@ void Noc::writeSystemToMemory()
 			}
 			address++;
 			globalMemory[0].writeByte(address, APNUMBERSIZE);
-            address+= (sizeof(uint64_t) - 1);
-            globalMemory[0].writeLong(address,abs(lines[i][j]));
-            address += sizeof(uint64_t);
-            for (int k = 0; k < APNUMBERSIZE - 1; k++) {
+			address+= (sizeof(uint64_t) - 1);
+			globalMemory[0].writeLong(address,abs(lines[i][j]));
+			address += sizeof(uint64_t);
+			for (int k = 0; k < APNUMBERSIZE - 1; k++) {
 				globalMemory[0].writeLong(address, 0);
-                address += sizeof(uint64_t);
+                		address += sizeof(uint64_t);
 			}
 			//denominator
-            globalMemory[0].writeLong(address , 1);
-            address+= sizeof(uint64_t);
-            for (int k = 0; k < APNUMBERSIZE - 1; k++) {
+            		globalMemory[0].writeLong(address , 1);
+            		address+= sizeof(uint64_t);
+            		for (int k = 0; k < APNUMBERSIZE - 1; k++) {
 				globalMemory[0].writeLong(address, 0);
-                address += sizeof(uint64_t);
+                		address += sizeof(uint64_t);
 			}	
 		}
 	}
