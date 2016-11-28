@@ -40,7 +40,7 @@ enum reg {REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, REG8, REG9,
 	REG20, REG21, REG22, REG23, REG24, REG25, REG26, REG27, REG28, REG29,
 	REG30, REG31};
 
-
+/*
 void ProcessorFunctor::add_(const uint64_t& regA,
 	const uint64_t& regB, const uint64_t& regC) const
 {
@@ -304,21 +304,14 @@ void ProcessorFunctor::ori_(const uint64_t& regA, const uint64_t& regB,
 }
 
 ///End of instruction set ///
-
-#define SETSIZE 256
+*/
+#define SETSIZE 8
 
 XMLFunctor::XMLFunctor(Tile *tileIn):
 	tile{tileIn}, proc{tileIn->tileProcessor}
-{
-	//load in the files here
-	string path = "./lackeyml_";
-	path += to_string(tileIn->getOrder());
-	ifstream inputFile(path);
-	string lackeyLine;
-	while(getline(inputFile, lackeyLine)) {
-		xmlLines.push_back(lackeyLine);
-	}
-}
+{ }
+
+/*
 
 //flush the page referenced in REG3
 //return address in REG1 
@@ -602,7 +595,7 @@ page_walk_done:
     br_(0);
     proc->setProgramCounter(proc->getRegister(REG1));
 }
-
+*/
 void XMLFunctor::operator()()
 {
 	uint64_t hangingPoint, waitingOnZero;
@@ -621,10 +614,15 @@ void XMLFunctor::operator()()
 	try {
 		XMLPlatformUtils::Initialize();
 	}
-	catch (const XMLEception& toCatch) {
+	catch (const XMLException& toCatch) {
 		cerr << "Failed to initialise XML Parser" << endl;
 		cerr << "Tile " << tile->getOrder() << endl;
 	}
+
+	string xmlPath("lackeyml_");
+	lackeyml += to_string(tile->getOrder());
+
+	SAX2XMLReader *parser = XMLReaderFactory::createXMLReader();
 
 
     //REG15 holds count
