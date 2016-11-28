@@ -76,7 +76,7 @@ private:
 	void cheatUnlock() const;
 
 public:
-	ProcessorFunctor(Tile *tileIn);
+	XMLFunctor(Tile *tileIn);
 	void operator()();
 };
 

@@ -23,7 +23,7 @@
 #include "tree.hpp"
 #include "processor.hpp"
 #include "paging.hpp"
-#include "processorFunc.hpp"
+#include "xmlFunctor.hpp"
 #include "ControlThread.hpp"
 
 #define PAGE_TABLE_COUNT 256
@@ -205,7 +205,7 @@ long Noc::executeInstructions()
 	vector<thread *> threads;
 
 	for (int i = 0; i < columnCount * rowCount; i++) {
-		xmlFunctor xmlFunc(tileAt(i));
+		XMLFunctor xmlFunc(tileAt(i));
 		//spawn a thread per tile
 		threads.push_back(new thread(xmlFunc));
 		pBarrier->incrementTaskCount();

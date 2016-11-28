@@ -7,6 +7,11 @@
 #include <bitset>
 #include <map>
 #include <QFile>
+#include <xercesc/util/PlatformUtils.hpp>
+#include <xercesc/sax2/SAX2XMLReader.hpp>
+#include <xercesc/sax2/XMLReaderFactory.hpp>
+#include <xercesc/sax2/DefaultHandler.hpp>
+#include <xercesc/util/XMLString.hpp>
 #include "mainwindow.h"
 #include "ControlThread.hpp"
 #include "memorypacket.hpp"
@@ -18,6 +23,7 @@
 #include "xmlFunctor.hpp"
 
 using namespace std;
+using namespace xercesc;
 
 const uint64_t XMLFunctor::sumCount = 0x101;
 
@@ -540,208 +546,7 @@ finished_flushing:
     return;
 }
 
-//returns GCD in REG3, return address in REG1
-//first number in REG10, second in REG11
-void ProcessorFunctor::euclidAlgorithm() const
-{
-    push_(REG1);
-    push_(REG5);
-    push_(REG10);
-    push_(REG11);
-    push_(REG4);
-    push_(REG9);
-    addi_(REG9, REG0, 0x02); //constant
-    uint64_t anchor1 = proc->getProgramCounter();
-test:
-    proc->setProgramCounter(anchor1);
-    sub_(REG4, REG10, REG11);
-    if (beq_(REG4, REG0, 0)) {
-        proc->setProgramCounter(proc->getProgramCounter() +
-            sizeof(uint64_t) * 16);
-        goto answer;
-    }
-    getsw_(REG1);
-    and_(REG1, REG1, REG9);
-    add_(REG3, REG0, REG9);
-    if (beq_(REG1, REG3, 0)) {
-        proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
-        goto swap;
-    }
-    br_(0);
-    proc->setProgramCounter(proc->getProgramCounter() + 4 * sizeof(uint64_t));
-    goto divide;
-swap:
-    push_(REG10);
-    push_(REG11);
-    pop_(REG10);
-    pop_(REG11);
-divide:
-    div_(REG4, REG10, REG11);
-    mul_(REG1, REG4, REG11);
-    sub_(REG5, REG10, REG1);
-    if (beq_(REG5, REG0, 0)) {
-        proc->setProgramCounter(proc->getProgramCounter() +  sizeof(uint64_t));
-        goto multiple;
-    }
-    br_(0);
-    proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
-    goto remainder;
-multiple:
-    proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t) * 2);
-    goto answer;
-remainder:
-    push_(REG11);
-    pop_(REG10);
-    push_(REG5);
-    pop_(REG11);
-    goto test;
 
-answer:
-    add_(REG3, REG0, REG11);
-    pop_(REG9);
-    pop_(REG4);
-    pop_(REG11);
-    pop_(REG10);
-    pop_(REG5);
-    pop_(REG1);
-    br_(0); //simulate return
-    proc->setProgramCounter(proc->getRegister(REG1));
-    return;
-}
-
-//return address in REG1
-//REG2 tells us which line
-void ProcessorFunctor::normaliseLine() const
-{
-    cout << "Normalising line " << (proc->getRegister(REG2) & 0xFF);
-    cout <<" - ticks: " << proc->getTicks() << endl;
-
-    push_(REG1);
-
-    //copy REG2 to REG30;
-    add_(REG30, REG0, REG2);
-    andi_(REG30, REG30, 0xFF);
-    //read in the data
-    //some constants
-    addi_(REG1, REG0, SETSIZE + 1);
-    addi_(REG2, REG0, sizeof(uint64_t));
-    add_(REG3, REG0, REG30);
-    //REG28 takes offset on line
-    muli_(REG28, REG30, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
-    //REG29 takes offset to line
-    muli_(REG29, REG30, ((APNUMBERSIZE * 2 + 1) * sumCount) * sizeof(uint64_t));
-    //REG4 takes address of start of numbers
-    lwi_(REG4, REG0, sizeof(uint64_t) * 2);
-    add_(REG4, REG4, REG29);
-    add_(REG4, REG4, REG28);
-    //REG5 reads in first 64 bit word - sign etc
-    lw_(REG5, REG0, REG4);
-    //set REG6 to 1
-    addi_(REG6, REG0, 1);
-    //read first numerator
-    lw_(REG7, REG4, REG2);
-    //read first denominator
-    lwi_(REG19, REG4, (APNUMBERSIZE + 1) * sizeof(uint64_t)); 
-    //convert number to 1
-    sw_(REG6, REG4, REG2);
-    swi_(REG6, REG4, (APNUMBERSIZE + 1) * sizeof(uint64_t));
-    //increment loop counter
-    add_(REG3, REG30, REG6);
-    //set REG6 to sign
-    //and store positive sign
-    andi_(REG6, REG5, 0xFF);
-    xor_(REG9, REG6, REG6);
-    andi_(REG5, REG5, 0xFFFFFFFFFFFFFF00);
-    or_(REG5, REG5, REG9);
-    sw_(REG5, REG0, REG4);
-
-    //fix for start of numbers
-    sub_(REG4, REG4, REG28);
-
-    uint64_t anchor1 = proc->getProgramCounter();
-loop1:
-    proc->setProgramCounter(anchor1);
-    //point REG9 to offset to next number sign block
-    muli_(REG9, REG3, (APNUMBERSIZE * 2 + 1) * sizeof(uint64_t));
-    //load sign block
-    lw_(REG10, REG9, REG4);
-
-    //xor sign blocks
-    andi_(REG11, REG10, 0xFF);
-    xor_(REG11, REG11, REG6);
-    andi_(REG10, REG10, 0xFFFFFFFFFFFFFF00);
-    or_(REG10, REG10, REG11);
-    sw_(REG10, REG9, REG4);
-
-    //now denominator offset
-    addi_(REG8, REG9, (APNUMBERSIZE + 1) * sizeof(uint64_t));
-
-    //load number
-    add_(REG9, REG9, REG2);
-    lw_(REG10, REG9, REG4);
-    if (beq_(REG10, REG0, 0)) {
-        proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
-        goto zero;
-    }
-    mul_(REG10, REG10, REG19);
-    br_(0);
-    proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t) * 3);
-    goto notzero;
-
-zero:
-    addi_(REG11, REG0, 1);
-    //set sign as positive
-    sub_(REG9, REG9, REG2);
-    lw_(REG31, REG9, REG4);
-    andi_(REG31, REG31, 0xFFFFFFFFFFFFFF00);
-    sw_(REG31, REG9, REG4);
-    add_(REG9, REG9, REG2);
-    br_(0);
-    proc->setProgramCounter(proc->getProgramCounter() + 9 * sizeof(uint64_t));
-    goto store;
-
-notzero:
-    //process
-    lw_(REG11, REG4, REG8);
-    mul_(REG11, REG11, REG7);
-    push_(REG3);
-    push_(REG1);
-    addi_(REG1, REG0, proc->getProgramCounter());
-    br_(0);
-    euclidAlgorithm();
-    pop_(REG1);
-    //calculate
-    div_(REG10, REG10, REG3);
-    div_(REG11, REG11, REG3);
-    pop_(REG3);
-
-store:
-    //store
-    sw_(REG10, REG9, REG4);
-    sw_(REG11, REG4, REG8);
-    addi_(REG3, REG3, 1);
-    if (beq_(REG3, REG1, 0)) {
-        proc->setProgramCounter(proc->getProgramCounter() + sizeof(uint64_t));
-        goto ending;
-    }
-    br_(0);
-    goto loop1;
-ending:
-    //flush results to global memory
-    addi_(REG1, REG0, proc->getProgramCounter());
-    flushPages();
-    //update processor count
-    lwi_(REG30, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3); 
-    swi_(REG30, REG0, 0x110);
-    addi_(REG3, REG0, 0x110);
-    addi_(REG1, REG0, proc->getProgramCounter());
-    br_(0);
-    flushSelectedPage();
-    pop_(REG1);
-    br_(0);
-    proc->setProgramCounter(proc->getRegister(REG1));
-    return;
-}
 
 //'interrupt' function to force clean read of a page
 // - dumps the page (not flushed) and reads address in
@@ -798,20 +603,30 @@ page_walk_done:
     proc->setProgramCounter(proc->getRegister(REG1));
 }
 
-void ProcessorFunctor::operator()()
+void XMLFunctor::operator()()
 {
-    uint64_t hangingPoint, waitingOnZero;
-    uint64_t loopingWaitingForProcessorCount;
-    uint64_t waitingForTurn;
-    uint64_t tickReadingDown;
-    uint64_t normaliseDelayLoop;
-    uint64_t shortDelayLoop;
-    const uint64_t order = tile->getOrder();
-    Tile *masterTile = proc->getTile();
-    if (order >= SETSIZE) {
-        return;
-    }
-    proc->start();
+	uint64_t hangingPoint, waitingOnZero;
+    	uint64_t loopingWaitingForProcessorCount;
+    	uint64_t waitingForTurn;
+    	uint64_t tickReadingDown;
+    	uint64_t normaliseDelayLoop;
+    	uint64_t shortDelayLoop;
+    	const uint64_t order = tile->getOrder();
+    	Tile *masterTile = proc->getTile();
+    	if (order >= SETSIZE) {
+        	return;
+    	}
+    	proc->start();
+	
+	try {
+		XMLPlatformUtils::Initialize();
+	}
+	catch (const XMLEception& toCatch) {
+		cerr << "Failed to initialise XML Parser" << endl;
+		cerr << "Tile " << tile->getOrder() << endl;
+	}
+
+
     //REG15 holds count
     add_(REG15, REG0, REG0);
     addi_(REG1, REG0, 0x1);
