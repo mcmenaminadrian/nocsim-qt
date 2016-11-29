@@ -1192,20 +1192,3 @@ next_round_over:
     flushPages();
 }
 
-void ProcessorFunctor::cheatLock() const
-{
-	uint64_t cheatingPoint = proc->getProgramCounter();
-	nop_();
-	while(!proc->tryCheatLock()) {
-		nop_();
-		br_(0);
-		proc->setProgramCounter(cheatingPoint);
-	}
-}
-
-void ProcessorFunctor::cheatUnlock() const
-{
-	nop_();
-	proc->cheatUnlock();
-}
-
