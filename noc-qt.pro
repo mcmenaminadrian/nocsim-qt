@@ -25,6 +25,7 @@ SOURCES += main.cpp\
     numberpage.cpp \
     paging.cpp \
     processor.cpp \
+    SAX2Handler.hpp \
     xmlFunctor.cpp \
     tile.cpp \
     tree.cpp
@@ -38,6 +39,7 @@ HEADERS  += mainwindow.h \
     packet.hpp \
     paging.hpp \
     processor.hpp \
+    SAX2Handler.cpp \
     xmlFunctor.hpp \
     tile.hpp \
     tree.hpp
