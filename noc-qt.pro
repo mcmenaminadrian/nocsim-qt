@@ -12,7 +12,7 @@ TARGET = noc-qt
 TEMPLATE = app
 QMAKE_CXXFLAGS += -std=c++11 -g -O0
 CONFIG += c++11
-
+INCLUDEPATH += /usr/local/include
 
 
 SOURCES += main.cpp\
@@ -25,7 +25,7 @@ SOURCES += main.cpp\
     numberpage.cpp \
     paging.cpp \
     processor.cpp \
-    SAX2Handler.hpp \
+    SAX2Handler.cpp \
     xmlFunctor.cpp \
     tile.cpp \
     tree.cpp
@@ -39,9 +39,14 @@ HEADERS  += mainwindow.h \
     packet.hpp \
     paging.hpp \
     processor.hpp \
-    SAX2Handler.cpp \
+    SAX2Handler.hpp \
     xmlFunctor.hpp \
     tile.hpp \
     tree.hpp
 
 FORMS    += mainwindow.ui
+
+macx: LIBS += -L$$PWD/../../../usr/local/lib/ -lxerces-c
+
+INCLUDEPATH += $$PWD/../../../usr/local/include
+DEPENDPATH += $$PWD/../../../usr/local/include

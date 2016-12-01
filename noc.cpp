@@ -13,6 +13,7 @@
 #include <QFileDialog>
 #include <QString>
 #include <QFile>
+#include <xercesc/util/PlatformUtils.hpp>
 #include "mainwindow.h"
 #include "memory.hpp"
 #include "ControlThread.hpp"
@@ -26,9 +27,11 @@
 #include "xmlFunctor.hpp"
 #include "ControlThread.hpp"
 
+
 #define PAGE_TABLE_COUNT 256
 
 using namespace std;
+using namespace xercesc;
 
 Noc::Noc(const long columns, const long rows, const long pageShift,
     const long bSize, MainWindow* pWind, const long blocks):
@@ -61,6 +64,13 @@ Noc::Noc(const long columns, const long rows, const long pageShift,
 	for (int i = 0; i < memoryBlocks; i++) {
 		globalMemory.push_back(Memory(i * blockSize, blockSize));
 	}
+
+    try {
+        XMLPlatformUtils::Initialize();
+    }
+    catch (const XMLException& toCatch) {
+        cerr << "Failed to initialise XML Parser" << endl;
+    }
 
 	//in reality we are only using one tree and one memory block
 	trees.push_back(new Tree(globalMemory[0], *this, columns, rows));

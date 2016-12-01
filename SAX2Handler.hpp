@@ -3,20 +3,24 @@
 
 #include <xercesc/sax2/DefaultHandler.hpp>
 
-class SAX2Handler: public DefaultHandler {
+using namespace xercesc;
+
+class SAX2Handler: public xercesc::DefaultHandler {
 
 	private:
 		XMLFunctor *memoryHandler;
 
 	public:
-		setMemoryHandler(XMLFunctor *handler);
+        SAX2Handler();
+        void setMemoryHandler(XMLFunctor *handler);
 		void startElement(
 			const XMLCh* const	uri,
 			const XMLCh* const	localname,
 			const XMLCh* const	qname,
 			const Attributes&	attrs
-		};
-		void fatalError(const SAXParserException&);
+        );
+
+        void fatalError(const SAXParseException&);
 };
 
 

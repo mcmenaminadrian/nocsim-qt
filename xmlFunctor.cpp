@@ -21,6 +21,7 @@
 #include "tile.hpp"
 #include "processor.hpp"
 #include "xmlFunctor.hpp"
+#include "SAX2Handler.hpp"
 
 using namespace std;
 using namespace xercesc;
@@ -305,7 +306,7 @@ void ProcessorFunctor::ori_(const uint64_t& regA, const uint64_t& regB,
 
 ///End of instruction set ///
 */
-#define SETSIZE 8
+#define SETSIZE 1
 
 XMLFunctor::XMLFunctor(Tile *tileIn):
 	tile{tileIn}, proc{tileIn->tileProcessor}
@@ -611,20 +612,23 @@ void XMLFunctor::operator()()
     	}
     	proc->start();
 	
-	try {
-		XMLPlatformUtils::Initialize();
-	}
-	catch (const XMLException& toCatch) {
-		cerr << "Failed to initialise XML Parser" << endl;
-		cerr << "Tile " << tile->getOrder() << endl;
-	}
 
-	string xmlPath("lackeyml_");
+
+    string lackeyml("lackeyml_");
 	lackeyml += to_string(tile->getOrder());
 
 	SAX2XMLReader *parser = XMLReaderFactory::createXMLReader();
+    parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
+    parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, true);
 
+    SAX2Handler *lackeyHandler = new SAX2Handler();
+    parser->setContentHandler(lackeyHandler);
+    parser->setErrorHandler(lackeyHandler);
+    lackeyHandler->setMemoryHandler(this);
 
+    parser->parse(lackeyml.c_str());
+
+/*
     //REG15 holds count
     add_(REG15, REG0, REG0);
     addi_(REG1, REG0, 0x1);
@@ -965,8 +969,8 @@ completed_wait:
     cout << proc->getNumber() << ": our work here is done" << endl;
     cout << "Ticks: " << proc->getTicks() << endl;
     masterTile->getBarrier()->decrementTaskCount();
- }  
-
+ */}
+/*
 //this function just to break code up
 void ProcessorFunctor::nextRound() const
 {
@@ -1192,3 +1196,4 @@ next_round_over:
     flushPages();
 }
 
+*/
