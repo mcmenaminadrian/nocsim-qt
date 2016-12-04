@@ -872,9 +872,9 @@ read_command:
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
     forcePageReload();
-    br_(0);
-    addi_(REG1, REG0, proc->getProgramCounter());
-    dropPage();
+   // br_(0);
+   // addi_(REG1, REG0, proc->getProgramCounter());
+   // dropPage();
     pop_(REG1);
     addi_(REG3, REG0, SETSIZE);
     if (beq_(REG3, REG4, 0)) {
@@ -885,7 +885,7 @@ read_command:
     sub_(REG30, REG30, REG4);
 
     //wait longer if we have low processor number signalled
-    muli_(REG3, REG30, 0x100);
+    muli_(REG3, REG30, 0x20);
     tickReadingDown = proc->getProgramCounter();
 tick_read_down:
     proc->setProgramCounter(tickReadingDown);
@@ -928,7 +928,7 @@ normalise_line:
     }
 
     cout << "Waiting to begin normalisation" << endl;
-    addi_(REG1, REG0, 0x1000);
+    addi_(REG1, REG0, 0x10000);
     normaliseDelayLoop = proc->getProgramCounter();
 wait_for_normalise:
     proc->setProgramCounter(normaliseDelayLoop);
@@ -953,9 +953,7 @@ now_for_normalise:
     addi_(REG1, REG0, proc->getProgramCounter()); 
     br_(0);
     addi_(REG3, REG0, 0x100);
-	cheatLock();
     flushSelectedPage();
-	cheatUnlock();
     br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
     dropPage();
@@ -968,8 +966,8 @@ wait_for_next_signal:
     cout << "Processor " << proc->getNumber() << " now waiting." << endl;
     push_(REG15);
     //try a back off
-    addi_(REG5, REG0, 0x40);
-    addi_(REG6, REG0, 0x1000);
+    addi_(REG5, REG0, 0x10);
+    addi_(REG6, REG0, 0x100);
 
     waitingOnZero = proc->getProgramCounter();
 wait_on_zero:
@@ -1044,27 +1042,33 @@ wait_for_turn_to_complete:
     proc->setProgramCounter(waitingForTurn);
     addi_(REG3, REG0, 0x110);
     addi_(REG1, REG0, proc->getProgramCounter());
+    cheatLock();
     br_(0);
     forcePageReload();
     br_(0);
-    addi_(REG1, REG0, proc->getProgramCounter());
-    dropPage();
-    addi_(REG1, REG0, proc->getProgramCounter());
-    dropPage();
     lwi_(REG1, REG0, PAGETABLESLOCAL + sizeof(uint64_t) * 3);
     if (beq_(REG4, REG1, 0)) {
+	    addi_(REG1, REG0, proc->getProgramCounter());
+	    dropPage();
         goto write_out_next_processor;
     }
+    cheatUnlock();
+    push_(REG4);
+    push_(REG1);
+    addi_(REG1, REG0, proc->getProgramCounter());
+    dropPage();
+    pop_(REG1);
+    pop_(REG4);
     if (beq_(REG4, REG0, 0)) {
         goto standard_delay;
     }
     sub_(REG4, REG1, REG4);
-    muli_(REG4, REG4, 0x45);
+    muli_(REG4, REG4, 0x20);
     br_(0);
     goto setup_loop_wait_processor_count;
 
 standard_delay:
-    addi_(REG4, REG0, 0x100);
+    addi_(REG4, REG0, 0x1000);
 
 setup_loop_wait_processor_count:
     loopingWaitingForProcessorCount = proc->getProgramCounter();
@@ -1079,7 +1083,6 @@ loop_wait_processor_count:
     goto loop_wait_processor_count;
 
 write_out_next_processor:
-	cheatLock();
     swi_(REG0, REG0, 0x110);
     addi_(REG20, REG0, 0xFF00);
     or_(REG20, REG20, REG15);
@@ -1089,7 +1092,7 @@ write_out_next_processor:
     push_(REG3);
     addi_(REG3, REG0, 0x100);
     flushSelectedPage();
-	cheatUnlock();
+    cheatUnlock();
     br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
     dropPage();
@@ -1142,9 +1145,7 @@ complete_loop_done:
     add_(REG3, REG0, REG23);
     addi_(REG1, REG0, proc->getProgramCounter());
     br_(0);
-	cheatLock();
     flushSelectedPage();
-	cheatUnlock();
     br_(0);
     addi_(REG1, REG0, proc->getProgramCounter());
     dropPage();
