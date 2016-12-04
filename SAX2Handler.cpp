@@ -13,24 +13,34 @@
 using namespace std;
 using namespace xercesc;
 
-enum lackeyml_type {
-    instruction,
-    load,
-    store,
-    modify
-};
 
+#define instruction 0
+#define load 1
+#define store 2
+#define modify 3
+#define nothing 4
 
-static map<string, lackeyml_type> lackeyml_map;
+static const int parseType(string memType)
+{
+    if (memType == "instruction") {
+           return instruction;
+    }
+    if (memType == "load") {
+        return load;
+    }
+    if (memType == "store") {
+        return store;
+    }
+    if (memType == "modify") {
+        return modify;
+    }
+    return nothing;
+}
 
 
 SAX2Handler::SAX2Handler()
 { 
 	memoryHandler = nullptr;
-    lackeyml_map["instruction"] = instruction;
-    lackeyml_map["load"] = load;
-    lackeyml_map["store"] = store;
-    lackeyml_map["modify"] = modify;
 }
 
 void SAX2Handler::setMemoryHandler(XMLFunctor *handler)
@@ -44,23 +54,39 @@ void SAX2Handler::startElement(const XMLCh* const uri,
 {
 
 	//test code
-    char *message = XMLString::transcode(localname);
-    cout << "Element: " << message << endl;
-    XMLString::release(&message);
+ //   char *message = XMLString::transcode(localname);
+  //  cout << "Element: " << message << endl;
+  //  XMLString::release(&message);
+
 
     XMLCh *addressStr = XMLString::transcode("address");
     XMLCh *sizeStr = XMLString::transcode("size");
+
+    char *memAccess = XMLString::transcode(localname);
+    auto typeXML = parseType(memAccess);
     char *address = XMLString::transcode(attrs.getValue(addressStr));
     char *size = XMLString::transcode(attrs.getValue(sizeStr));
-    char *memAccess = XMLString::transcode(localname);
-    switch (lackeyml_map[memAccess]) {
-        case instruction:
-            cout << address << ":" << size << endl;
-            XMLString::release(&address);
-            XMLString::release(&size);
-        break;
+    if (address) {
+        string addrStr(address);
+        switch (typeXML) {
+            case instruction:
+                memoryHandler->proc->setProgramCounter(
+                            stol(addrStr, nullptr, 16));
+                memoryHandler->proc->pcAdvance(atoi(size));
+                XMLString::release(&address);
+                XMLString::release(&size);
+                break;
+            case store:
+                XMLString::release(&address);
+                XMLString::release(&size);
+                break;
+            case load:
+                XMLString::release(&address);
+                XMLString::release(&size);
+                break;
         default:
-        break;
+            break;
+        }
     }
 
 }

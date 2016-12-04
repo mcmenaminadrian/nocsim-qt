@@ -306,7 +306,7 @@ void ProcessorFunctor::ori_(const uint64_t& regA, const uint64_t& regB,
 
 ///End of instruction set ///
 */
-#define SETSIZE 1
+#define SETSIZE 8
 
 XMLFunctor::XMLFunctor(Tile *tileIn):
 	tile{tileIn}, proc{tileIn->tileProcessor}

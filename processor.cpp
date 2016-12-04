@@ -556,20 +556,34 @@ const pair<uint64_t, uint8_t>
     Processor::mapToGlobalAddress(const uint64_t& address)
 {
     uint64_t globalPagesBase = 0x800;
-    uint64_t superDirectoryIndex = address >> 42;
-    uint64_t directoryIndex = (address >> 30) & 0xFFF;
-    uint64_t superTableIndex = (address >> 18) & 0xFFF;
-    uint64_t tableIndex = (address & 0x3FFFF) >> pageShift;
+    //48 bit addresses
+    uint64_t address48 = address & 0xFFFFFFFFFFFF;
+    uint64_t superDirectoryIndex = address48 >> 37;
+    uint64_t directoryIndex = (address48 >> 28) & 0x1FF;
+    uint64_t superTableIndex = (address48 >> 19) & 0x1FF;
+    uint64_t tableIndex = (address48 & 0x7FFFF) >> pageShift;
     waitATick();
     //read off the superDirectory number
     uint64_t ptrToDirectory = masterTile->readLong(globalPagesBase +
         superDirectoryIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
+    if (ptrToDirectory == 0) {
+        cerr << "Bad SuperDirectory: " << hex << address << endl;
+        throw new bad_exception();
+    }
     waitATick();
     uint64_t ptrToSuperTable = masterTile->readLong(ptrToDirectory +
         directoryIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
+    if (ptrToSuperTable == 0) {
+        cerr << "Bad Directory: " << hex << address << endl;
+        throw new bad_exception();
+    }
     waitATick();
     uint64_t ptrToTable = masterTile->readLong(ptrToSuperTable +
         superTableIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
+    if (ptrToTable == 0) {
+        cerr << "Bad SuperTable: " << hex << address << endl;
+        throw new bad_exception();
+    }
     waitATick();
     pair<uint64_t, uint8_t> globalPageTableEntry(
         masterTile->readLong(ptrToTable + tableIndex *

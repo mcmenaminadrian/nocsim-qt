@@ -9,7 +9,6 @@ private:
 
     static const uint64_t sumCount;
 	Tile *tile;
-	Processor *proc;
     	uint64_t startingPoint;
 	void add_(const uint64_t& rA, const uint64_t& rB,
 		const uint64_t& rC) const;
@@ -75,6 +74,7 @@ private:
 	void cheatUnlock() const;
 
 public:
+    Processor *proc;
 	XMLFunctor(Tile *tileIn);
 	void operator()();
 };
