@@ -22,7 +22,8 @@ void usage() {
 int main(int argc, char *argv[])
 {
     long memoryBlocks = 1;
-    long blockSize = 1024 * 1024 * 1024;
+    //4GB block size
+    uint64_t blockSize = 0x100000000;
     long rows = 2;
     long columns = 4;
     long pageShift = PAGE_SHIFT;

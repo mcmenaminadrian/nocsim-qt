@@ -13,7 +13,7 @@ class Noc {
 private:
 	const long columnCount;
 	const long rowCount;
-	const long blockSize;
+    const uint64_t blockSize;
 	unsigned long ptrBasePageTables;
 	std::vector<std::vector<Tile * > > tiles;
 	std::vector<long> answers;
@@ -29,7 +29,7 @@ public:
 	const long memoryBlocks;
 	std::vector<Tree *> trees;
 	Noc(const long columns, const long rows, const long pageShift,
-        const long bSize, MainWindow *pWind, const long memBlocks);
+        const uint64_t bSize, MainWindow *pWind, const long memBlocks);
 	~Noc();
 	Tile* tileAt(long i);
 	long executeInstructions();

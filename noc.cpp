@@ -34,7 +34,7 @@ using namespace std;
 using namespace xercesc;
 
 Noc::Noc(const long columns, const long rows, const long pageShift,
-    const long bSize, MainWindow* pWind, const long blocks):
+    const uint64_t bSize, MainWindow* pWind, const long blocks):
     columnCount(columns), rowCount(rows),
     blockSize(bSize), mainWindow(pWind), memoryBlocks(blocks)
 {
@@ -195,51 +195,44 @@ unsigned long Noc::createBasicPageTables()
 
 #define DIR_OFFSET 8
     //now page tables for higher addresses
+    startOfSuperTable = startOfPageTables + runLength;
     globalMemory[0].writeLong(startOfDirectory +
         DIR_OFFSET * (sizeof(uint64_t) + sizeof(uint8_t)),
-        startOfPageTables + runLength);
+        startOfSuperTable);
     globalMemory[0].writeByte(startOfDirectory +
         DIR_OFFSET * (sizeof (uint64_t) + sizeof(uint8_t)) + sizeof(uint64_t), 1);
 
-    startOfSuperTable = startOfPageTables + runLength;
-
-
-    //page tables for low addresses here
     PageTable superTable_B(8);
-
-    superTableLength =
-        superTable_B.streamToMemory(globalMemory[0], startOfSuperTable);
+    superTable_B.streamToMemory(globalMemory[0], startOfSuperTable);
     globalMemory[0].writeLong(startOfSuperTable,
         startOfSuperTable + superTableLength);
     globalMemory[0].writeByte(startOfSuperTable + sizeof(uint64_t), 1);
     runLength += superTableLength;
+    uint64_t startSecondGroupPT = runLength + startOfPageTables;
 
     //add in yet more tables at the bottom
     for (int i = 0; i < PAGE_TABLE_COUNT; i++) {
         PageTable pageTable(8);
         tables.push_back(pageTable);
     }
-    tableLength =
-        tables[PAGE_TABLE_COUNT].streamToMemory(globalMemory[0],
-        startOfPageTables + runLength);
-    for (int i = PAGE_TABLE_COUNT + 1; i < (2 * PAGE_TABLE_COUNT); i++) {
-        tables[i].streamToMemory(globalMemory[0],
-                startOfPageTables + runLength + i * tableLength);
-    }
+
     for (int i = PAGE_TABLE_COUNT; i < (2 * PAGE_TABLE_COUNT); i++) {
+        tables[i].streamToMemory(globalMemory[0],
+                startOfPageTables + runLength +
+                (i - PAGE_TABLE_COUNT) * tableLength);
+    }
+    //now fill in superTable_B
+    for (int i = 0; i < PAGE_TABLE_COUNT; i++) {
         uint64_t offsetA = startOfSuperTable +
                 i * (sizeof(uint64_t) + sizeof(uint8_t));
-        globalMemory[0].writeLong(offsetA,
-            startOfPageTables + runLength + tableLength * i);
+        globalMemory[0].writeLong(offsetA, startSecondGroupPT + i * tableLength);
         globalMemory[0].writeByte(offsetA + sizeof(uint64_t), 0x01);
     }
-    bottomOfPageTable = runLength + tableLength * 2 * PAGE_TABLE_COUNT;
 
-    //FIXME below here
+    //now the page tables themselves
     for (unsigned int i = 0; i < (1 << 8) * PAGE_TABLE_COUNT; i++) {
-        uint64_t offsetB = startOfPageTables + runLength +
-                tableLength * PAGE_TABLE_COUNT
-                + i * (sizeof(uint64_t) + sizeof(uint8_t));
+        uint64_t offsetB = startSecondGroupPT +
+                i * (sizeof(uint64_t) + sizeof(uint8_t));
         globalMemory[0].writeLong(offsetB, 0x80000000 + i * (1 << PAGE_SHIFT));
         uint8_t flagOut = 0x01;
         globalMemory[0].writeByte(offsetB + sizeof(uint64_t), flagOut);
