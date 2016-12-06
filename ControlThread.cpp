@@ -41,8 +41,8 @@ void ControlThread::decrementTaskCount()
 	unique_lock<mutex> lck(runLock);
 	unique_lock<mutex> lock(taskCountLock);
 	taskCount--;
-	taskCountLock.unlock();
-	runLock.unlock();
+    lock.unlock();
+    lck.unlock();
 	if (signedInCount >= taskCount) {
 		run();
 	}

@@ -52,13 +52,6 @@ void SAX2Handler::startElement(const XMLCh* const uri,
 	const XMLCh* const localname, const XMLCh* const qname,
 	const Attributes& attrs)
 {
-
-	//test code
- //   char *message = XMLString::transcode(localname);
-  //  cout << "Element: " << message << endl;
-  //  XMLString::release(&message);
-
-
     XMLCh *addressStr = XMLString::transcode("address");
     XMLCh *sizeStr = XMLString::transcode("size");
 
@@ -75,17 +68,27 @@ void SAX2Handler::startElement(const XMLCh* const uri,
                 memoryHandler->proc->pcAdvance(atoi(size));
                 XMLString::release(&address);
                 XMLString::release(&size);
+                XMLString::release(&addressStr);
+                XMLString::release(&sizeStr);
                 break;
             case store:
+                memoryHandler->proc->writeAddress(
+                    stol(addrStr, nullptr, 16), 0);
                 XMLString::release(&address);
                 XMLString::release(&size);
+                XMLString::release(&addressStr);
+                XMLString::release(&sizeStr);
                 break;
             case load:
+                memoryHandler->proc->getAddress(
+                    stol(addrStr, nullptr, 16));
                 XMLString::release(&address);
                 XMLString::release(&size);
+                XMLString::release(&addressStr);
+                XMLString::release(&sizeStr);
                 break;
-        default:
-            break;
+            default:
+                break;
         }
     }
 

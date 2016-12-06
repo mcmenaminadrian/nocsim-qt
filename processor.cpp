@@ -46,12 +46,14 @@ Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
 	statusWord[0] = true;
 	totalTicks = 1;
 	currentTLB = 0;
+    hardFaultCount = 0;
+    smallFaultCount = 0;
 	inInterrupt = false;
-    	processorNumber = numb;
-    	clockDue = false;
-    	QObject::connect(this, SIGNAL(hardFault()),
+    processorNumber = numb;
+    clockDue = false;
+    QObject::connect(this, SIGNAL(hardFault()),
         	mW, SLOT(updateHardFaults()));
-    	QObject::connect(this, SIGNAL(smallFault()),
+    QObject::connect(this, SIGNAL(smallFault()),
         	mW, SLOT(updateSmallFaults()));
 }
 
@@ -311,6 +313,7 @@ uint64_t Processor::triggerSmallFault(
 	const uint64_t& address)
 {
     emit smallFault();
+    smallFaultCount++;
 	interruptBegin();
 	transferGlobalToLocal(address, tlbEntry, BITMAP_BYTES);
 	const uint64_t frameNo =
@@ -599,6 +602,7 @@ uint64_t Processor::triggerHardFault(const uint64_t& address,
     const bool& readOnly)
 {
     emit hardFault();
+    hardFaultCount++;
     interruptBegin();
     const pair<const uint64_t, bool> frameData = getFreeFrame();
     if (frameData.second) {

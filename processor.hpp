@@ -178,5 +178,7 @@ public:
 	void incrementBlocks() const;
 	bool tryCheatLock() const;
 	void cheatUnlock() const;
+    uint64_t hardFaultCount;
+    uint64_t smallFaultCount;
 };
 #endif
