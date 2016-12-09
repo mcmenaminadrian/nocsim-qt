@@ -50,6 +50,7 @@ Tree::Tree(Memory& globalMemory, Noc& noc, const long columns, const long rows)
 	nodesTree.push_back(vector<Mux>(1));
 	nodesTree[levels][0].assignGlobalMemory(&globalMemory);
 	nodesTree[levels][0].upstreamMux = nullptr;
+    nodesTree[levels][0].addMMUMutex();
 	for (int i = 0; i <= levels; i++) {
 		for (unsigned int j = 0; j < nodesTree[i].size(); j++) {
 			if (i > 0) {

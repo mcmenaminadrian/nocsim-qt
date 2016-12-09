@@ -27,6 +27,10 @@ void Mux::disarmMutex()
 	bottomLeftMutex = nullptr;
 	delete bottomRightMutex;
 	bottomRightMutex = nullptr;
+    if (mmuMutex) {
+        delete mmuMutex;
+        mmuMutex = nullptr;
+    }
 }
 
 void Mux::initialiseMutex()
@@ -77,6 +81,7 @@ void Mux::routeDown(MemoryPacket& packet)
 	//and, again, may only shift from right if left is empty
 	// are we left or right?
 	bool packetOnLeft = false;
+    bool *bufferToUnblock = nullptr;
 	const uint64_t processorIndex = packet.getProcessor()->
 		getTile()->getOrder();
 	if (processorIndex < lowerRight.first) {
@@ -87,13 +92,13 @@ void Mux::routeDown(MemoryPacket& packet)
 		bottomLeftMutex->lock();
 		bottomRightMutex->lock();
 		if (packetOnLeft) {
-			leftBuffer = false;
+            bufferToUnblock = &leftBuffer;
 			bottomRightMutex->unlock();
 			bottomLeftMutex->unlock();
 			goto fillDDR;
 		} else {
 			if (!leftBuffer) {
-				rightBuffer = false;
+                bufferToUnblock = &rightBuffer;
 				bottomRightMutex->unlock();
 				bottomLeftMutex->unlock();
 				goto fillDDR;
@@ -105,8 +110,19 @@ void Mux::routeDown(MemoryPacket& packet)
 	}
 
 fillDDR:
-
-	//cross to DDR and wait average time (DDR_DELAY)
+    while (mmuMutex->try_lock() == false) {
+        packet.getProcessor()->waitGlobalTick();
+    }
+    for (unsigned int i = 0; i < MMU_DELAY; i++) {
+        packet.getProcessor()->waitGlobalTick();
+    }
+    mmuMutex->unlock();
+    bottomLeftMutex->lock();
+    bottomRightMutex->lock();
+    *bufferToUnblock = false;
+    bottomRightMutex->unlock();
+    bottomLeftMutex->unlock();
+    //cross to DDR
 	for (unsigned int i = 0; i < DDR_DELAY; i++) {
 		packet.getProcessor()->waitGlobalTick();
 	}
@@ -227,4 +243,9 @@ void Mux::assignNumbers(const uint64_t& ll, const uint64_t& ul,
 {
 	lowerLeft = pair<uint64_t, uint64_t>(ll, ul);
 	lowerRight = pair<uint64_t, uint64_t>(lr, ur);
+}
+
+void Mux::addMMUMutex()
+{
+    mmuMutex = new mutex();
 }

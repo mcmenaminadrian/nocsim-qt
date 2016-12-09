@@ -61,10 +61,10 @@ void SAX2Handler::startElement(const XMLCh* const uri,
     char *size = XMLString::transcode(attrs.getValue(sizeStr));
     if (address) {
         string addrStr(address);
+        uint64_t uiAddress = stol(addrStr, nullptr, 16);
         switch (typeXML) {
             case instruction:
-                memoryHandler->proc->setProgramCounter(
-                            stol(addrStr, nullptr, 16));
+                memoryHandler->proc->setProgramCounter(uiAddress);
                 memoryHandler->proc->pcAdvance(atoi(size));
                 XMLString::release(&address);
                 XMLString::release(&size);
@@ -72,8 +72,23 @@ void SAX2Handler::startElement(const XMLCh* const uri,
                 XMLString::release(&sizeStr);
                 break;
             case store:
-                memoryHandler->proc->writeAddress(
-                    stol(addrStr, nullptr, 16), 0);
+
+                switch (stoi(size)) {
+                case 8:
+                    memoryHandler->proc->writeAddress64(uiAddress);
+                    break;
+                case 4:
+                    memoryHandler->proc->writeAddress32(uiAddress);
+                    break;
+                case 2:
+                    memoryHandler->proc->writeAddress16(uiAddress);
+                case 1:
+                    memoryHandler->proc->writeAddress8(uiAddress);
+                    break;
+                default:
+                    cerr << "BAD SIZE: " << size << endl;
+                    exit(1);
+                }
                 XMLString::release(&address);
                 XMLString::release(&size);
                 XMLString::release(&addressStr);

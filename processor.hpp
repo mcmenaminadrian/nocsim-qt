@@ -149,6 +149,10 @@ public:
 	uint64_t getLongAddress(const uint64_t& address);
 	void writeAddress(const uint64_t& addr,
 		const uint64_t& value);
+    void writeAddress64(const uint64_t& addr);
+    void writeAddress32(const uint64_t& addr);
+    void writeAddress16(const uint64_t& addr);
+    void writeAddress8(const uint64_t& addr);
 	void pushStackPointer();
 	void popStackPointer();
     	uint64_t getStackPointer() const;
