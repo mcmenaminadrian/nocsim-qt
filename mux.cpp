@@ -127,10 +127,12 @@ fillDDR:
 		packet.getProcessor()->waitGlobalTick();
 	}
 	//get memory
-	for (unsigned int i = 0; i < packet.getRequestSize(); i++) {
-		packet.fillBuffer(packet.getProcessor()->
-			getTile()->readByte(packet.getRemoteAddress() + i));
-	}
+    if (packet.getRequestSize() > 0) {
+        for (unsigned int i = 0; i < packet.getRequestSize(); i++) {
+            packet.fillBuffer(packet.getProcessor()->
+                getTile()->readByte(packet.getRemoteAddress() + i));
+        }
+    }
 	return;
 }	
 

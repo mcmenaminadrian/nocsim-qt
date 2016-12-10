@@ -567,6 +567,8 @@ const pair<uint64_t, uint8_t>
     uint64_t tableIndex = (address48 & 0x7FFFF) >> pageShift;
     waitATick();
     //read off the superDirectory number
+    //simulate read of global table
+    fetchAddressToRegister();
     uint64_t ptrToDirectory = masterTile->readLong(globalPagesBase +
         superDirectoryIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
     if (ptrToDirectory == 0) {
@@ -574,6 +576,7 @@ const pair<uint64_t, uint8_t>
         throw new bad_exception();
     }
     waitATick();
+    fetchAddressToRegister();
     uint64_t ptrToSuperTable = masterTile->readLong(ptrToDirectory +
         directoryIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
     if (ptrToSuperTable == 0) {
@@ -581,6 +584,7 @@ const pair<uint64_t, uint8_t>
         throw new bad_exception();
     }
     waitATick();
+    fetchAddressToRegister();
     uint64_t ptrToTable = masterTile->readLong(ptrToSuperTable +
         superTableIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
     if (ptrToTable == 0) {
@@ -588,6 +592,7 @@ const pair<uint64_t, uint8_t>
         throw new bad_exception();
     }
     waitATick();
+    fetchAddressToRegister();
     pair<uint64_t, uint8_t> globalPageTableEntry(
         masterTile->readLong(ptrToTable + tableIndex *
                  (sizeof(uint64_t) + sizeof(uint8_t))),
@@ -685,6 +690,14 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address,
 		//what do we do if it's physical address?
 		return address;
 	}
+}
+
+//function to mimic delay from read of global page tables
+void Processor::fetchAddressToRegister()
+{
+    emit smallFault();
+    smallFaultCount++;
+    requestRemoteMemory(0x0, 0x0, 0x0);
 }
 		
 void Processor::writeAddress(const uint64_t& address,

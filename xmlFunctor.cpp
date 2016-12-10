@@ -32,7 +32,7 @@ const uint64_t XMLFunctor::sumCount = 0x101;
 //avoid magic numbers
 
 
-#define SETSIZE 8
+#define SETSIZE 256
 
 XMLFunctor::XMLFunctor(Tile *tileIn):
 	tile{tileIn}, proc{tileIn->tileProcessor}
@@ -48,7 +48,7 @@ void XMLFunctor::operator()()
     proc->start();
 	
     string lackeyml("lackeyml_");
-	lackeyml += to_string(tile->getOrder());
+    lackeyml += to_string(tile->getOrder()%8);
 
 	SAX2XMLReader *parser = XMLReaderFactory::createXMLReader();
     parser->setFeature(XMLUni::fgSAX2CoreValidation, true);

@@ -108,9 +108,9 @@ private:
 	void fixBitmap(const uint64_t& frameNo);
 	void markBitmapStart(const uint64_t& frameNo,
 	const uint64_t& address);
-    	void markBitmapInit(const uint64_t& frameNo,
+    void markBitmapInit(const uint64_t& frameNo,
         const uint64_t& address);
-    	void markBitmap(const uint64_t& frameNo,
+    void markBitmap(const uint64_t& frameNo,
         const uint64_t& address);
 	void fixTLB(const uint64_t& frameNo,
 	const uint64_t& address);
@@ -120,10 +120,11 @@ private:
 		const uint64_t& localAddress);
     	const std::pair<uint64_t, uint8_t>
         mapToGlobalAddress(const uint64_t& address);
+    void fetchAddressToRegister();
 	void activateClock();
 	//adjust numbers below to change how CLOCK fuctions
-    	const uint8_t clockWipe = 8;
-    	const uint16_t clockTicks = 40000;
+    const uint8_t clockWipe = 1;
+    const uint16_t clockTicks = 1000;
 	uint64_t totalTicks;
 	uint64_t currentTLB;
 
