@@ -14,6 +14,7 @@
 #include <QString>
 #include <QFile>
 #include <xercesc/util/PlatformUtils.hpp>
+#include <unistd.h>
 #include "mainwindow.h"
 #include "memory.hpp"
 #include "ControlThread.hpp"

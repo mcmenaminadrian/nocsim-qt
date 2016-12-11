@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <xercesc/sax2/Attributes.hpp>
+#include <mutex>
 #include "memorypacket.hpp"
 #include "mux.hpp"
 #include "ControlThread.hpp"

@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     long memoryBlocks = 1;
     //4GB block size
     uint64_t blockSize = 0x100000000;
-    long rows = 32;
+    long rows = 16;
     long columns = 8;
     long pageShift = PAGE_SHIFT;
 

@@ -12,6 +12,7 @@
 #include <xercesc/sax2/XMLReaderFactory.hpp>
 #include <xercesc/sax2/DefaultHandler.hpp>
 #include <xercesc/util/XMLString.hpp>
+#include <unistd.h>
 #include "mainwindow.h"
 #include "ControlThread.hpp"
 #include "memorypacket.hpp"
@@ -32,7 +33,7 @@ const uint64_t XMLFunctor::sumCount = 0x101;
 //avoid magic numbers
 
 
-#define SETSIZE 256
+#define SETSIZE 128
 
 XMLFunctor::XMLFunctor(Tile *tileIn):
 	tile{tileIn}, proc{tileIn->tileProcessor}
@@ -59,7 +60,17 @@ void XMLFunctor::operator()()
     parser->setErrorHandler(lackeyHandler);
     lackeyHandler->setMemoryHandler(this);
 
-    parser->parse(lackeyml.c_str());
+
+    try {
+        parser->parse(lackeyml.c_str());
+    }
+    catch (const SAXParseException& toCatch) {
+           char* message = XMLString::transcode(toCatch.getMessage());
+           cout << "Exception message is: \n"
+                << message << "\n";
+           XMLString::release(&message);
+           exit(1);
+    }
     cout << "Task on " << order << " completed." << endl;
     cout << "Hard fault count: " << proc->hardFaultCount << endl;
     cout << "Small fault count: " << proc->smallFaultCount << endl;
