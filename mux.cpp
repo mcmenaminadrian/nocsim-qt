@@ -27,6 +27,8 @@ void Mux::disarmMutex()
 	bottomLeftMutex = nullptr;
 	delete bottomRightMutex;
 	bottomRightMutex = nullptr;
+    delete gateMutex;
+    gateMutex = nullptr;
     if (mmuMutex) {
         delete mmuMutex;
         mmuMutex = nullptr;
@@ -37,6 +39,7 @@ void Mux::initialiseMutex()
 {
 	bottomLeftMutex = new mutex();
 	bottomRightMutex = new mutex();
+    gateMutex = new mutex();
 }
 
 bool Mux::acceptPacketUp(const MemoryPacket& mPack) const
@@ -158,65 +161,150 @@ void Mux::postPacketUp(MemoryPacket& packet)
 		targetMutex = upstreamMux->bottomLeftMutex;
 	}
 
+	bool bothBuffers = false;
 	while (true) {
 		packet.getProcessor()->waitGlobalTick();
-		//left always priority in this implementation
+        	//in this implementation have fairness
 		bottomLeftMutex->lock();
 		bottomRightMutex->lock();
-		//which are we, left or right?
-		if ((processorIndex < lowerRight.first) && leftBuffer) {
-			targetMutex->lock();
-			if (targetOnRight && upstreamMux->rightBuffer == false)
-			{
-				leftBuffer = false;
-				upstreamMux->rightBuffer = true;
-				targetMutex->unlock();
-				bottomRightMutex->unlock();
-				bottomLeftMutex->unlock();
-				return upstreamMux->keepRoutingPacket(packet);
-			}
-			else if (!targetOnRight &&
-				upstreamMux->leftBuffer == false)
-			{
-				leftBuffer = false;
-				upstreamMux->leftBuffer = true;
-				targetMutex->unlock();
-				bottomRightMutex->unlock();
-				bottomLeftMutex->unlock();
-				return upstreamMux->keepRoutingPacket(packet);
-			}
-			targetMutex->unlock();
+        	if (leftBuffer && rightBuffer) {
+            		bothBuffers = true;
+        	}
+        	if (!bothBuffers) {
+            		gateMutex->lock();
+            		gate = false;
+            		gateMutex->unlock();
+            		//which are we, left or right?
+			//only one buffer in use...so our packet has to be there
+            		if (leftBuffer) {
+                		targetMutex->lock();
+                		if (targetOnRight && upstreamMux->rightBuffer == false)	
+                		{
+                    			leftBuffer = false;
+                    			upstreamMux->rightBuffer = true;
+                    			targetMutex->unlock();
+                    			bottomRightMutex->unlock();
+                    			bottomLeftMutex->unlock();
+                    			gateMutex->lock();
+                    			gate = true;
+                    			gateMutex->unlock();
+                    			return upstreamMux->keepRoutingPacket(packet);
+                		}
+                		else if (!targetOnRight && upstreamMux->leftBuffer == false)
+                		{
+                    			leftBuffer = false;
+                    			upstreamMux->leftBuffer = true;
+                    			targetMutex->unlock();
+                    			bottomRightMutex->unlock();
+                    			bottomLeftMutex->unlock();
+                  	  		gateMutex->lock();
+                    			gate = true;
+                    			gateMutex->unlock();
+                    			return upstreamMux->keepRoutingPacket(packet);
+                		}
+                		targetMutex->unlock();
+            		} else {
+                    		targetMutex->lock();
+                   	 	if (targetOnRight && upstreamMux->rightBuffer == false)
+                    		{
+                        		rightBuffer = false;
+                        		upstreamMux->rightBuffer = true;
+         	       	        	targetMutex->unlock();
+                	        	bottomRightMutex->unlock();
+                        		bottomLeftMutex->unlock();
+                        		gateMutex->lock();
+                     		   	gate = false;
+                        		gateMutex->unlock();
+                        		return upstreamMux->keepRoutingPacket(packet);
+                    		}
+                    		else if (!targetOnRight && upstreamMux->leftBuffer == false)
+                    		{
+                        		rightBuffer = false;
+                       			upstreamMux->leftBuffer = true;
+                        		targetMutex->unlock();
+                        		bottomRightMutex->unlock();
+                        		bottomLeftMutex->unlock();
+                        		gateMutex->lock();
+                        		gate = false;
+                        		gateMutex->unlock();
+                        		return upstreamMux->keepRoutingPacket(packet);
+                    		}
+                    		targetMutex->unlock();
+	    		}
 		} else {
-			//can only proceed on right if left is empty
-			if (!leftBuffer) {
-				targetMutex->lock();
-				if (targetOnRight &&
-					upstreamMux->rightBuffer == false)
-				{
-					rightBuffer = false;
-					upstreamMux->rightBuffer = true;
-					targetMutex->unlock();
-					bottomRightMutex->unlock();
-					bottomLeftMutex->unlock();
-					return upstreamMux->keepRoutingPacket(packet);
+			//two packets here so which one are we?
+			gateMutex->lock();
+                	if (gate == true) {
+                		gateMutex->unlock();
+                    		//prioritise right
+				if (processorIndex > lowerLeft.second) {
+                    			targetMutex->lock();
+                    			if (targetOnRight &&
+                        			upstreamMux->rightBuffer == false)
+                    			{
+                        			rightBuffer = false;
+                        			upstreamMux->rightBuffer = true;
+                        			targetMutex->unlock();
+        	                		bottomRightMutex->unlock();
+                	        		bottomLeftMutex->unlock();
+                        			gateMutex->lock();
+                        			gate = false;
+ 		                       		gateMutex->unlock();
+                	        		return upstreamMux->keepRoutingPacket(packet);
+                	    		}
+                    			else if (!targetOnRight &&
+                        			upstreamMux->leftBuffer == false)
+    	                		{
+        	                		rightBuffer = false;
+                	        		upstreamMux->leftBuffer = true;
+                        			targetMutex->unlock();
+                        			bottomRightMutex->unlock();
+	                        		bottomLeftMutex->unlock();
+        	               			gateMutex->lock();
+                	        		gate = false;
+                        			gateMutex->unlock();
+                        			return upstreamMux->keepRoutingPacket(packet);
+                    			}
+                    			targetMutex->unlock();
 				}
-				else if (!targetOnRight &&
-					upstreamMux->leftBuffer == false)
-				{
-					rightBuffer = false;
-					upstreamMux->leftBuffer = true;
+			} else {
+        	            	gateMutex->unlock();
+                	    	//target left - if we are on the left
+				if (processorIndex < lowerRight.first) {
+					targetMutex->lock();
+		    			if (targetOnRight && upstreamMux->rightBuffer == false)
+                    			{
+ 		                       		leftBuffer = false;
+        	                		upstreamMux->rightBuffer = true;
+                	        		targetMutex->unlock();
+                        			bottomRightMutex->unlock();
+                        			bottomLeftMutex->unlock();
+ 		                       		gateMutex->lock();
+                	        		gate = true;
+                        			gateMutex->unlock();
+                        			return upstreamMux->keepRoutingPacket(packet);
+                    			}
+                    			else if (!targetOnRight &&
+                        			upstreamMux->leftBuffer == false)
+  	                  		{
+        	                		leftBuffer = false;
+                	        		upstreamMux->leftBuffer = true;
+                        			targetMutex->unlock();
+	                        		bottomRightMutex->unlock();
+        	                		bottomLeftMutex->unlock();
+                	        		gateMutex->lock();
+                        			gate = true;
+                       				gateMutex->unlock();
+                        			return upstreamMux->keepRoutingPacket(packet);
+                    			}
 					targetMutex->unlock();
-					bottomRightMutex->unlock();
-					bottomLeftMutex->unlock();
-					return upstreamMux->keepRoutingPacket(packet);
 				}
-				targetMutex->unlock();
-			}
+                	}
 		}
-		bottomRightMutex->unlock();
-		bottomLeftMutex->unlock();
-		packet.getProcessor()->incrementBlocks();
 	}
+	bottomRightMutex->unlock();
+	bottomLeftMutex->unlock();
+	packet.getProcessor()->incrementBlocks();
 }
 
 void Mux::routePacket(MemoryPacket& packet)
