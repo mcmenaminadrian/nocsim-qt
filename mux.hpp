@@ -21,7 +21,7 @@ private:
     std::mutex *mmuMutex;
 	void disarmMutex();
     std::mutex *gateMutex;
-    int gate;
+    bool gate;
 
 public:
 	Mux* upstreamMux;
@@ -29,8 +29,9 @@ public:
 	Mux* downstreamMuxHigh;
 	Mux():  leftBuffer(false), rightBuffer(false), 
             bottomLeftMutex(nullptr), bottomRightMutex(nullptr),
-            mmuMutex(nullptr), gateMutex(nullptr), upstreamMux(nullptr),
-            downstreamMuxLow(nullptr), downstreamMuxHigh(nullptr)  {};
+            mmuMutex(nullptr), gateMutex(nullptr), gate(false),
+            upstreamMux(nullptr), downstreamMuxLow(nullptr),
+            downstreamMuxHigh(nullptr)  {};
 	Mux(Memory *gMem): globalMemory(gMem) {};
 	~Mux();
 	void initialiseMutex();

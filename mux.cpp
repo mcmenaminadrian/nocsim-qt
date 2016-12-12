@@ -81,30 +81,72 @@ void Mux::fillBottomBuffer(bool& buffer, mutex *botMutex,
 void Mux::routeDown(MemoryPacket& packet)
 {
 	//packet is ready to traverse to DDR, but is DDR free
-	//and, again, may only shift from right if left is empty
+	// - this is the fair implementation
 	// are we left or right?
 	bool packetOnLeft = false;
-    bool *bufferToUnblock = nullptr;
+	bool *bufferToUnblock = nullptr;
 	const uint64_t processorIndex = packet.getProcessor()->
 		getTile()->getOrder();
 	if (processorIndex < lowerRight.first) {
 		packetOnLeft = true;
 	}
+	bool bothBuffers = false;
 	while (true) {
 		packet.getProcessor()->waitGlobalTick();
 		bottomLeftMutex->lock();
 		bottomRightMutex->lock();
-		if (packetOnLeft) {
-            bufferToUnblock = &leftBuffer;
-			bottomRightMutex->unlock();
-			bottomLeftMutex->unlock();
-			goto fillDDR;
+		if (leftBuffer && rightBuffer) {
+			bothBuffers = true;
 		} else {
-			if (!leftBuffer) {
-                bufferToUnblock = &rightBuffer;
+			gateMutex->lock();
+			gate = false;
+			gateMutex->unlock();
+		}
+		if (!bothBuffers) {
+			if (packetOnLeft) {
+        	    		bufferToUnblock = &leftBuffer;
 				bottomRightMutex->unlock();
 				bottomLeftMutex->unlock();
+				gateMutex->lock();
+				gate = true;
+				gateMutex->unlock();
 				goto fillDDR;
+			} else {
+                		bufferToUnblock = &rightBuffer;
+				bottomRightMutex->unlock();
+				bottomLeftMutex->unlock();
+				gateMutex->lock();
+				gate = false;
+				gateMutex->unlock();
+				goto fillDDR;
+			}
+		}
+		else {
+			gateMutex->lock();
+			if (gate) {
+				gateMutex->unlock();
+				//prioritise right
+				if (!packetOnLeft) {
+					bufferToUnblock = &rightBuffer;
+					bottomRightMutex->unlock();
+					bottomLeftMutex->unlock();
+					gateMutex->lock();
+					gate = false;
+					gateMutex->unlock();
+					goto fillDDR;
+				}
+			}
+			else {
+				gateMutex->unlock();
+				if (packetOnLeft) {
+					bufferToUnblock = &leftBuffer;
+					bottomRightMutex->unlock();
+					bottomLeftMutex->unlock();
+					gateMutex->lock();
+					gate = false;
+					gateMutex->unlock();
+					goto fillDDR;
+				}
 			}
 		}
 		bottomRightMutex->unlock();
@@ -301,10 +343,10 @@ void Mux::postPacketUp(MemoryPacket& packet)
 				}
                 	}
 		}
+		bottomRightMutex->unlock();
+		bottomLeftMutex->unlock();
+		packet.getProcessor()->incrementBlocks();
 	}
-	bottomRightMutex->unlock();
-	bottomLeftMutex->unlock();
-	packet.getProcessor()->incrementBlocks();
 }
 
 void Mux::routePacket(MemoryPacket& packet)
