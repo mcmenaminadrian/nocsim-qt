@@ -108,9 +108,9 @@ private:
 	void fixBitmap(const uint64_t& frameNo);
 	void markBitmapStart(const uint64_t& frameNo,
 	const uint64_t& address);
-    	void markBitmapInit(const uint64_t& frameNo,
+    void markBitmapInit(const uint64_t& frameNo,
         const uint64_t& address);
-    	void markBitmap(const uint64_t& frameNo,
+    void markBitmap(const uint64_t& frameNo,
         const uint64_t& address);
 	void fixTLB(const uint64_t& frameNo,
 	const uint64_t& address);
@@ -120,10 +120,11 @@ private:
 		const uint64_t& localAddress);
     	const std::pair<uint64_t, uint8_t>
         mapToGlobalAddress(const uint64_t& address);
+    void fetchAddressToRegister();
 	void activateClock();
 	//adjust numbers below to change how CLOCK fuctions
-    	const uint8_t clockWipe = 8;
-    	const uint16_t clockTicks = 40000;
+    const uint8_t clockWipe = 1;
+    const uint16_t clockTicks = 1000;
 	uint64_t totalTicks;
 	uint64_t currentTLB;
 
@@ -149,6 +150,10 @@ public:
 	uint64_t getLongAddress(const uint64_t& address);
 	void writeAddress(const uint64_t& addr,
 		const uint64_t& value);
+    void writeAddress64(const uint64_t& addr);
+    void writeAddress32(const uint64_t& addr);
+    void writeAddress16(const uint64_t& addr);
+    void writeAddress8(const uint64_t& addr);
 	void pushStackPointer();
 	void popStackPointer();
     	uint64_t getStackPointer() const;
@@ -178,5 +183,7 @@ public:
 	void incrementBlocks() const;
 	bool tryCheatLock() const;
 	void cheatUnlock() const;
+    uint64_t hardFaultCount;
+    uint64_t smallFaultCount;
 };
 #endif

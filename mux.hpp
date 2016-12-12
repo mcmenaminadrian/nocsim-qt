@@ -5,7 +5,7 @@
 
 //8 ticks plus MMU time
 static const uint64_t MMU_DELAY = 2;
-static const uint64_t DDR_DELAY = 8;
+static const uint64_t DDR_DELAY = 9;
 
 class Memory;
 

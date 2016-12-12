@@ -46,12 +46,14 @@ Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
 	statusWord[0] = true;
 	totalTicks = 1;
 	currentTLB = 0;
+    hardFaultCount = 0;
+    smallFaultCount = 0;
 	inInterrupt = false;
-    	processorNumber = numb;
-    	clockDue = false;
-    	QObject::connect(this, SIGNAL(hardFault()),
+    processorNumber = numb;
+    clockDue = false;
+    QObject::connect(this, SIGNAL(hardFault()),
         	mW, SLOT(updateHardFaults()));
-    	QObject::connect(this, SIGNAL(smallFault()),
+    QObject::connect(this, SIGNAL(smallFault()),
         	mW, SLOT(updateSmallFaults()));
 }
 
@@ -311,6 +313,7 @@ uint64_t Processor::triggerSmallFault(
 	const uint64_t& address)
 {
     emit smallFault();
+    smallFaultCount++;
 	interruptBegin();
 	transferGlobalToLocal(address, tlbEntry, BITMAP_BYTES);
 	const uint64_t frameNo =
@@ -556,21 +559,40 @@ const pair<uint64_t, uint8_t>
     Processor::mapToGlobalAddress(const uint64_t& address)
 {
     uint64_t globalPagesBase = 0x800;
-    uint64_t superDirectoryIndex = address >> 42;
-    uint64_t directoryIndex = (address >> 30) & 0xFFF;
-    uint64_t superTableIndex = (address >> 18) & 0xFFF;
-    uint64_t tableIndex = (address & 0x3FFFF) >> pageShift;
+    //48 bit addresses
+    uint64_t address48 = address & 0xFFFFFFFFFFFF;
+    uint64_t superDirectoryIndex = address48 >> 37;
+    uint64_t directoryIndex = (address48 >> 28) & 0x1FF;
+    uint64_t superTableIndex = (address48 >> 19) & 0x1FF;
+    uint64_t tableIndex = (address48 & 0x7FFFF) >> pageShift;
     waitATick();
     //read off the superDirectory number
+    //simulate read of global table
+    fetchAddressToRegister();
     uint64_t ptrToDirectory = masterTile->readLong(globalPagesBase +
         superDirectoryIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
+    if (ptrToDirectory == 0) {
+        cerr << "Bad SuperDirectory: " << hex << address << endl;
+        throw new bad_exception();
+    }
     waitATick();
+    fetchAddressToRegister();
     uint64_t ptrToSuperTable = masterTile->readLong(ptrToDirectory +
         directoryIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
+    if (ptrToSuperTable == 0) {
+        cerr << "Bad Directory: " << hex << address << endl;
+        throw new bad_exception();
+    }
     waitATick();
+    fetchAddressToRegister();
     uint64_t ptrToTable = masterTile->readLong(ptrToSuperTable +
         superTableIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
+    if (ptrToTable == 0) {
+        cerr << "Bad SuperTable: " << hex << address << endl;
+        throw new bad_exception();
+    }
     waitATick();
+    fetchAddressToRegister();
     pair<uint64_t, uint8_t> globalPageTableEntry(
         masterTile->readLong(ptrToTable + tableIndex *
                  (sizeof(uint64_t) + sizeof(uint8_t))),
@@ -585,6 +607,7 @@ uint64_t Processor::triggerHardFault(const uint64_t& address,
     const bool& readOnly)
 {
     emit hardFault();
+    hardFaultCount++;
     interruptBegin();
     const pair<const uint64_t, bool> frameData = getFreeFrame();
     if (frameData.second) {
@@ -620,53 +643,61 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address,
 	//implement paging logic
 	if (mode == VIRTUAL) {
 		uint64_t pageSought = address & pageMask;
-        	uint64_t y = 0;
+        uint64_t y = 0;
 		for (auto x: tlbs) {
-                    if (get<2>(x) && ((pageSought) == (get<0>(x) & pageMask))){
-			//entry in TLB - check bitmap
-                        for (uint64_t i = 0; i < BITMAPDELAY; i++) {
-                            waitATick();
-                        }
-			if (!isBitmapValid(address, get<1>(x))) {
-                            return triggerSmallFault(x, address);
-			}
-                        return generateAddress(y, address);
+            if (get<2>(x) && ((pageSought) == (get<0>(x) & pageMask))) {
+                //entry in TLB - check bitmap
+                for (uint64_t i = 0; i < BITMAPDELAY; i++) {
+                    waitATick();
+                }
+                if (!isBitmapValid(address, get<1>(x))) {
+                    return triggerSmallFault(x, address);
+                }
+                return generateAddress(y, address);
 		    }
-                    y++;
+            y++;
 		}
 		//not in TLB - but check if it is in page table
 		waitATick(); 
 		for (unsigned int i = 0; i < TOTAL_LOCAL_PAGES; i++) {
 		    waitATick();
-                    uint64_t addressInPageTable = PAGETABLESLOCAL +
+            uint64_t addressInPageTable = PAGETABLESLOCAL +
                         (i * PAGETABLEENTRY) + (1 << pageShift);
-                    uint64_t flags = masterTile->readWord32(addressInPageTable
+            uint64_t flags = masterTile->readWord32(addressInPageTable
                         + FLAGOFFSET);
-                    if (!(flags & 0x01)) {
-                        continue;
-                    }
-                    waitATick();
-                    uint64_t storedPage = masterTile->readLong(
+            if (!(flags & 0x01)) {
+                continue;
+            }
+            waitATick();
+            uint64_t storedPage = masterTile->readLong(
                         addressInPageTable + VOFFSET);
-	            waitATick();
-                    if (pageSought == storedPage) {
-		        waitATick();
-                        flags |= 0x04;
-                        masterTile->writeWord32(addressInPageTable + FLAGOFFSET,
-                            flags);
-                        waitATick();
-                        fixTLB(i, address);
-                        waitATick();
-                        return fetchAddressRead(address);
-                    }
-                    waitATick();
-               }
-               waitATick();
-               return triggerHardFault(address, readOnly);
+            waitATick();
+            if (pageSought == storedPage) {
+                waitATick();
+                flags |= 0x04;
+                masterTile->writeWord32(addressInPageTable + FLAGOFFSET,
+                    flags);
+                waitATick();
+                fixTLB(i, address);
+                waitATick();
+                return fetchAddressRead(address);
+            }
+            waitATick();
+        }
+        waitATick();
+        return triggerHardFault(address, readOnly);
 	} else {
 		//what do we do if it's physical address?
 		return address;
 	}
+}
+
+//function to mimic delay from read of global page tables
+void Processor::fetchAddressToRegister()
+{
+    emit smallFault();
+    smallFaultCount++;
+    requestRemoteMemory(0x0, 0x0, 0x0);
 }
 		
 void Processor::writeAddress(const uint64_t& address,
@@ -674,6 +705,26 @@ void Processor::writeAddress(const uint64_t& address,
 {
     uint64_t fetchedAddress = fetchAddressWrite(address);
     masterTile->writeLong(fetchedAddress, value);
+}
+
+void Processor::writeAddress64(const uint64_t& address)
+{
+    writeAddress(address, 0);
+}
+
+void Processor::writeAddress32(const uint64_t& address)
+{
+    writeAddress(address, 0);
+}
+
+void Processor::writeAddress16(const uint64_t& address)
+{
+    writeAddress(address, 0);
+}
+
+void Processor::writeAddress8(const uint64_t& address)
+{
+    writeAddress(address, 0);
 }
 
 uint64_t Processor::getLongAddress(const uint64_t& address)
@@ -771,7 +822,7 @@ void Processor::start()
 
 	uint64_t pagesIn = (1 + tabPages + bitPages);
 
-    programCounter = pagesIn * (1 << pageShift) + 0x9A0000;
+    	programCounter = pagesIn * (1 << pageShift) + 0x9A0000;
 	fixPageMapStart(pagesIn, programCounter);
 	markBitmapStart(pagesIn, programCounter);
 	fixTLB(pagesIn, programCounter);
