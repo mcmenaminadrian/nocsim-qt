@@ -2,7 +2,10 @@
 #ifndef _MUX_CLASS_
 #define _MUX_CLASS_
 
-static const uint64_t DDR_DELAY = 30;
+
+//8 ticks plus MMU time
+static const uint64_t MMU_DELAY = 2;
+static const uint64_t DDR_DELAY = 8;
 
 class Memory;
 
@@ -15,16 +18,20 @@ private:
 	bool rightBuffer;
 	std::mutex *bottomLeftMutex;
 	std::mutex *bottomRightMutex;
+    std::mutex *mmuMutex;
 	void disarmMutex();
+    std::mutex *gateMutex;
+    bool gate;
 
 public:
 	Mux* upstreamMux;
 	Mux* downstreamMuxLow;
 	Mux* downstreamMuxHigh;
 	Mux():  leftBuffer(false), rightBuffer(false), 
-	        bottomLeftMutex(nullptr), bottomRightMutex(nullptr),
-	        upstreamMux(nullptr), downstreamMuxLow(nullptr),
-		downstreamMuxHigh(nullptr) {};
+            bottomLeftMutex(nullptr), bottomRightMutex(nullptr),
+            mmuMutex(nullptr), gateMutex(nullptr), gate(false),
+            upstreamMux(nullptr), downstreamMuxLow(nullptr),
+            downstreamMuxHigh(nullptr)  {};
 	Mux(Memory *gMem): globalMemory(gMem) {};
 	~Mux();
 	void initialiseMutex();
@@ -41,6 +48,7 @@ public:
     	bool acceptPacketUp(const MemoryPacket& mPack) const;
 	void postPacketUp(MemoryPacket& packet);
 	void keepRoutingPacket(MemoryPacket& packet);
+    void addMMUMutex();
 
 };	
 #endif
