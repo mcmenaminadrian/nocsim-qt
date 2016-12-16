@@ -339,7 +339,7 @@ void ProcessorFunctor::ori_(const uint64_t& regA, const uint64_t& regB,
 
 ///End of instruction set ///
 
-#define SETSIZE 256
+#define SETSIZE 16
 
 ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 	tile{tileIn}, proc{tileIn->tileProcessor}
@@ -966,8 +966,8 @@ wait_for_next_signal:
     cout << "Processor " << proc->getNumber() << " now waiting." << endl;
     push_(REG15);
     //try a back off
-    addi_(REG5, REG0, 0x10);
-    addi_(REG6, REG0, 0x100);
+    addi_(REG5, REG0, 0x200);
+    addi_(REG6, REG0, 0x4000);
 
     waitingOnZero = proc->getProgramCounter();
 wait_on_zero:
