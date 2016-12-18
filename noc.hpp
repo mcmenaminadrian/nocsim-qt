@@ -20,7 +20,7 @@ private:
 	std::vector<std::vector<long> > lines;
 	void writeSystemToMemory();
 	long readInVariables(const std::string&
-		path = std::string("./variables.csv"));
+        path = std::string("/Users/adrian/nocqtbk/nocsim-qt/variables.csv"));
 	unsigned long createBasicPageTables();
 	unsigned long scanLevelFourTable(unsigned long addr);
 	ControlThread *pBarrier;

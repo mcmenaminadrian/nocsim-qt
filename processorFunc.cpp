@@ -339,7 +339,7 @@ void ProcessorFunctor::ori_(const uint64_t& regA, const uint64_t& regB,
 
 ///End of instruction set ///
 
-#define SETSIZE 16
+#define SETSIZE 256
 
 ProcessorFunctor::ProcessorFunctor(Tile *tileIn):
 	tile{tileIn}, proc{tileIn->tileProcessor}

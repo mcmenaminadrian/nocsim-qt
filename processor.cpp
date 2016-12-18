@@ -564,7 +564,7 @@ const pair<uint64_t, uint8_t>
     uint64_t superDirectoryIndex = address48 >> 37;
     uint64_t directoryIndex = (address48 >> 28) & 0x1FF;
     uint64_t superTableIndex = (address48 >> 19) & 0x1FF;
-    uint64_t tableIndex = (address48 & 0x7FFFF) >> pageShift;
+    uint64_t tableIndex = (address48 >> pageShift) & 0x1FF;
     waitATick();
     //read off the superDirectory number
     //simulate read of global table
