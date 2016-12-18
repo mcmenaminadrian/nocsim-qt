@@ -4,8 +4,9 @@
 
 
 //8 ticks plus MMU time
-static const uint64_t MMU_DELAY = 2;
+static const uint64_t MMU_DELAY = 50;
 static const uint64_t DDR_DELAY = 8;
+static const uint64_t PACKET_LIMIT = 4;
 
 class Memory;
 
@@ -21,7 +22,9 @@ private:
     std::mutex *mmuMutex;
 	void disarmMutex();
     std::mutex *gateMutex;
+    std::mutex *acceptedMutex;
     bool gate;
+    uint64_t acceptedPackets;
 
 public:
 	Mux* upstreamMux;
@@ -29,7 +32,8 @@ public:
 	Mux* downstreamMuxHigh;
 	Mux():  leftBuffer(false), rightBuffer(false), 
             bottomLeftMutex(nullptr), bottomRightMutex(nullptr),
-            mmuMutex(nullptr), gateMutex(nullptr), gate(false),
+            mmuMutex(nullptr), gateMutex(nullptr), acceptedMutex(nullptr),
+	    acceptedPackets(0), gate(false),
             upstreamMux(nullptr), downstreamMuxLow(nullptr),
             downstreamMuxHigh(nullptr)  {};
 	Mux(Memory *gMem): globalMemory(gMem) {};

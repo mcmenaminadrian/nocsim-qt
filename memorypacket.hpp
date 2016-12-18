@@ -11,13 +11,15 @@ private:
 	const uint64_t localAddress;
 	const uint64_t requestSize;
 	std::vector<uint8_t> payload;
+    bool write;
 	enum direction{OUT, IN} pd;
 
 public:
 	MemoryPacket(Processor *processor, const uint64_t& remoteAddr,
 		const uint64_t& localAddr, const uint64_t& sz):
 		processorIndex(processor), remoteAddress(remoteAddr),
-		localAddress(localAddr), requestSize(sz), pd(OUT)
+        localAddress(localAddr), requestSize(sz),
+        write(false), pd(OUT)
 	{}
 
 	void switchDirection()
@@ -41,6 +43,10 @@ public:
 	Processor* getProcessor() const
 	{ return processorIndex; }
 	const std::vector<uint8_t> getMemory() const { return payload; }
+    void setWrite()
+    {write = true;}
+    bool getWrite() const
+    {return write;}
 };
 
 #endif

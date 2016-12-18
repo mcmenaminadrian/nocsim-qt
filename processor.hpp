@@ -42,8 +42,6 @@ static const uint64_t GLOBALCLOCKSLOW = 1;
 static const uint64_t TOTAL_LOCAL_PAGES = TILE_MEM_SIZE >> PAGE_SHIFT;
 static const uint64_t BITS_PER_BYTE = 8;
 
-#define fetchAddressWrite fetchAddressRead
-
 class Tile;
 
 class Processor: public QObject {
@@ -84,20 +82,22 @@ private:
 	const uint64_t& reqBitmapPages);
 	void zeroOutTLBs(const uint64_t& reqPTEPages);
 	uint64_t fetchAddressRead(const uint64_t& address,
-        const bool& readOnly = false);
+        const bool& readOnly = false, const bool& write = false);
+    uint64_t fetchAddressWrite(const uint64_t& address);
 	bool isBitmapValid(const uint64_t& address,
 	const uint64_t& physAddress) const;
 	uint64_t generateAddress(const uint64_t& frame,
 	const uint64_t& address) const;
-    	uint64_t triggerSmallFault(
-	const std::tuple<uint64_t, uint64_t, bool>& tlbEntry,
-	const uint64_t& address);
+    uint64_t triggerSmallFault(
+        const std::tuple<uint64_t, uint64_t, bool>& tlbEntry,
+        const uint64_t& address, const bool& write);
 	void interruptBegin();
 	void interruptEnd();
 	void transferGlobalToLocal(const uint64_t& address,
 	const std::tuple<uint64_t, uint64_t, bool>& tlbEntry,
-	const uint64_t& size); 
-    	uint64_t triggerHardFault(const uint64_t& address, const bool& readOnly);
+    const uint64_t& size, const bool& write);
+    uint64_t triggerHardFault(const uint64_t& address, const bool& readOnly,
+        const bool& write);
 	const std::pair<const uint64_t, bool> getFreeFrame() const;
 	void loadMemory(const uint64_t& frameNo,
 	const uint64_t& address);
@@ -117,7 +117,7 @@ private:
 	const std::vector<uint8_t>
 		requestRemoteMemory(
 		const uint64_t& size, const uint64_t& remoteAddress,
-		const uint64_t& localAddress);
+        const uint64_t& localAddress, const bool& write);
     	const std::pair<uint64_t, uint8_t>
         mapToGlobalAddress(const uint64_t& address);
     void fetchAddressToRegister();

@@ -36,7 +36,6 @@ HEADERS  += mainwindow.h \
     memorypacket.hpp \
     mux.hpp \
     noc.hpp \
-    packet.hpp \
     paging.hpp \
     processor.hpp \
     SAX2Handler.hpp \

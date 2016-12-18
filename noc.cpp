@@ -29,7 +29,7 @@
 #include "ControlThread.hpp"
 
 
-#define PAGE_TABLE_COUNT 256
+#define PAGE_TABLE_COUNT 512
 
 using namespace std;
 using namespace xercesc;
@@ -128,7 +128,7 @@ unsigned long Noc::createBasicPageTables()
     uint64_t startOfPageTables = 2048;
 	//create a bottom of the heirarchy table
 
-    PageTable superDirectory(10);
+    PageTable superDirectory(11);
     uint64_t runLength = 0;
     uint64_t superDirectoryLength =
 		superDirectory.streamToMemory(globalMemory[0],
@@ -141,7 +141,7 @@ unsigned long Noc::createBasicPageTables()
     runLength += superDirectoryLength;
     uint64_t startOfDirectory = startOfPageTables + runLength;
 
-    PageTable directory(8);
+    PageTable directory(9);
     uint64_t directoryLength =
         directory.streamToMemory(globalMemory[0], startOfDirectory);
     globalMemory[0].writeLong(startOfDirectory, startOfDirectory + directoryLength);
@@ -151,7 +151,7 @@ unsigned long Noc::createBasicPageTables()
 
 
     //page tables for low addresses here
-    PageTable superTable_A(8);
+    PageTable superTable_A(9);
 
     uint64_t superTableLength =
         superTable_A.streamToMemory(globalMemory[0], startOfSuperTable);
@@ -162,7 +162,7 @@ unsigned long Noc::createBasicPageTables()
 
     vector<PageTable> tables;
     for (int i = 0; i < PAGE_TABLE_COUNT; i++) {
-        PageTable pageTable(8);
+        PageTable pageTable(9);
         tables.push_back(pageTable);
     }
     uint64_t tableLength =

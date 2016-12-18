@@ -265,14 +265,17 @@ void Processor::interruptEnd()
 
 const vector<uint8_t> Processor::requestRemoteMemory(
 	const uint64_t& size, const uint64_t& remoteAddress,
-	const uint64_t& localAddress)
+    const uint64_t& localAddress, const bool& write)
 {
 	//assemble request
 	MemoryPacket memoryRequest(this, remoteAddress,
 		localAddress, size);
+    if (write) {
+        memoryRequest.setWrite();
+    }
 	//wait for response
 	if (masterTile->treeLeaf->acceptPacketUp(memoryRequest)) {
-		masterTile->treeLeaf->routePacket(memoryRequest);
+        masterTile->treeLeaf->routePacket(memoryRequest);
 	} else {
 		cerr << "FAILED" << endl;
 		exit(1);
@@ -282,14 +285,14 @@ const vector<uint8_t> Processor::requestRemoteMemory(
 
 void Processor::transferGlobalToLocal(const uint64_t& address,
 	const tuple<uint64_t, uint64_t, bool>& tlbEntry,
-	const uint64_t& size) 
+    const uint64_t& size, const bool& write)
 {
 	//mimic a DMA call - so need to advance PC
 	uint64_t maskedAddress = address & BITMAP_MASK;
 	int offset = 0;
 	vector<uint8_t> answer = requestRemoteMemory(size,
 		maskedAddress, get<1>(tlbEntry) +
-		(maskedAddress & bitMask));
+        (maskedAddress & bitMask), write);
 		for (auto x: answer) {
 			masterTile->writeByte(get<1>(tlbEntry) + offset + 
 				(maskedAddress & bitMask), x);
@@ -305,17 +308,17 @@ void Processor::transferLocalToGlobal(const uint64_t& address,
     //to advance the PC
     uint64_t maskedAddress = address & BITMAP_MASK;
     //make the call - ignore the results
-    requestRemoteMemory(size, get<0>(tlbEntry), maskedAddress);
+    requestRemoteMemory(size, get<0>(tlbEntry), maskedAddress, true);
 }
 
 uint64_t Processor::triggerSmallFault(
 	const tuple<uint64_t, uint64_t, bool>& tlbEntry,
-	const uint64_t& address)
+    const uint64_t& address, const bool& write)
 {
     emit smallFault();
     smallFaultCount++;
 	interruptBegin();
-	transferGlobalToLocal(address, tlbEntry, BITMAP_BYTES);
+    transferGlobalToLocal(address, tlbEntry, BITMAP_BYTES, write);
 	const uint64_t frameNo =
 		(get<1>(tlbEntry) - PAGETABLESLOCAL) >> pageShift;
     markBitmap(frameNo, address);
@@ -544,7 +547,6 @@ void Processor::markBitmapInit(const uint64_t& frameNo,
     localMemory->writeByte(byteToFetch, bitmapByte);
 }
 
-
 void Processor::fixTLB(const uint64_t& frameNo,
 	const uint64_t& address)
 {
@@ -604,7 +606,7 @@ const pair<uint64_t, uint8_t>
 }
 
 uint64_t Processor::triggerHardFault(const uint64_t& address,
-    const bool& readOnly)
+    const bool& readOnly, const bool& write)
 {
     emit hardFault();
     hardFaultCount++;
@@ -617,8 +619,7 @@ uint64_t Processor::triggerHardFault(const uint64_t& address,
     pair<uint64_t, uint8_t> translatedAddress = mapToGlobalAddress(address);
     fixTLB(frameData.first, translatedAddress.first);
     transferGlobalToLocal(translatedAddress.first + (address & bitMask),
-            tlbs[frameData.first],
-            BITMAP_BYTES);
+        tlbs[frameData.first], BITMAP_BYTES, write);
     fixPageMap(frameData.first, translatedAddress.first, readOnly);
     markBitmapStart(frameData.first, translatedAddress.first +
         (address & bitMask));
@@ -638,7 +639,7 @@ void Processor::incrementBlocks() const
 
 //when this returns, address guarenteed to be present at returned local address
 uint64_t Processor::fetchAddressRead(const uint64_t& address,
-    const bool& readOnly)
+    const bool& readOnly, const bool& write)
 {
 	//implement paging logic
 	if (mode == VIRTUAL) {
@@ -651,7 +652,7 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address,
                     waitATick();
                 }
                 if (!isBitmapValid(address, get<1>(x))) {
-                    return triggerSmallFault(x, address);
+                    return triggerSmallFault(x, address, write);
                 }
                 return generateAddress(y, address);
 		    }
@@ -685,11 +686,66 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address,
             waitATick();
         }
         waitATick();
-        return triggerHardFault(address, readOnly);
+        return triggerHardFault(address, readOnly, write);
 	} else {
 		//what do we do if it's physical address?
 		return address;
 	}
+}
+
+uint64_t Processor::fetchAddressWrite(const uint64_t& address)
+{
+    const bool readOnly = false;
+    //implement paging logic
+    if (mode == VIRTUAL) {
+        uint64_t pageSought = address & pageMask;
+        uint64_t y = 0;
+        for (auto x: tlbs) {
+            if (get<2>(x) && ((pageSought) == (get<0>(x) & pageMask))) {
+                //entry in TLB - check bitmap
+                for (uint64_t i = 0; i < BITMAPDELAY; i++) {
+                    waitATick();
+                }
+                if (!isBitmapValid(address, get<1>(x))) {
+                    return triggerSmallFault(x, address, true);
+                }
+                return generateAddress(y, address);
+            }
+            y++;
+        }
+        //not in TLB - but check if it is in page table
+        waitATick();
+        for (unsigned int i = 0; i < TOTAL_LOCAL_PAGES; i++) {
+            waitATick();
+            uint64_t addressInPageTable = PAGETABLESLOCAL +
+                        (i * PAGETABLEENTRY) + (1 << pageShift);
+            uint64_t flags = masterTile->readWord32(addressInPageTable
+                        + FLAGOFFSET);
+            if (!(flags & 0x01)) {
+                continue;
+            }
+            waitATick();
+            uint64_t storedPage = masterTile->readLong(
+                        addressInPageTable + VOFFSET);
+            waitATick();
+            if (pageSought == storedPage) {
+                waitATick();
+                flags |= 0x04;
+                masterTile->writeWord32(addressInPageTable + FLAGOFFSET,
+                    flags);
+                waitATick();
+                fixTLB(i, address);
+                waitATick();
+                return fetchAddressRead(address);
+            }
+            waitATick();
+        }
+        waitATick();
+        return triggerHardFault(address, readOnly, true);
+    } else {
+        //what do we do if it's physical address?
+        return address;
+    }
 }
 
 //function to mimic delay from read of global page tables
@@ -697,7 +753,7 @@ void Processor::fetchAddressToRegister()
 {
     emit smallFault();
     smallFaultCount++;
-    requestRemoteMemory(0x0, 0x0, 0x0);
+    requestRemoteMemory(0x0, 0x0, 0x0, false);
 }
 		
 void Processor::writeAddress(const uint64_t& address,

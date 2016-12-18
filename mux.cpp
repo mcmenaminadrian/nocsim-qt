@@ -32,6 +32,8 @@ void Mux::disarmMutex()
     if (mmuMutex) {
         delete mmuMutex;
         mmuMutex = nullptr;
+	delete acceptedMutex;
+	acceptedMutex = nullptr;
     }
 }
 
@@ -98,9 +100,7 @@ void Mux::routeDown(MemoryPacket& packet)
 		if (leftBuffer && rightBuffer) {
 			bothBuffers = true;
 		} else {
-			gateMutex->lock();
-			gate = false;
-			gateMutex->unlock();
+			bothBuffers = false;
 		}
 		if (!bothBuffers) {
 			if (packetOnLeft) {
@@ -155,19 +155,37 @@ void Mux::routeDown(MemoryPacket& packet)
 	}
 
 fillDDR:
+	acceptedMutex->lock();
+	acceptedPackets++;
+	acceptedMutex->unlock();
     while (mmuMutex->try_lock() == false) {
+	acceptedMutex->lock();
+	if (acceptedPackets <= PACKET_LIMIT) {
+		acceptedMutex->unlock();
+		goto outOfMMULock;
+	}
+	acceptedMutex->unlock();
         packet.getProcessor()->waitGlobalTick();
     }
-    for (unsigned int i = 0; i < MMU_DELAY; i++) {
-        packet.getProcessor()->waitGlobalTick();
-    }
+
+outOfMMULock:
     mmuMutex->unlock();
+    uint64_t serviceDelay = MMU_DELAY;
+    if (packet.getWrite()) {
+        serviceDelay *= 2;
+    }
+    for (unsigned int i = 0; i < serviceDelay; i++) {
+        packet.getProcessor()->waitGlobalTick();
+    }
     bottomLeftMutex->lock();
     bottomRightMutex->lock();
     *bufferToUnblock = false;
+    acceptedMutex->lock();
+    acceptedPackets--;
+    acceptedMutex->unlock();
     bottomRightMutex->unlock();
     bottomLeftMutex->unlock();
-    //cross to DDR
+    //cross to tree
 	for (unsigned int i = 0; i < DDR_DELAY; i++) {
 		packet.getProcessor()->waitGlobalTick();
 	}
@@ -211,7 +229,9 @@ void Mux::postPacketUp(MemoryPacket& packet)
 		bottomRightMutex->lock();
         	if (leftBuffer && rightBuffer) {
             		bothBuffers = true;
-        	}
+        	} else {
+			bothBuffers = false;
+		}
         	if (!bothBuffers) {
             		gateMutex->lock();
             		gate = false;
@@ -380,4 +400,5 @@ void Mux::assignNumbers(const uint64_t& ll, const uint64_t& ul,
 void Mux::addMMUMutex()
 {
     mmuMutex = new mutex();
+    acceptedMutex = new mutex();
 }
