@@ -180,7 +180,7 @@ public:
     	void dropPage(const uint64_t& frameNo);
     	void dumpPageFromTLB(const uint64_t& address);
     	const uint64_t& getTicks() const { return totalTicks; }
-	void incrementBlocks() const;
+	void incrementBlocks();
 	bool tryCheatLock() const;
 	void cheatUnlock() const;
     uint64_t hardFaultCount;

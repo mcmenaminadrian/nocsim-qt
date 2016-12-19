@@ -632,7 +632,7 @@ uint64_t Processor::triggerHardFault(const uint64_t& address,
         (address & bitMask));
 }
 
-void Processor::incrementBlocks() const
+void Processor::incrementBlocks()
 {
 	ControlThread *pBarrier = masterTile->getBarrier();
 	pBarrier->incrementBlocks();
