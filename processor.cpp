@@ -48,6 +48,7 @@ Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
 	currentTLB = 0;
     hardFaultCount = 0;
     smallFaultCount = 0;
+    blocks = 0;
 	inInterrupt = false;
     processorNumber = numb;
     clockDue = false;
@@ -635,6 +636,7 @@ void Processor::incrementBlocks() const
 {
 	ControlThread *pBarrier = masterTile->getBarrier();
 	pBarrier->incrementBlocks();
+        blocks++;
 }
 
 //when this returns, address guarenteed to be present at returned local address

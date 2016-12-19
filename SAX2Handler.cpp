@@ -1,5 +1,10 @@
 #include <iostream>
 #include <vector>
+#include <xercesc/util/PlatformUtils.hpp>
+#include <xercesc/sax2/SAX2XMLReader.hpp>
+#include <xercesc/sax2/XMLReaderFactory.hpp>
+#include <xercesc/sax2/DefaultHandler.hpp>
+#include <xercesc/util/XMLString.hpp>
 #include <xercesc/sax2/Attributes.hpp>
 #include <mutex>
 #include "memorypacket.hpp"
@@ -11,9 +16,8 @@
 #include "SAX2Handler.hpp"
 
 
-using namespace std;
 using namespace xercesc;
-
+using namespace std;
 
 #define instruction 0
 #define load 1

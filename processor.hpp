@@ -185,5 +185,6 @@ public:
 	void cheatUnlock() const;
     uint64_t hardFaultCount;
     uint64_t smallFaultCount;
+    uint64_t blocks;
 };
 #endif

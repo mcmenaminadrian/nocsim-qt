@@ -74,6 +74,7 @@ void XMLFunctor::operator()()
     cout << "Task on " << order << " completed." << endl;
     cout << "Hard fault count: " << proc->hardFaultCount << endl;
     cout << "Small fault count: " << proc->smallFaultCount << endl;
+    cout << "Blocks: " << proc->blocks << endl;
     cout << "Ticks: " << proc->getTicks() << endl;
     proc->getTile()->getBarrier()->decrementTaskCount();
 }
