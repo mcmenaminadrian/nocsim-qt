@@ -71,10 +71,13 @@ void XMLFunctor::operator()()
            XMLString::release(&message);
            exit(1);
     }
+    cout << "===========" << endl;
     cout << "Task on " << order << " completed." << endl;
     cout << "Hard fault count: " << proc->hardFaultCount << endl;
     cout << "Small fault count: " << proc->smallFaultCount << endl;
     cout << "Blocks: " << proc->blocks << endl;
+    cout << "Service time: " << proc->serviceTime << endl;
     cout << "Ticks: " << proc->getTicks() << endl;
+    cout << "===========" << endl;
     proc->getTile()->getBarrier()->decrementTaskCount();
 }

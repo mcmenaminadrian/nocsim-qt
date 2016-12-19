@@ -181,10 +181,12 @@ public:
     	void dumpPageFromTLB(const uint64_t& address);
     	const uint64_t& getTicks() const { return totalTicks; }
 	void incrementBlocks();
+        void incrementServiceTime();
 	bool tryCheatLock() const;
 	void cheatUnlock() const;
     uint64_t hardFaultCount;
     uint64_t smallFaultCount;
     uint64_t blocks;
+    uint64_t serviceTime;
 };
 #endif

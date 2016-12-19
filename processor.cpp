@@ -639,6 +639,11 @@ void Processor::incrementBlocks()
         blocks++;
 }
 
+void Processor::incrementServiceTime()
+{
+        serviceTime++;
+}
+
 //when this returns, address guarenteed to be present at returned local address
 uint64_t Processor::fetchAddressRead(const uint64_t& address,
     const bool& readOnly, const bool& write)

@@ -165,6 +165,7 @@ fillDDR:
 		goto outOfMMULock;
 	}
 	acceptedMutex->unlock();
+        packet.getProcessor()->incrementBlocks();
         packet.getProcessor()->waitGlobalTick();
     }
 
@@ -175,6 +176,7 @@ outOfMMULock:
         serviceDelay *= 2;
     }
     for (unsigned int i = 0; i < serviceDelay; i++) {
+        packet.getProcessor()->incrementServiceTime();
         packet.getProcessor()->waitGlobalTick();
     }
     bottomLeftMutex->lock();
