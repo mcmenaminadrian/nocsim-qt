@@ -16,6 +16,9 @@
 
 using namespace std;
 
+#define WRITE_FACTOR 2
+
+
 Mux::~Mux()
 {
 	disarmMutex();
@@ -82,7 +85,6 @@ void Mux::fillBottomBuffer(bool& buffer, mutex *botMutex,
 
 void Mux::routeDown(MemoryPacket& packet)
 {
-	//packet is ready to traverse to DDR, but is DDR free
 	// - this is the fair implementation
 	// are we left or right?
 	bool packetOnLeft = false;
@@ -95,6 +97,8 @@ void Mux::routeDown(MemoryPacket& packet)
 	bool bothBuffers = false;
 	while (true) {
 		packet.getProcessor()->waitGlobalTick();
+                acceptedMutex->lock();
+                if (acceptedPackets < 4) {
 		bottomLeftMutex->lock();
 		bottomRightMutex->lock();
 		if (leftBuffer && rightBuffer) {
@@ -151,42 +155,30 @@ void Mux::routeDown(MemoryPacket& packet)
 		}
 		bottomRightMutex->unlock();
 		bottomLeftMutex->unlock();
+                }
+                acceptedMutex->unlock();
 		packet.getProcessor()->incrementBlocks();
 	}
 
 fillDDR:
-	acceptedMutex->lock();
+        bottomLeftMutex->lock();
+        bottomRightMutex->lock();
+        *bufferToUnblock = false;
+        bottomRightMutex->unlock();
+        bottomLeftMutex->unlock();
 	acceptedPackets++;
-	acceptedMutex->unlock();
-    while (mmuMutex->try_lock() == false) {
-	acceptedMutex->lock();
-	if (acceptedPackets <= PACKET_LIMIT) {
-		acceptedMutex->unlock();
-		goto outOfMMULock;
-	}
-	acceptedMutex->unlock();
-        packet.getProcessor()->incrementBlocks();
-        packet.getProcessor()->waitGlobalTick();
-    }
-
-outOfMMULock:
-    mmuMutex->unlock();
+        acceptedMutex->unlock();
     uint64_t serviceDelay = MMU_DELAY;
     if (packet.getWrite()) {
-        serviceDelay *= 2;
+        serviceDelay *= WRITE_FACTOR;
     }
     for (unsigned int i = 0; i < serviceDelay; i++) {
         packet.getProcessor()->incrementServiceTime();
         packet.getProcessor()->waitGlobalTick();
     }
-    bottomLeftMutex->lock();
-    bottomRightMutex->lock();
-    *bufferToUnblock = false;
     acceptedMutex->lock();
     acceptedPackets--;
     acceptedMutex->unlock();
-    bottomRightMutex->unlock();
-    bottomLeftMutex->unlock();
     //cross to tree
 	for (unsigned int i = 0; i < DDR_DELAY; i++) {
 		packet.getProcessor()->waitGlobalTick();
@@ -198,7 +190,7 @@ outOfMMULock:
                 getTile()->readByte(packet.getRemoteAddress() + i));
         }
     }
-	return;
+    return;
 }	
 
 void Mux::keepRoutingPacket(MemoryPacket& packet)
@@ -403,4 +395,6 @@ void Mux::addMMUMutex()
 {
     mmuMutex = new mutex();
     acceptedMutex = new mutex();
+    mmuLock =  unique_lock<mutex>(*mmuMutex);
+    mmuLock.unlock();
 }

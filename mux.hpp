@@ -20,6 +20,7 @@ private:
 	std::mutex *bottomLeftMutex;
 	std::mutex *bottomRightMutex;
     std::mutex *mmuMutex;
+        std::unique_lock<std::mutex> mmuLock;
 	void disarmMutex();
     std::mutex *gateMutex;
     std::mutex *acceptedMutex;

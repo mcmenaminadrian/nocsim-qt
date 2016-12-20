@@ -13,6 +13,7 @@ ControlThread::ControlThread(unsigned long tcks, MainWindow *pWind):
 {
     QObject::connect(this, SIGNAL(updateCycles()),
         pWind, SLOT(updateLCD()));
+    blockedInTree = 0;
 }
 
 void ControlThread::releaseToRun()
