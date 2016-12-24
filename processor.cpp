@@ -58,6 +58,14 @@ Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
         	mW, SLOT(updateSmallFaults()));
 }
 
+void Processor::resetCounters()
+{
+    hardFaultCount = 0;
+    smallFaultCount = 0;
+    blocks = 0;
+    serviceTime = 0;
+}
+
 void Processor::setMode()
 {
 	if (!statusWord[0]) {

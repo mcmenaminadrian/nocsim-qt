@@ -184,6 +184,7 @@ public:
         void incrementServiceTime();
 	bool tryCheatLock() const;
 	void cheatUnlock() const;
+        void resetCounters();
     uint64_t hardFaultCount;
     uint64_t smallFaultCount;
     uint64_t blocks;

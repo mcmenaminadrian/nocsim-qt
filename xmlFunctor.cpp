@@ -48,10 +48,8 @@ void XMLFunctor::operator()()
     }
     proc->start();
 	
-    string lackeyml("lackeyml_");
-    lackeyml += to_string(tile->getOrder()%8);
 
-	SAX2XMLReader *parser = XMLReaderFactory::createXMLReader();
+    SAX2XMLReader *parser = XMLReaderFactory::createXMLReader();
     parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
     parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, true);
 
@@ -59,7 +57,20 @@ void XMLFunctor::operator()()
     parser->setContentHandler(lackeyHandler);
     parser->setErrorHandler(lackeyHandler);
     lackeyHandler->setMemoryHandler(this);
+    uint64_t pass = 0;
 
+    while (true) {
+    string lackeyml("lackeyml_");
+    lackeyml += to_string(tile->getOrder()%8);
+
+    SAX2XMLReader *parser = XMLReaderFactory::createXMLReader();
+    parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
+    parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, true);
+
+    SAX2Handler *lackeyHandler = new SAX2Handler();
+    parser->setContentHandler(lackeyHandler);
+    parser->setErrorHandler(lackeyHandler);
+    lackeyHandler->setMemoryHandler(this);
 
     try {
         parser->parse(lackeyml.c_str());
@@ -72,6 +83,7 @@ void XMLFunctor::operator()()
            exit(1);
     }
     cout << "===========" << endl;
+    cout << "On pass " << pass << endl;
     cout << "Task on " << order << " completed." << endl;
     cout << "Hard fault count: " << proc->hardFaultCount << endl;
     cout << "Small fault count: " << proc->smallFaultCount << endl;
@@ -79,5 +91,10 @@ void XMLFunctor::operator()()
     cout << "Service time: " << proc->serviceTime << endl;
     cout << "Ticks: " << proc->getTicks() << endl;
     cout << "===========" << endl;
+    proc->resetCounters();
+    pass++;
+    delete parser;
+    delete lackeyHandler;
+    } //off we go again
     proc->getTile()->getBarrier()->decrementTaskCount();
 }
