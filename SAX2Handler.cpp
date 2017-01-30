@@ -30,13 +30,13 @@ static const int parseType(string memType)
     if (memType == "instruction") {
            return instruction;
     }
-    if (memType == "load") {
+    else if (memType == "load") {
         return load;
     }
-    if (memType == "store") {
+    else if (memType == "store") {
         return store;
     }
-    if (memType == "modify") {
+    else if (memType == "modify") {
         return modify;
     }
     return nothing;
@@ -75,6 +75,7 @@ void SAX2Handler::startElement(const XMLCh* const uri,
                 XMLString::release(&size);
                 XMLString::release(&addressStr);
                 XMLString::release(&sizeStr);
+		XMLString::release(&memAccess);
                 break;
             case store:
 
@@ -87,6 +88,7 @@ void SAX2Handler::startElement(const XMLCh* const uri,
                     break;
                 case 2:
                     memoryHandler->proc->writeAddress16(uiAddress);
+		    break;
                 case 1:
                     memoryHandler->proc->writeAddress8(uiAddress);
                     break;
@@ -98,6 +100,7 @@ void SAX2Handler::startElement(const XMLCh* const uri,
                 XMLString::release(&size);
                 XMLString::release(&addressStr);
                 XMLString::release(&sizeStr);
+		XMLString::release(&memAccess);
                 break;
             case load:
                 memoryHandler->proc->getAddress(
@@ -106,8 +109,14 @@ void SAX2Handler::startElement(const XMLCh* const uri,
                 XMLString::release(&size);
                 XMLString::release(&addressStr);
                 XMLString::release(&sizeStr);
+		XMLString::release(&memAccess);
                 break;
             default:
+                XMLString::release(&address);
+                XMLString::release(&size);
+                XMLString::release(&addressStr);
+                XMLString::release(&sizeStr);
+		XMLString::release(&memAccess);
                 break;
         }
     }
