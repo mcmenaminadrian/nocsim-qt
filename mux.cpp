@@ -85,7 +85,7 @@ void Mux::fillBottomBuffer(bool& buffer, mutex *botMutex,
 
 void Mux::routeDown(MemoryPacket& packet)
 {
-	// - this is the fair implementation
+	// - this is the alternating implementation
 	// are we left or right?
 	bool packetOnLeft = false;
 	bool *bufferToUnblock = nullptr;
@@ -99,20 +99,20 @@ void Mux::routeDown(MemoryPacket& packet)
 		packet.getProcessor()->waitGlobalTick();
                 acceptedMutex->lock();
                 if (acceptedPackets < 4) {
-		bottomLeftMutex->lock();
-		bottomRightMutex->lock();
-		if (leftBuffer && rightBuffer) {
+	 	    bottomLeftMutex->lock();
+		    bottomRightMutex->lock();
+		    if (leftBuffer && rightBuffer) {
 			bothBuffers = true;
-		} else {
+		    } else {
 			bothBuffers = false;
-		}
-		if (!bothBuffers) {
+		    }
+		    if (!bothBuffers) {
 			if (packetOnLeft) {
         	    		bufferToUnblock = &leftBuffer;
 				bottomRightMutex->unlock();
 				bottomLeftMutex->unlock();
 				gateMutex->lock();
-				gate = true;
+                                gate = !gate;
 				gateMutex->unlock();
 				goto fillDDR;
 			} else {
@@ -120,12 +120,12 @@ void Mux::routeDown(MemoryPacket& packet)
 				bottomRightMutex->unlock();
 				bottomLeftMutex->unlock();
 				gateMutex->lock();
-				gate = false;
+                                gate = !gate;
 				gateMutex->unlock();
 				goto fillDDR;
 			}
-		}
-		else {
+		    }
+		    else {
 			gateMutex->lock();
 			if (gate) {
 				gateMutex->unlock();
@@ -139,15 +139,14 @@ void Mux::routeDown(MemoryPacket& packet)
 					gateMutex->unlock();
 					goto fillDDR;
 				}
-			}
-			else {
+			} else {
 				gateMutex->unlock();
 				if (packetOnLeft) {
 					bufferToUnblock = &leftBuffer;
 					bottomRightMutex->unlock();
 					bottomLeftMutex->unlock();
 					gateMutex->lock();
-					gate = false;
+					gate = true;
 					gateMutex->unlock();
 					goto fillDDR;
 				}
@@ -218,7 +217,7 @@ void Mux::postPacketUp(MemoryPacket& packet)
 	bool bothBuffers = false;
 	while (true) {
 		packet.getProcessor()->waitGlobalTick();
-        	//in this implementation have fairness
+        	//in this implementation we alternate 
 		bottomLeftMutex->lock();
 		bottomRightMutex->lock();
         	if (leftBuffer && rightBuffer) {
@@ -227,9 +226,6 @@ void Mux::postPacketUp(MemoryPacket& packet)
 			bothBuffers = false;
 		}
         	if (!bothBuffers) {
-            		gateMutex->lock();
-            		gate = false;
-            		gateMutex->unlock();
             		//which are we, left or right?
 			//only one buffer in use...so our packet has to be there
             		if (leftBuffer) {
@@ -242,7 +238,7 @@ void Mux::postPacketUp(MemoryPacket& packet)
                     			bottomRightMutex->unlock();
                     			bottomLeftMutex->unlock();
                     			gateMutex->lock();
-                    			gate = true;
+                                        gate = !gate;
                     			gateMutex->unlock();
                     			return upstreamMux->keepRoutingPacket(packet);
                 		}
@@ -254,7 +250,7 @@ void Mux::postPacketUp(MemoryPacket& packet)
                     			bottomRightMutex->unlock();
                     			bottomLeftMutex->unlock();
                   	  		gateMutex->lock();
-                    			gate = true;
+                    			gate = !gate;
                     			gateMutex->unlock();
                     			return upstreamMux->keepRoutingPacket(packet);
                 		}
@@ -269,7 +265,7 @@ void Mux::postPacketUp(MemoryPacket& packet)
                 	        	bottomRightMutex->unlock();
                         		bottomLeftMutex->unlock();
                         		gateMutex->lock();
-                     		   	gate = false;
+                                        gate = !gate;
                         		gateMutex->unlock();
                         		return upstreamMux->keepRoutingPacket(packet);
                     		}
@@ -281,7 +277,7 @@ void Mux::postPacketUp(MemoryPacket& packet)
                         		bottomRightMutex->unlock();
                         		bottomLeftMutex->unlock();
                         		gateMutex->lock();
-                        		gate = false;
+                                        gate = !gate;
                         		gateMutex->unlock();
                         		return upstreamMux->keepRoutingPacket(packet);
                     		}
@@ -336,7 +332,7 @@ void Mux::postPacketUp(MemoryPacket& packet)
                         			bottomRightMutex->unlock();
                         			bottomLeftMutex->unlock();
  		                       		gateMutex->lock();
-                	        		gate = true;
+                	        		gate = !gate;
                         			gateMutex->unlock();
                         			return upstreamMux->keepRoutingPacket(packet);
                     			}
@@ -349,7 +345,7 @@ void Mux::postPacketUp(MemoryPacket& packet)
 	                        		bottomRightMutex->unlock();
         	                		bottomLeftMutex->unlock();
                 	        		gateMutex->lock();
-                        			gate = true;
+                        			gate = !gate;
                        				gateMutex->unlock();
                         			return upstreamMux->keepRoutingPacket(packet);
                     			}
