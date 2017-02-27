@@ -72,6 +72,7 @@ private:
 	uint64_t memoryAvailable;
 	uint64_t pagesAvailable;
 	uint64_t processorNumber;
+	uint64_t randomPage;
 	bool inInterrupt;
 	bool inClock;
 	bool clockDue;
@@ -83,22 +84,23 @@ private:
 	void zeroOutTLBs(const uint64_t& reqPTEPages);
 	uint64_t fetchAddressRead(const uint64_t& address,
         const bool& readOnly = false, const bool& write = false);
-    uint64_t fetchAddressWrite(const uint64_t& address);
+    	uint64_t fetchAddressWrite(const uint64_t& address);
 	bool isBitmapValid(const uint64_t& address,
 	const uint64_t& physAddress) const;
 	uint64_t generateAddress(const uint64_t& frame,
 	const uint64_t& address) const;
-    uint64_t triggerSmallFault(
+    	uint64_t triggerSmallFault(
         const std::tuple<uint64_t, uint64_t, bool>& tlbEntry,
         const uint64_t& address, const bool& write);
 	void interruptBegin();
 	void interruptEnd();
 	void transferGlobalToLocal(const uint64_t& address,
 	const std::tuple<uint64_t, uint64_t, bool>& tlbEntry,
-    const uint64_t& size, const bool& write);
-    uint64_t triggerHardFault(const uint64_t& address, const bool& readOnly,
-        const bool& write);
-	const std::pair<const uint64_t, bool> getFreeFrame() const;
+    	const uint64_t& size, const bool& write);
+    	uint64_t triggerHardFault(const uint64_t& address, const bool& readOnly,
+        	const bool& write);
+	const std::pair<const uint64_t, bool> getRandomFrame();
+	const std::pair<const uint64_t, bool> getFreeFrame();
 	void loadMemory(const uint64_t& frameNo,
 	const uint64_t& address);
 	void fixPageMap(const uint64_t& frameNo,
@@ -108,9 +110,9 @@ private:
 	void fixBitmap(const uint64_t& frameNo);
 	void markBitmapStart(const uint64_t& frameNo,
 	const uint64_t& address);
-    void markBitmapInit(const uint64_t& frameNo,
+	void markBitmapInit(const uint64_t& frameNo,
         const uint64_t& address);
-    void markBitmap(const uint64_t& frameNo,
+	void markBitmap(const uint64_t& frameNo,
         const uint64_t& address);
 	void fixTLB(const uint64_t& frameNo,
 	const uint64_t& address);

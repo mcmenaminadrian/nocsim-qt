@@ -335,8 +335,20 @@ uint64_t Processor::triggerSmallFault(
     return generateAddress(frameNo, address);
 }
 
+const pair<const uint64_t, bool> Processor::getRandomFrame()
+{
+	waitATick();
+	//See 3.2.1 of Knuth (third edition)
+	//simple ramdom number generator
+	//pick pages 3 - 14 (0 - 11)
+	randomPage = (3 * randomPage + 1)%12;
+	waitATick(); //store
+	return pair<const uint64_t, bool>(randomPage + 3, true);
+}
+	
+
 //nominate a frame to be used
-const pair<const uint64_t, bool> Processor::getFreeFrame() const
+const pair<const uint64_t, bool> Processor::getFreeFrame()
 {
 	//have we any empty frames?
 	//we assume this to be subcycle
@@ -359,7 +371,7 @@ const pair<const uint64_t, bool> Processor::getFreeFrame() const
 		return pair<const uint64_t, bool>(couldBe, true);
 	}
 	//no free frames, so we have to pick one
-	return pair<const uint64_t, bool>(7, true);
+	return getRandomFrame();
 }
 
 //drop page from TLBs and page tables - no write back
