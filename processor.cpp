@@ -360,16 +360,18 @@ const pair<const uint64_t, bool> Processor::getFreeFrame()
         if (!(flags & 0x01)) {
             return pair<const uint64_t, bool>(i, false);
         }
+/* No CLOCK in this branch
         if (flags & 0x02) {
 			continue;
 		}
         else if (!(flags & 0x04)) {
 			couldBe = i;
-		}
+		} 
+*/
 	}
-	if (couldBe < 0xFFFF) {
-		return pair<const uint64_t, bool>(couldBe, true);
-	}
+//	if (couldBe < 0xFFFF) {
+//		return pair<const uint64_t, bool>(couldBe, true);
+//	}
 	//no free frames, so we have to pick one
 	return getRandomFrame();
 }
@@ -938,6 +940,7 @@ void Processor::waitATick()
 	ControlThread *pBarrier = masterTile->getBarrier();
 	pBarrier->releaseToRun();
 	totalTicks++;
+/* No CLOCK in this branch
 	if (totalTicks%clockTicks == 0) {
 		clockDue = true;
 	}	
@@ -945,6 +948,7 @@ void Processor::waitATick()
 		clockDue = false;
 		activateClock();
 	}
+*/
 }
 
 void Processor::waitGlobalTick()
