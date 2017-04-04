@@ -16,7 +16,8 @@
 
 using namespace std;
 
-#define WRITE_FACTOR 2
+//set to 1 for DRAM, 2 for flash
+#define WRITE_FACTOR 1
 
 
 Mux::~Mux()
@@ -83,8 +84,12 @@ void Mux::fillBottomBuffer(bool& buffer, mutex *botMutex,
 	}
 }
 
+
+
+
 void Mux::routeDown(MemoryPacket& packet)
 {
+	const int MAXPACK = 1; //set to 4 for flash
 	// - this is the alternating implementation
 	// are we left or right?
 	bool packetOnLeft = false;
@@ -98,7 +103,7 @@ void Mux::routeDown(MemoryPacket& packet)
 	while (true) {
 		packet.getProcessor()->waitGlobalTick();
                 acceptedMutex->lock();
-                if (acceptedPackets < 4) {
+                if (acceptedPackets < MAXPACK) {
 	 	    bottomLeftMutex->lock();
 		    bottomRightMutex->lock();
 		    if (leftBuffer && rightBuffer) {
