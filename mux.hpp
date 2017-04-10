@@ -4,9 +4,9 @@
 
 
 //8 ticks plus MMU time
-static const uint64_t MMU_DELAY = 50;
+static const uint64_t MMU_DELAY = 4;
 static const uint64_t DDR_DELAY = 8;
-static const uint64_t PACKET_LIMIT = 4;
+static const uint64_t PACKET_LIMIT = 1;
 
 class Memory;
 
