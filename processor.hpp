@@ -89,9 +89,6 @@ private:
 	const uint64_t& physAddress) const;
 	uint64_t generateAddress(const uint64_t& frame,
 	const uint64_t& address) const;
-    	uint64_t triggerSmallFault(
-        const std::tuple<uint64_t, uint64_t, bool>& tlbEntry,
-        const uint64_t& address, const bool& write);
 	void interruptBegin();
 	void interruptEnd();
 	void transferGlobalToLocal(const uint64_t& address,

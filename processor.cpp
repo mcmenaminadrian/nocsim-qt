@@ -321,21 +321,6 @@ void Processor::transferLocalToGlobal(const uint64_t& address,
     requestRemoteMemory(size, get<0>(tlbEntry), maskedAddress, true);
 }
 
-uint64_t Processor::triggerSmallFault(
-	const tuple<uint64_t, uint64_t, bool>& tlbEntry,
-    const uint64_t& address, const bool& write)
-{
-    emit smallFault();
-    smallFaultCount++;
-	interruptBegin();
-    transferGlobalToLocal(address, tlbEntry, BITMAP_BYTES, write);
-	const uint64_t frameNo =
-		(get<1>(tlbEntry) - PAGETABLESLOCAL) >> pageShift;
-    markBitmap(frameNo, address);
-	interruptEnd();
-    return generateAddress(frameNo, address);
-}
-
 const pair<const uint64_t, bool> Processor::getRandomFrame()
 {
 	waitATick();
@@ -394,51 +379,56 @@ void Processor::dropPage(const uint64_t& frameNo)
 //only used to dump a frame
 void Processor::writeBackMemory(const uint64_t& frameNo)
 {
-    //is this a read-only frame?
-    if (localMemory->readWord32((1 << pageShift) + frameNo * PAGETABLEENTRY
-        + FLAGOFFSET) & 0x08) {
-        return;
-    }
-    //find bitmap for this frame
-    const uint64_t totalPTEPages =
-        masterTile->readLong(fetchAddressRead(PAGETABLESLOCAL));
-    const uint64_t bitmapOffset =
-        (1 + totalPTEPages) * (1 << pageShift);
-    const uint64_t bitmapSize = (1 << pageShift) / BITMAP_BYTES;
-    uint64_t bitToRead = frameNo * bitmapSize;
-    const uint64_t physicalAddress = mapToGlobalAddress(
-        localMemory->readLong((1 << pageShift) +
-        frameNo * PAGETABLEENTRY)).first;
-    long byteToRead = -1;
-    uint8_t byteBit = 0;
-    for (unsigned int i = 0; i < bitmapSize; i++)
-    {
-        long nextByte = bitToRead / 8;
-        if (nextByte != byteToRead) {
-            byteBit = localMemory->readByte(bitmapOffset + nextByte);
-            byteToRead = nextByte;
-        }
-        uint8_t actualBit = bitToRead%8;
-        if (byteBit & (1 << actualBit)) {
-            //simulate transfer
-            transferLocalToGlobal(frameNo * (1 << pageShift) + PAGETABLESLOCAL +
-                i * BITMAP_BYTES, tlbs[frameNo], BITMAP_BYTES);
-            for (unsigned int j = 0;
-                    j < BITMAP_BYTES/sizeof(uint64_t); j++)
-            {
-                //actual transfer done in here
-                waitATick();
-                uint64_t toGo = masterTile->readLong(
-                    fetchAddressRead(frameNo * (1 << pageShift) +
-                    PAGETABLESLOCAL + i * BITMAP_BYTES +
-                    j * sizeof(uint64_t)));
-                masterTile->writeLong(fetchAddressWrite(
-                    physicalAddress + i * BITMAP_BYTES
-                    + j * sizeof(uint64_t)), toGo);
-            }
-        }
-        bitToRead++;
-    }
+	    //is this a read-only frame?
+    	if (localMemory->readWord32((
+		1 << pageShift) + frameNo * PAGETABLEENTRY
+        	+ FLAGOFFSET) & 0x08) {
+        	return;
+    	}
+    	//find bitmap for this frame
+    	const uint64_t totalPTEPages =
+        	masterTile->readLong(fetchAddressRead(PAGETABLESLOCAL));
+	//const uint64_t bitmapOffset =
+        //	(1 + totalPTEPages) * (1 << pageShift);
+    	//const uint64_t bitmapSize = (1 << pageShift) / BITMAP_BYTES;
+    	//uint64_t bitToRead = frameNo * bitmapSize;
+    	const uint64_t physicalAddress = mapToGlobalAddress(
+        	localMemory->readLong((1 << pageShift) +
+        	frameNo * PAGETABLEENTRY)).first;
+    	//long byteToRead = -1;
+    	//uint8_t byteBit = 0;
+    	for (unsigned int i = 0; i < bitmapSize; i+=2)
+    	{
+        //	long nextByte = bitToRead / 8;
+        //	if (nextByte != byteToRead) {
+        //    		byteBit = localMemory->readByte(bitmapOffset + 
+	//			nextByte);
+        //    		byteToRead = nextByte;
+       // 	}
+       // 	uint8_t actualBit = bitToRead%8;
+       // 	if (byteBit & (1 << actualBit)) {
+            		//simulate transfer
+        		transferLocalToGlobal(
+				frameNo * (1 << pageShift) + PAGETABLESLOCAL +
+                		i * BITMAP_BYTES, tlbs[frameNo],
+				BITMAP_BYTES * 2);
+            		for (unsigned int j = 0;
+                	    j < (BITMAP_BYTES * 2)/sizeof(uint64_t); j++)
+            		{
+                		//actual transfer done in here
+                		waitATick();
+                		uint64_t toGo = masterTile->readLong(
+                    			fetchAddressRead(frameNo * 
+					(1 << pageShift) +
+                    			PAGETABLESLOCAL + i * BITMAP_BYTES +
+                    			j * sizeof(uint64_t)));
+                		masterTile->writeLong(fetchAddressWrite(
+                    			physicalAddress + i * BITMAP_BYTES
+                    			+ j * sizeof(uint64_t)), toGo);
+            		}
+        	}
+        	//bitToRead++;
+    	}
 }
 
 void Processor::loadMemory(const uint64_t& frameNo,
@@ -483,93 +473,6 @@ void Processor::fixPageMapStart(const uint64_t& frameNo,
         frameNo * PAGETABLEENTRY + FLAGOFFSET, 0x0D);
 }
 
-void Processor::fixBitmap(const uint64_t& frameNo)
-{
-	const uint64_t totalPTEPages =
-		masterTile->readLong(fetchAddressRead(PAGETABLESLOCAL));
-	uint64_t bitmapOffset =
-		(1 + totalPTEPages) * (1 << pageShift);
-	const uint64_t bitmapSizeBytes =
-		(1 << pageShift) / (BITMAP_BYTES * 8);
-	const uint64_t bitmapSizeBits = bitmapSizeBytes * 8;
-	uint8_t bitmapByte = localMemory->readByte(
-		frameNo * bitmapSizeBytes + bitmapOffset);
-	uint8_t startBit = (frameNo * bitmapSizeBits) % 8;
-	for (uint64_t i = 0; i < bitmapSizeBits; i++) {
-		bitmapByte = bitmapByte & ~(1 << startBit);
-		startBit++;
-		startBit %= 8;
-		if (startBit == 0) {
-			localMemory->writeByte(
-				frameNo * bitmapSizeBytes + bitmapOffset,
-				bitmapByte);
-			bitmapByte = localMemory->readByte(
-				++bitmapOffset + frameNo * bitmapSizeBytes);
-		}
-	}
-}
-
-void Processor::markBitmapStart(const uint64_t &frameNo,
-    const uint64_t &address)
-{
-    const uint64_t totalPTEPages =
-        masterTile->readLong(PAGETABLESLOCAL);
-    uint64_t bitmapOffset =
-        (1 + totalPTEPages) * (1 << pageShift);
-    const uint64_t bitmapSizeBytes =
-        (1 << pageShift) / (BITMAP_BYTES * 8);
-    for (unsigned int i = 0; i < bitmapSizeBytes; i++) {
-        localMemory->writeByte(frameNo * bitmapSizeBytes + i + bitmapOffset,
-            '\0');
-    }
-    uint64_t bitToMark = (address & bitMask) / BITMAP_BYTES;
-    const uint64_t byteToFetch = (bitToMark / 8) +
-        frameNo * bitmapSizeBytes + bitmapOffset;
-    bitToMark %= 8;
-    uint8_t bitmapByte = localMemory->readByte(byteToFetch);
-    bitmapByte |= (1 << bitToMark);
-    localMemory->writeByte(byteToFetch, bitmapByte);
-}
-
-void Processor::markBitmap(const uint64_t& frameNo,
-	const uint64_t& address)
-{
-	const uint64_t totalPTEPages =
-		masterTile->readLong(PAGETABLESLOCAL);
-	uint64_t bitmapOffset =
-		(1 + totalPTEPages) * (1 << pageShift);
-	const uint64_t bitmapSizeBytes =
-		(1 << pageShift) / (BITMAP_BYTES * 8);
-	uint64_t bitToMark = (address & bitMask) / BITMAP_BYTES;
-	const uint64_t byteToFetch = (bitToMark / 8) +
-		frameNo * bitmapSizeBytes + bitmapOffset;
-	bitToMark %= 8;
-	uint8_t bitmapByte = localMemory->readByte(byteToFetch);
-	bitmapByte |= (1 << bitToMark);
-	localMemory->writeByte(byteToFetch, bitmapByte);
-    for (uint64_t i = 0; i < BITMAPDELAY; i++) {
-        waitATick();
-    }
-}
-
-void Processor::markBitmapInit(const uint64_t& frameNo,
-    const uint64_t& address)
-{
-    const uint64_t totalPTEPages =
-        masterTile->readLong(PAGETABLESLOCAL);
-    uint64_t bitmapOffset =
-        (1 + totalPTEPages) * (1 << pageShift);
-    const uint64_t bitmapSizeBytes =
-        (1 << pageShift) / (BITMAP_BYTES * 8);
-    uint64_t bitToMark = (address & bitMask) / BITMAP_BYTES;
-    const uint64_t byteToFetch = (bitToMark / 8) +
-        frameNo * bitmapSizeBytes + bitmapOffset;
-    bitToMark %= 8;
-    uint8_t bitmapByte = localMemory->readByte(byteToFetch);
-    bitmapByte |= (1 << bitToMark);
-    localMemory->writeByte(byteToFetch, bitmapByte);
-}
-
 void Processor::fixTLB(const uint64_t& frameNo,
 	const uint64_t& address)
 {
@@ -583,75 +486,72 @@ void Processor::fixTLB(const uint64_t& frameNo,
 const pair<uint64_t, uint8_t>
     Processor::mapToGlobalAddress(const uint64_t& address)
 {
-    uint64_t globalPagesBase = 0x800;
-    //48 bit addresses
-    uint64_t address48 = address & 0xFFFFFFFFFFFF;
-    uint64_t superDirectoryIndex = address48 >> 37;
-    uint64_t directoryIndex = (address48 >> 28) & 0x1FF;
-    uint64_t superTableIndex = (address48 >> 19) & 0x1FF;
-    uint64_t tableIndex = (address48 & 0x7FFFF) >> pageShift;
-    waitATick();
-    //read off the superDirectory number
-    //simulate read of global table
-    fetchAddressToRegister();
-    uint64_t ptrToDirectory = masterTile->readLong(globalPagesBase +
-        superDirectoryIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
-    if (ptrToDirectory == 0) {
-        cerr << "Bad SuperDirectory: " << hex << address << endl;
-        throw new bad_exception();
-    }
-    waitATick();
-    fetchAddressToRegister();
-    uint64_t ptrToSuperTable = masterTile->readLong(ptrToDirectory +
-        directoryIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
-    if (ptrToSuperTable == 0) {
-        cerr << "Bad Directory: " << hex << address << endl;
-        throw new bad_exception();
-    }
-    waitATick();
-    fetchAddressToRegister();
-    uint64_t ptrToTable = masterTile->readLong(ptrToSuperTable +
-        superTableIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
-    if (ptrToTable == 0) {
-        cerr << "Bad SuperTable: " << hex << address << endl;
-        throw new bad_exception();
-    }
-    waitATick();
-    fetchAddressToRegister();
-    pair<uint64_t, uint8_t> globalPageTableEntry(
-        masterTile->readLong(ptrToTable + tableIndex *
+	uint64_t globalPagesBase = 0x800;
+    	//48 bit addresses
+    	uint64_t address48 = address & 0xFFFFFFFFFFFF;
+    	uint64_t superDirectoryIndex = address48 >> 37;
+    	uint64_t directoryIndex = (address48 >> 28) & 0x1FF;
+    	uint64_t superTableIndex = (address48 >> 19) & 0x1FF;
+    	uint64_t tableIndex = (address48 & 0x7FFFF) >> pageShift;
+    	waitATick();
+    	//read off the superDirectory number
+    	//simulate read of global table
+    	fetchAddressToRegister();
+    	uint64_t ptrToDirectory = masterTile->readLong(globalPagesBase +
+        	superDirectoryIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
+    	if (ptrToDirectory == 0) {
+        	cerr << "Bad SuperDirectory: " << hex << address << endl;
+        	throw new bad_exception();
+    	}
+    	waitATick();
+    	fetchAddressToRegister();
+    	uint64_t ptrToSuperTable = masterTile->readLong(ptrToDirectory +
+        	directoryIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
+    	if (ptrToSuperTable == 0) {
+        	cerr << "Bad Directory: " << hex << address << endl;
+        	throw new bad_exception();
+    	}
+    	waitATick();
+    	fetchAddressToRegister();
+    	uint64_t ptrToTable = masterTile->readLong(ptrToSuperTable +
+        	superTableIndex * (sizeof(uint64_t) + sizeof(uint8_t)));
+    	if (ptrToTable == 0) {
+        	cerr << "Bad SuperTable: " << hex << address << endl;
+        	throw new bad_exception();
+    	}
+    	waitATick();
+    	fetchAddressToRegister();
+    	pair<uint64_t, uint8_t> globalPageTableEntry(
+        	masterTile->readLong(ptrToTable + tableIndex *
                  (sizeof(uint64_t) + sizeof(uint8_t))),
-        masterTile->readByte(ptrToTable + tableIndex *
+        	masterTile->readByte(ptrToTable + tableIndex *
                  (sizeof(uint64_t) + sizeof(uint8_t)) + sizeof(uint64_t)));
-    waitATick();
-    return globalPageTableEntry;
+    	waitATick();
+   	 return globalPageTableEntry;
 
 }
 
 uint64_t Processor::triggerHardFault(const uint64_t& address,
     const bool& readOnly, const bool& write)
 {
-    emit hardFault();
-    hardFaultCount++;
-    interruptBegin();
-    const pair<const uint64_t, bool> frameData = getFreeFrame();
-    if (frameData.second) {
-        writeBackMemory(frameData.first);
-    }
-    fixBitmap(frameData.first);
-    pair<uint64_t, uint8_t> translatedAddress = mapToGlobalAddress(address);
-    fixTLB(frameData.first, translatedAddress.first);
-    transferGlobalToLocal(translatedAddress.first + (address & bitMask),
-        tlbs[frameData.first], BITMAP_BYTES, write);
-    fixPageMap(frameData.first, translatedAddress.first, readOnly);
-    markBitmapStart(frameData.first, translatedAddress.first +
-        (address & bitMask));
-    for (uint64_t i = 0; i < BITMAPDELAY; i++) {
-         waitATick();
-    }
-    interruptEnd();
-    return generateAddress(frameData.first, translatedAddress.first +
-        (address & bitMask));
+    	emit hardFault();
+    	hardFaultCount++;
+    	interruptBegin();
+   	 const pair<const uint64_t, bool> frameData = getFreeFrame();
+    	if (frameData.second) {
+        	writeBackMemory(frameData.first);
+    	}
+    	//fixBitmap(frameData.first);
+    	pair<uint64_t, uint8_t> translatedAddress = mapToGlobalAddress(address);
+    	fixTLB(frameData.first, translatedAddress.first);
+		for (int i = 0; i < (1 << PAGE_SHIFT); i += BITMAP_BYTES * 2) { 
+    		transferGlobalToLocal(translatedAddress.first + i,
+        		tlbs[frameData.first], BITMAP_BYTES * 2, write);
+		}
+    	fixPageMap(frameData.first, translatedAddress.first, readOnly);
+    	interruptEnd();
+    	return generateAddress(frameData.first, translatedAddress.first +
+        	(address & bitMask));
 }
 
 void Processor::incrementBlocks()
@@ -673,49 +573,45 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address,
 	//implement paging logic
 	if (mode == VIRTUAL) {
 		uint64_t pageSought = address & pageMask;
-        uint64_t y = 0;
+	 	uint64_t y = 0;
 		for (auto x: tlbs) {
-            if (get<2>(x) && ((pageSought) == (get<0>(x) & pageMask))) {
-                //entry in TLB - check bitmap
-                for (uint64_t i = 0; i < BITMAPDELAY; i++) {
-                    waitATick();
-                }
-                if (!isBitmapValid(address, get<1>(x))) {
-                    return triggerSmallFault(x, address, write);
-                }
-                return generateAddress(y, address);
-		    }
-            y++;
+            		if (get<2>(x) && ((pageSought) == 
+				(get<0>(x) & pageMask))) {
+                		return generateAddress(y, address);
+			}
+            		y++;
 		}
 		//not in TLB - but check if it is in page table
 		waitATick(); 
 		for (unsigned int i = 0; i < TOTAL_LOCAL_PAGES; i++) {
-		    waitATick();
-            uint64_t addressInPageTable = PAGETABLESLOCAL +
-                        (i * PAGETABLEENTRY) + (1 << pageShift);
-            uint64_t flags = masterTile->readWord32(addressInPageTable
-                        + FLAGOFFSET);
-            if (!(flags & 0x01)) {
-                continue;
-            }
-            waitATick();
-            uint64_t storedPage = masterTile->readLong(
-                        addressInPageTable + VOFFSET);
-            waitATick();
-            if (pageSought == storedPage) {
-                waitATick();
-                flags |= 0x04;
-                masterTile->writeWord32(addressInPageTable + FLAGOFFSET,
-                    flags);
-                waitATick();
-                fixTLB(i, address);
-                waitATick();
-                return fetchAddressRead(address);
-            }
-            waitATick();
-        }
-        waitATick();
-        return triggerHardFault(address, readOnly, write);
+			waitATick();
+            		uint64_t addressInPageTable = PAGETABLESLOCAL +
+                        	(i * PAGETABLEENTRY) + (1 << pageShift);
+            		uint64_t flags = masterTile->readWord32(
+				addressInPageTable
+                        	+ FLAGOFFSET);
+            		if (!(flags & 0x01)) {
+                		continue;
+            		}
+            		waitATick();
+            		uint64_t storedPage = masterTile->readLong(
+                        	addressInPageTable + VOFFSET);
+            		waitATick();
+            		if (pageSought == storedPage) {
+                		waitATick();
+                		flags |= 0x04;
+                		masterTile->writeWord32(
+					addressInPageTable + FLAGOFFSET,
+                    			flags);
+                		waitATick();
+                		fixTLB(i, address);
+                		waitATick();
+                		return fetchAddressRead(address);
+            		}
+            		waitATick();
+        	}
+        	waitATick();
+        	return triggerHardFault(address, readOnly, write);
 	} else {
 		//what do we do if it's physical address?
 		return address;
@@ -724,56 +620,50 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address,
 
 uint64_t Processor::fetchAddressWrite(const uint64_t& address)
 {
-    const bool readOnly = false;
-    //implement paging logic
-    if (mode == VIRTUAL) {
-        uint64_t pageSought = address & pageMask;
-        uint64_t y = 0;
-        for (auto x: tlbs) {
-            if (get<2>(x) && ((pageSought) == (get<0>(x) & pageMask))) {
-                //entry in TLB - check bitmap
-                for (uint64_t i = 0; i < BITMAPDELAY; i++) {
-                    waitATick();
-                }
-                if (!isBitmapValid(address, get<1>(x))) {
-                    return triggerSmallFault(x, address, true);
-                }
-                return generateAddress(y, address);
-            }
-            y++;
+	const bool readOnly = false;
+    	//implement paging logic
+    	if (mode == VIRTUAL) {
+        	uint64_t pageSought = address & pageMask;
+        	uint64_t y = 0;
+        	for (auto x: tlbs) {
+            		if (get<2>(x) && ((pageSought) == (get<0>(x) & pageMask))) {
+                	//entry in TLB - check bitmap
+                	return generateAddress(y, address);
+            	}
+            	y++;
         }
         //not in TLB - but check if it is in page table
         waitATick();
         for (unsigned int i = 0; i < TOTAL_LOCAL_PAGES; i++) {
-            waitATick();
-            uint64_t addressInPageTable = PAGETABLESLOCAL +
+            	waitATick();
+            	uint64_t addressInPageTable = PAGETABLESLOCAL +
                         (i * PAGETABLEENTRY) + (1 << pageShift);
-            uint64_t flags = masterTile->readWord32(addressInPageTable
+            	uint64_t flags = masterTile->readWord32(addressInPageTable
                         + FLAGOFFSET);
-            if (!(flags & 0x01)) {
-                continue;
-            }
-            waitATick();
-            uint64_t storedPage = masterTile->readLong(
+            	if (!(flags & 0x01)) {
+                	continue;
+            	}
+            	waitATick();
+            	uint64_t storedPage = masterTile->readLong(
                         addressInPageTable + VOFFSET);
-            waitATick();
-            if (pageSought == storedPage) {
-                waitATick();
-                flags |= 0x04;
-                masterTile->writeWord32(addressInPageTable + FLAGOFFSET,
-                    flags);
-                waitATick();
-                fixTLB(i, address);
-                waitATick();
-                return fetchAddressRead(address);
-            }
-            waitATick();
+            	waitATick();
+            	if (pageSought == storedPage) {
+                	waitATick();
+                	flags |= 0x04;
+                	masterTile->writeWord32(addressInPageTable + FLAGOFFSET,
+                    		flags);
+                	waitATick();
+                	fixTLB(i, address);
+                	waitATick();
+                	return fetchAddressRead(address);
+            	}
+            	waitATick();
         }
         waitATick();
         return triggerHardFault(address, readOnly, true);
-    } else {
-        //what do we do if it's physical address?
-        return address;
+    	} else {
+        	//what do we do if it's physical address?
+        	return address;
     }
 }
 
