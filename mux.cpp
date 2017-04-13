@@ -16,7 +16,7 @@
 
 using namespace std;
 
-#define WRITE_FACTOR 1 
+#define WRITE_FACTOR 22 
 
 
 Mux::~Mux()
@@ -87,7 +87,7 @@ void Mux::routeDown(MemoryPacket& packet)
 {
 	// - this is the alternating implementation
 	// are we left or right?
-        const int MAXPACK = 1; // 4 for flash
+        const int MAXPACK = 4; // 4 for flash
 	bool packetOnLeft = false;
 	bool *bufferToUnblock = nullptr;
 	const uint64_t processorIndex = packet.getProcessor()->
