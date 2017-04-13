@@ -355,15 +355,15 @@ void Processor::writeBackMemory(const uint64_t& frameNo)
     	const uint64_t physicalAddress = mapToGlobalAddress(
         	localMemory->readLong((1 << pageShift) +
         	frameNo * PAGETABLEENTRY)).first;
-    	for (unsigned int i = 0; i < 1024; i+= 32)
+    	for (unsigned int i = 0; i < 1024; i+= 16)
     	{
             	//simulate transfer
         	transferLocalToGlobal(
 			frameNo * (1 << pageShift) 
 			+ PAGETABLESLOCAL + i,
-			 tlbs[frameNo], 0x20);
+			 tlbs[frameNo], 0x10);
             	for (unsigned int j = 0;
-                	    j < (32 / sizeof(uint64_t)); j++)
+                	    j < (16 / sizeof(uint64_t)); j++)
             	{
                 	//actual transfer done in here
                 	waitATick();
@@ -374,7 +374,7 @@ void Processor::writeBackMemory(const uint64_t& frameNo)
 					i +
                     			j * sizeof(uint64_t)));
                 	masterTile->writeLong(fetchAddressWrite(
-                    		physicalAddress + i * BITMAP_BYTES
+                    		physicalAddress + i 
                     		+ j * sizeof(uint64_t)), toGo);
             	}
         }
@@ -477,9 +477,9 @@ uint64_t Processor::triggerHardFault(const uint64_t& address,
     	}
     	pair<uint64_t, uint8_t> translatedAddress = mapToGlobalAddress(address);
     	fixTLB(frameData.first, translatedAddress.first);
-	for (int i = 0; i < (1 << PAGE_SHIFT); i += BITMAP_BYTES * 2) { 
+	for (int i = 0; i < (1 << PAGE_SHIFT); i += BITMAP_BYTES) { 
     		transferGlobalToLocal(translatedAddress.first + i,
-        		tlbs[frameData.first], BITMAP_BYTES * 2, write);
+        		tlbs[frameData.first], BITMAP_BYTES, write);
 	}
     	fixPageMap(frameData.first, translatedAddress.first, readOnly);
     	interruptEnd();
