@@ -1,4 +1,4 @@
-#define TILE_MEM_SIZE (16 * 1024)
+#define TILE_MEM_SIZE (17 * 1024)
 #ifndef _TILE_CLASS_
 #define _TILE_CLASS_
 #include <QString>

@@ -49,7 +49,7 @@ Processor::Processor(Tile *parent, MainWindow *mW, uint64_t numb):
     hardFaultCount = 0;
     smallFaultCount = 0;
     blocks = 0;
-        randomPage = 7;
+        randomPage = -1;
 	inInterrupt = false;
     processorNumber = numb;
     clockDue = false;
@@ -341,9 +341,9 @@ const pair<const uint64_t, bool> Processor::getRandomFrame()
 	waitATick();
 	//See 3.2.1 of Knuth (third edition)
 	//simple ramdom number generator
-	//pick pages 3 - 14 (0 - 11)
+	//pick pages 3 - 15 (0 - 12)
         //old rand had factor of 3, better has factor of 1
-	randomPage = (1 * randomPage + 1)%12;
+	randomPage = (randomPage + 1)%13;
 	waitATick(); //store
 	return pair<const uint64_t, bool>(randomPage + 3, true);
 }
