@@ -16,7 +16,7 @@
 
 using namespace std;
 
-#define WRITE_FACTOR 22 
+#define WRITE_FACTOR 2 
 
 
 Mux::~Mux()
