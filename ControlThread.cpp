@@ -36,7 +36,7 @@ void ControlThread::releaseToRun()
 
 void ControlThread::sufficientPower(Processor *pActive)
 {
-	unique_lock<mutex> lck(powerlock);
+	unique_lock<mutex> lck(powerLock);
 	bool statePower = pActive->getTile()->getPowerState();
 	if (statePower) {
 		lck.unlock();

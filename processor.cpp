@@ -797,7 +797,7 @@ void Processor::waitGlobalTick()
 	for (uint64_t i = 0; i < GLOBALCLOCKSLOW; i++) {
 		ControlThread *pBarrier = masterTile->getBarrier();
 		pBarrier->releaseToRun();
-		totalTicks()++;
+		totalTicks++;
 		if (totalTicks%clockTicks == 0) {
 			clockDue == true;
 		}	
