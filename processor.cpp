@@ -251,6 +251,7 @@ const vector<uint8_t> Processor::requestRemoteMemory(
         	memoryRequest.setWrite();
     	}
 	//wait for response
+	masterTile->setPowerStateOff();
 	if (masterTile->treeLeaf->acceptPacketUp(memoryRequest)) {
         	masterTile->treeLeaf->routePacket(memoryRequest);
 	} else {
@@ -270,6 +271,7 @@ void Processor::transferGlobalToLocal(const uint64_t& address,
 	vector<uint8_t> answer = requestRemoteMemory(size,
 		maskedAddress, get<1>(tlbEntry) +
         	(maskedAddress & bitMask), write);
+	masterTile->setPowerStateOn();
 	for (auto x: answer) {
 		masterTile->writeByte(get<1>(tlbEntry) + offset + 
 			(maskedAddress & bitMask), x);
@@ -286,7 +288,9 @@ void Processor::transferLocalToGlobal(const uint64_t& address,
     	uint64_t maskedAddress = address & BITMAP_MASK;
     	//make the call - ignore the results
     	requestRemoteMemory(size, get<0>(tlbEntry), maskedAddress, true);
+	masterTile->setPowerStateOn();
 }
+
 
 const pair<const uint64_t, bool> Processor::getRandomFrame()
 {
@@ -736,6 +740,13 @@ void Processor::start()
 	switchModeVirtual();
 	ControlThread *pBarrier = masterTile->getBarrier();
 	pBarrier->waitForBegin();
+	//enforce power discipline from start
+	int jitter = rand()%257;
+	for (int i = 0; i < jitter; i++) {
+		idleTick();
+	}
+	pBarrier->sufficientPower(this);
+	waitATick();
 }	
 
 void Processor::pcAdvance(const long count)
@@ -743,6 +754,13 @@ void Processor::pcAdvance(const long count)
 	programCounter += count;
 	fetchAddressRead(programCounter, true);
 	waitATick();
+	masterTile->getBarrier()->sufficientPower(this);
+}
+
+void Processor::idleTick()
+{
+	ControlThread *pBarrier = masterTile->getBarrier();
+	pBarrier->releaseToRun();
 }
 
 bool Processor::tryCheatLock() const
@@ -765,16 +783,24 @@ void Processor::waitATick()
 	if (totalTicks%clockTicks == 0) {
 		clockDue = true;
 	}	
-	if (clockDue && inClock == false) {
+	if (clockDue && !inClock) {
 		clockDue = false;
 		activateClock();
+	}
+	if (!inInterrupt && masterTile->getPowerState() == false) {
+		waitATick();
 	}
 }
 
 void Processor::waitGlobalTick()
 {
-    for (uint64_t i = 0; i < GLOBALCLOCKSLOW; i++) {
-		waitATick();
+	for (uint64_t i = 0; i < GLOBALCLOCKSLOW; i++) {
+		ControlThread *pBarrier = masterTile->getBarrier();
+		pBarrier->releaseToRun();
+		totalTicks()++;
+		if (totalTicks%clockTicks == 0) {
+			clockDue == true;
+		}	
 	}
 }
 
@@ -801,27 +827,28 @@ void Processor::activateClock()
 	if (inInterrupt) {
 		return;
 	}
+	masterTile->setPowerStateOn(); //wake up if needed
 	inClock = true;
-    uint64_t pages = TILE_MEM_SIZE >> pageShift;
+    	uint64_t pages = TILE_MEM_SIZE >> pageShift;
 	interruptBegin();
-    int wiped = 0;
-    for (uint8_t i = 0; i < pages; i++) {
+    	int wiped = 0;
+    	for (uint8_t i = 0; i < pages; i++) {
 		waitATick();
-        uint64_t flagAddress = (1 << pageShift) + PAGETABLESLOCAL +
-                ((i + currentTLB) % pagesAvailable) * PAGETABLEENTRY
-                + FLAGOFFSET;
+        	uint64_t flagAddress = (1 << pageShift) + PAGETABLESLOCAL +
+                	((i + currentTLB) % pagesAvailable) * PAGETABLEENTRY
+                	+ FLAGOFFSET;
 		uint32_t flags = masterTile->readWord32(flagAddress);
 		waitATick();
-        if (!(flags & 0x01) || flags & 0x02) {
+        	if (!(flags & 0x01) || flags & 0x02) {
 			continue;
 		}
 		flags = flags & (~0x04);
 		waitATick();
 		masterTile->writeWord32(flagAddress, flags);
 		waitATick();
-        get<2>(tlbs[(i + currentTLB) % pagesAvailable]) = false;
-        if (++wiped >= clockWipe)
-            break;
+        	get<2>(tlbs[(i + currentTLB) % pagesAvailable]) = false;
+        	if (++wiped >= clockWipe)
+            		break;
 	}
 	waitATick();
 	currentTLB = (currentTLB + clockWipe) % pagesAvailable;

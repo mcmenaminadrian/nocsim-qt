@@ -8,7 +8,7 @@
 #ifndef __CONTROLTHREAD_
 #define __CONTROLTHREAD_
 
-
+class Processor;
 
 class ControlThread: public QObject {
     Q_OBJECT
@@ -21,12 +21,14 @@ private:
 	volatile uint16_t taskCount;
 	volatile uint16_t signedInCount;
 	volatile uint16_t blockedInTree;
+	volatile uint16_t powerCount;
 	std::mutex runLock;
 	bool beginnable;
 	std::condition_variable go;
 	std::mutex taskCountLock;
 	std::mutex blockLock;
 	std::mutex cheatLock;
+	std::mutex powerLock;
 	MainWindow *mainWindow;
 	void run();
 
@@ -40,6 +42,7 @@ public:
 	void waitForBegin();
 	bool tryCheatLock();
 	void unlockCheatLock();
+	void sufficientPower(Processor *p);
 };
 
 #endif

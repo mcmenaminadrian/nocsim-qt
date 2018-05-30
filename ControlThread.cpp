@@ -4,9 +4,12 @@
 #include <thread>
 #include <condition_variable>
 #include "mainwindow.h"
+#include "processor.hpp"
 #include "ControlThread.hpp"
 
 using namespace std;
+
+static uint POWER_MAX=8; //maximum number of active cores
 
 ControlThread::ControlThread(unsigned long tcks, MainWindow *pWind):
     ticks(tcks), taskCount(0), beginnable(false), mainWindow(pWind)
@@ -29,6 +32,26 @@ void ControlThread::releaseToRun()
 	}
 	taskCountLock.unlock();
 	go.wait(lck);
+}
+
+void ControlThread::sufficientPower(Processor *pActive)
+{
+	unique_lock<mutex> lck(powerlock);
+	bool statePower = pActive->getTile()->getPowerState();
+	if (statePower) {
+		lck.unlock();
+		return;
+	}
+	powerCount++;
+	if (powerCount > POWER_MAX) {
+		lck.unlock();
+		if (!pActive->isInInterrupt()) {
+			pActive->getTile()->setPowerStateOff();
+		}
+		return;
+	}
+	lck.unlock();
+	return;
 }
 
 void ControlThread::incrementTaskCount()

@@ -25,7 +25,8 @@ Tile::Tile(Noc* n, const long c, const long r, const long pShift,
         coordinates{pair<const long, const long>(c, r)}, parentBoard{n},
     	mainWindow(mW)
 {
-    tileProcessor = new Processor(this, mainWindow, numb);
+	tileProcessor = new Processor(this, mainWindow, numb);
+	setPowerStateOn();
 	tileProcessor->createMemoryMap(tileLocalMemory, pShift);
 }
 

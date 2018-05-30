@@ -15,6 +15,7 @@ private:
 	std::vector<std::pair<long, long> > connections;
 	Noc *parentBoard;
 	MainWindow *mainWindow;
+	bool powerState;
 
 public:
     	Tile(Noc* parent, const long col, const long r, const long pShift,
@@ -35,8 +36,12 @@ public:
     	uint32_t readWord32(const uint64_t& address) const;
     	void writeWord32(const uint64_t& address, const uint32_t& value) const;
     	void writeByte(const uint64_t& address, const uint8_t& value) const;
-   	 void writeLong(const uint64_t& address, const uint64_t& value) const;
+   	void writeLong(const uint64_t& address, const uint64_t& value) const;
 	ControlThread *getBarrier();
+	bool getPowerState() const { return powerState; }
+	void setPowerStateOff() { powerState = false; }
+	void setPowerStateOn() { powerState = true; }
+
 };
 
 #endif

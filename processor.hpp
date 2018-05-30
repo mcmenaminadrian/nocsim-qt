@@ -117,11 +117,12 @@ private:
         const uint64_t& localAddress, const bool& write);
     	const std::pair<uint64_t, uint8_t>
         mapToGlobalAddress(const uint64_t& address);
-    void fetchAddressToRegister();
+    	void fetchAddressToRegister();
 	void activateClock();
+	void idleTick();
 	//adjust numbers below to change how CLOCK fuctions
-    const uint8_t clockWipe = 1;
-    const uint16_t clockTicks = 1000;
+    	const uint8_t clockWipe = 1;
+    	const uint16_t clockTicks = 1000;
 	uint64_t totalTicks;
 	uint64_t currentTLB;
 
@@ -136,7 +137,8 @@ public:
 	void setPCNull();
 	void start();
 	void pcAdvance(const long count = sizeof(long));
-    	uint64_t getRegister(const uint64_t& regNumber) const;
+    	bool isInInterrupt() const { return inInterrupt; }
+	uint64_t getRegister(const uint64_t& regNumber) const;
     	void setRegister(const uint64_t& regNumber,
         	const uint64_t& value);
 	uint8_t getAddress(const uint64_t& address);
@@ -147,10 +149,10 @@ public:
 	uint64_t getLongAddress(const uint64_t& address);
 	void writeAddress(const uint64_t& addr,
 		const uint64_t& value);
-    void writeAddress64(const uint64_t& addr);
-    void writeAddress32(const uint64_t& addr);
-    void writeAddress16(const uint64_t& addr);
-    void writeAddress8(const uint64_t& addr);
+    	void writeAddress64(const uint64_t& addr);
+    	void writeAddress32(const uint64_t& addr);
+    	void writeAddress16(const uint64_t& addr);
+    	void writeAddress8(const uint64_t& addr);
 	void pushStackPointer();
 	void popStackPointer();
     	uint64_t getStackPointer() const;
