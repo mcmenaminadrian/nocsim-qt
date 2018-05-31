@@ -29,7 +29,7 @@
 #include "ControlThread.hpp"
 
 
-#define PAGE_TABLE_COUNT 512
+#define PAGE_TABLE_COUNT 1024 
 
 using namespace std;
 using namespace xercesc;
@@ -123,12 +123,19 @@ fail:
 //memory regions - pair: 1st is number, 2nd is flag
 //on flag - bit 1 is valid
 //48 bit addresses
+const static uint64_t SUPERDIRLEN = 11;
+const static uint64_t DIRLEN = 9;
+const static uint64_t SUPERTABLELEN = 9;
+const static uint64_t TABLELEN = 10;
+
+
+
 unsigned long Noc::createBasicPageTables()
 {
-    uint64_t startOfPageTables = 2048;
+	uint64_t startOfPageTables = 2048;
 	//create a bottom of the heirarchy table
 
-    PageTable superDirectory(11);
+	PageTable superDirectory(SUPERDIRLEN);
     uint64_t runLength = 0;
     uint64_t superDirectoryLength =
 		superDirectory.streamToMemory(globalMemory[0],
@@ -141,7 +148,7 @@ unsigned long Noc::createBasicPageTables()
     runLength += superDirectoryLength;
     uint64_t startOfDirectory = startOfPageTables + runLength;
 
-    PageTable directory(9);
+    PageTable directory(DIRLEN);
     uint64_t directoryLength =
         directory.streamToMemory(globalMemory[0], startOfDirectory);
     globalMemory[0].writeLong(startOfDirectory, startOfDirectory + directoryLength);
@@ -151,7 +158,7 @@ unsigned long Noc::createBasicPageTables()
 
 
     //page tables for low addresses here
-    PageTable superTable_A(9);
+    PageTable superTable_A(SUPERTABLELEN);
 
     uint64_t superTableLength =
         superTable_A.streamToMemory(globalMemory[0], startOfSuperTable);
@@ -162,7 +169,7 @@ unsigned long Noc::createBasicPageTables()
 
     vector<PageTable> tables;
     for (int i = 0; i < PAGE_TABLE_COUNT; i++) {
-        PageTable pageTable(9);
+        PageTable pageTable(TABLELEN);
         tables.push_back(pageTable);
     }
     uint64_t tableLength =
@@ -180,7 +187,7 @@ unsigned long Noc::createBasicPageTables()
         globalMemory[0].writeByte(offsetA + sizeof(uint64_t), 0x01);
     }
     uint64_t bottomOfPageTable = runLength + tableLength * PAGE_TABLE_COUNT;
-    for (unsigned int i = 0; i < (1 << 8) * PAGE_TABLE_COUNT; i++) {
+    for (unsigned int i = 0; i < (1 << TABLELEN) * PAGE_TABLE_COUNT; i++) {
         uint64_t offsetB = startOfPageTables + runLength
                 + i * (sizeof(uint64_t) + sizeof(uint8_t));
         globalMemory[0].writeLong(offsetB, i * (1 << PAGE_SHIFT));
@@ -203,7 +210,7 @@ unsigned long Noc::createBasicPageTables()
     globalMemory[0].writeByte(startOfDirectory +
         DIR_OFFSET * (sizeof (uint64_t) + sizeof(uint8_t)) + sizeof(uint64_t), 1);
 
-    PageTable superTable_B(8);
+    PageTable superTable_B(SUPERTABLELEN);
     superTable_B.streamToMemory(globalMemory[0], startOfSuperTable);
     globalMemory[0].writeLong(startOfSuperTable,
         startOfSuperTable + superTableLength);
@@ -213,7 +220,7 @@ unsigned long Noc::createBasicPageTables()
 
     //add in yet more tables at the bottom
     for (int i = 0; i < PAGE_TABLE_COUNT; i++) {
-        PageTable pageTable(8);
+        PageTable pageTable(TABLELEN);
         tables.push_back(pageTable);
     }
 
@@ -231,7 +238,7 @@ unsigned long Noc::createBasicPageTables()
     }
 
     //now the page tables themselves
-    for (unsigned int i = 0; i < (1 << 8) * PAGE_TABLE_COUNT; i++) {
+    for (unsigned int i = 0; i < (1 << TABLELEN) * PAGE_TABLE_COUNT; i++) {
         uint64_t offsetB = startSecondGroupPT +
                 i * (sizeof(uint64_t) + sizeof(uint8_t));
         globalMemory[0].writeLong(offsetB, 0x80000000 + i * (1 << PAGE_SHIFT));
@@ -242,7 +249,7 @@ unsigned long Noc::createBasicPageTables()
     runLength += tableLength * PAGE_TABLE_COUNT;
 
     unsigned long pagesUsedForTables = runLength >> PAGE_SHIFT;
-    if (runLength%1024) {
+    if (runLength%(1 << PAGE_SHIFT)) {
             pagesUsedForTables++;
     }
 	

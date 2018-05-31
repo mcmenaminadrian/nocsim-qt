@@ -37,7 +37,7 @@ static const uint64_t BITMAP_BYTES = 16;
 static const uint64_t BITMAP_SHIFT = 4;
 static const uint64_t BITMAP_MASK = 0xFFFFFFFFFFFFFFF0;
 //page mappings
-static const uint64_t PAGETABLESLOCAL = 0xA000000000000000;
+static const uint64_t PAGESLOCAL = 0xA000000000000000;
 static const uint64_t GLOBALCLOCKSLOW = 1;
 static const uint64_t TOTAL_LOCAL_PAGES = TILE_MEM_SIZE >> PAGE_SHIFT;
 static const uint64_t BITS_PER_BYTE = 8;
@@ -163,7 +163,7 @@ public:
     	}
     	void setProgramCounter(const uint64_t& address) {
         	programCounter = address;
-        	fetchAddressRead(address);
+        	fetchAddressRead(address, true);
     	}
     	void checkCarryBit();
     	void writeBackMemory(const uint64_t& frameNo);
