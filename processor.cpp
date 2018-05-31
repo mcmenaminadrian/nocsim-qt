@@ -148,8 +148,8 @@ void Processor::markUpBasicPageEntries(const uint64_t& reqPTEPages)
 		masterTile->writeWord32(pageEntryBase + FLAGOFFSET, 0x07);
 	}
 	//stack
-    	uint stackFrame = (TILE_MEM_SIZE >> pageShift) - 1;
-	const uint64_t stackInTable = (1 << pageShift) * KERNELPAGES + 
+    	uint64_t stackFrame = (TILE_MEM_SIZE >> pageShift) - 1;
+	uint64_t stackInTable = (1 << pageShift) * KERNELPAGES + 
         	stackFrame * PAGETABLEENTRY + PAGESLOCAL;
 	for (unsigned int i = 0; i < STACKPAGES; i++) {
     		masterTile->writeLong(stackInTable + VOFFSET,
@@ -431,6 +431,16 @@ void Processor::fixTLB(const uint64_t& frameNo,
 	get<2>(tlbs[frameNo]) = true;
 }
 
+
+static inline uint64_t bit_mask(uint64_t x)
+{
+	uint64_t mask = 0;
+	const uint64_t digit = 1;
+	for (uint64_t i = 0; i < x; i++) {
+		mask |= digit << i;
+	}
+	return mask;
+}
 
 const static uint64_t SUPER_DIR_BL= 11;
 const static uint64_t SUPER_DIR_SIFT = 37;
