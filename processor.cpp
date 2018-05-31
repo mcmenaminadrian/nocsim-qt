@@ -204,11 +204,11 @@ void Processor::createMemoryMap(Memory *local, long pShift)
 		fixTLB(i, pageStart);
 	}
     	//TLB and bitmap for stack
-    	const uint64_t stackPage = PAGESLOCAL + TILE_MEM_SIZE;
-    	const uint64_t stackPageNumber = pagesAvailable;
+    	uint64_t stackPage = PAGESLOCAL + TILE_MEM_SIZE;
+    	uint64_t stackPageNumber = pagesAvailable;
 	for (unsigned int i = 0; i < STACKPAGES; i++) {
 		stackPageNumber--;
-		statckPage -= (1 << pageShift);
+		stackPage -= (1 << pageShift);
     		fixTLB(stackPageNumber, stackPage);
 	}
 }
@@ -443,7 +443,7 @@ static inline uint64_t bit_mask(uint64_t x)
 }
 
 const static uint64_t SUPER_DIR_BL= 11;
-const static uint64_t SUPER_DIR_SIFT = 37;
+const static uint64_t SUPER_DIR_SHIFT = 37;
 const static uint64_t DIR_BL = 9;
 const static uint64_t DIR_SHIFT = 28;
 const static uint64_t SUPER_TAB_BL = 9;
@@ -556,7 +556,7 @@ uint64_t Processor::fetchAddressRead(const uint64_t& address,
 		waitATick(); 
 		for (unsigned int i = 0; i < TOTAL_LOCAL_PAGES; i++) {
 			waitATick();
-            		uint64_t addressInPageTable = PAGSLOCAL +
+            		uint64_t addressInPageTable = PAGESLOCAL +
                         	(i * PAGETABLEENTRY) + (1 << pageShift) * KERNELPAGES;
             		uint64_t flags = masterTile->readWord32(
 				addressInPageTable
