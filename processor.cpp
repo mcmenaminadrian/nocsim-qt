@@ -39,8 +39,8 @@
 const static uint64_t KERNELPAGES = 2;
 const static uint64_t STACKPAGES = 2;
 const static uint64_t BITMAPDELAY = 0;
-const static uint64_t FREEPAGES = 25;
-const static uint64_t BASEPAGES = 5; 
+const static uint64_t FREEPAGES = 27;
+const static uint64_t BASEPAGES = 4; 
 
 using namespace std;
 
