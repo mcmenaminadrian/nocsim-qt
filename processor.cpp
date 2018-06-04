@@ -375,7 +375,7 @@ void Processor::writeBackMemory(const uint64_t& frameNo)
             	//simulate transfer
         	transferLocalToGlobal(
 			frameNo * (1 << pageShift) 
-			+ PAGESLOCAL + i,
+			+ PAGESLOCAL + i * 0x10,
 			 tlbs[frameNo], 0x10);
             	for (unsigned int j = 0;
                 	    j < (16 / sizeof(uint64_t)); j++)
@@ -399,7 +399,7 @@ void Processor::fixPageMap(const uint64_t& frameNo,
     const uint64_t& address, const bool& readOnly)
 {
 	const uint64_t pageAddress = address & pageMask;
-    	const uint64_t writeBase =
+    	const uint64_t writeBase = KERNELPAGES *
         	(1 << pageShift) + frameNo * PAGETABLEENTRY;
 	waitATick();
 	localMemory->writeLong(writeBase + VOFFSET, pageAddress);
@@ -599,6 +599,21 @@ uint64_t Processor::fetchAddressWrite(const uint64_t& address)
         	for (auto x: tlbs) {
             		if (get<2>(x) && (pageSought == 
 				(get<0>(x) & pageMask))) {
+				//ensure marked as writable page
+				uint64_t baseAddress = PAGESLOCAL +
+					(y * PAGETABLEENTRY) +
+					(1 << pageShift) * KERNELPAGES;
+				uint64_t addressPT = masterTile->
+					readLong(baseAddress + VOFFSET);
+				uint32_t oldFlags = masterTile->
+					readWord32(baseAddress + FLAGOFFSET);
+				if (!(oldFlags & 0x08)) {
+					waitATick();	
+					masterTile->writeWord32(baseAddress +
+						FLAGOFFSET, oldFlags|0x08);
+					waitATick();
+				}
+
                 	return generateAddress(y, address);
             	}
             	y++;
