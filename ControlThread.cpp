@@ -27,6 +27,9 @@ void ControlThread::releaseToRun()
 	if (signedInCount >= taskCount) {
 		taskCountLock.unlock();
 		lck.unlock();
+		powerLock.lock();
+		powerCount = 0;
+		powerLock.unlock();
 		run();
 		return;
 	}

@@ -119,7 +119,7 @@ void Processor::writeOutBasicPageEntries(const uint64_t& pagesAvailable)
 	const uint64_t tablesOffset = KERNELPAGES * (1 << pageShift) +
 		PAGESLOCAL;
     for (unsigned int i = 0; i < pagesAvailable; i++) {
-        long memoryLocalOffset = i * PAGETABLEENTRY + tablesOffset;
+        uint64_t memoryLocalOffset = i * PAGETABLEENTRY + tablesOffset;
         masterTile->writeLong(
             memoryLocalOffset + VOFFSET,
                     i * (1 << pageShift) + PAGESLOCAL);
