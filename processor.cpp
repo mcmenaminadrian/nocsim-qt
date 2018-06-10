@@ -136,7 +136,7 @@ void Processor::writeOutBasicPageEntries(const uint64_t& pagesAvailable)
 void Processor::markUpBasicPageEntries(const uint64_t& reqPTEPages)
 {
 	//mark for page tables, and 2 notional pages for kernel
-	for (unsigned int i = 0; i <= reqPTEPages + KERNELPAGES; i++) {
+	for (unsigned int i = 0; i < reqPTEPages + KERNELPAGES; i++) {
 		const uint64_t pageEntryBase = (1 << pageShift) * KERNELPAGES  +
 			i * PAGETABLEENTRY + PAGESLOCAL;
 		const uint64_t mappingAddress = PAGESLOCAL +
