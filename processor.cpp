@@ -179,7 +179,7 @@ void Processor::createMemoryMap(Memory *local, long pShift)
 	memoryAvailable = localMemory->getSize();
 	pagesAvailable = memoryAvailable >> pageShift;
 	uint64_t requiredPTESize = pagesAvailable * PAGETABLEENTRY;
-    uint64_t requiredPTEPages = requiredPTESize >> pageShift;
+	uint64_t requiredPTEPages = requiredPTESize >> pageShift;
 	if ((requiredPTEPages << pageShift) != requiredPTESize) {
 		requiredPTEPages++;
 	}
@@ -198,7 +198,7 @@ void Processor::createMemoryMap(Memory *local, long pShift)
 	pageMask = pageMask << pageShift;
 	bitMask = ~ pageMask;
 	uint64_t pageCount = requiredPTEPages + KERNELPAGES;
-	for (unsigned int i = 0; i <= pageCount; i++) {
+	for (unsigned int i = 0; i < pageCount; i++) {
 		const uint64_t pageStart =
 			PAGESLOCAL + i * (1 << pageShift);
 		fixTLB(i, pageStart);
@@ -217,7 +217,7 @@ uint64_t Processor::generateAddress(const uint64_t& frame,
 	const uint64_t& address) const
 {
 	uint64_t offset = address & bitMask;
-    return (frame << pageShift) + offset + PAGESLOCAL;
+	return (frame << pageShift) + offset + PAGESLOCAL;
 }
 
 void Processor::interruptBegin()
@@ -344,7 +344,7 @@ const pair<const uint64_t, bool> Processor::getFreeFrame()
 }
 
 //drop page from TLBs and page tables - no write back
-void Processor::dropPage(const uint64_t& frameNo)
+/*void Processor::dropPage(const uint64_t& frameNo)
 {
     	waitATick();
     	//firstly get the address
@@ -356,7 +356,7 @@ void Processor::dropPage(const uint64_t& frameNo)
     	waitATick();
     	masterTile->writeWord32(frameNo * PAGETABLEENTRY + PAGESLOCAL +
         	FLAGOFFSET + (1 << pageShift) * KERNELPAGES, 0);
-}
+}*/
 
 //only used to dump a frame
 void Processor::writeBackMemory(const uint64_t& frameNo)
