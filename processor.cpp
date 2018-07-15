@@ -203,10 +203,11 @@ void Processor::createMemoryMap(Memory *local, long pShift)
 }
 
 uint64_t Processor::generateAddress(const uint64_t& frame,
-	const uint64_t& address) const
+	const uint64_t& address)
 {
 	uint64_t offset = address & bitMask;
-    return (frame << pageShift) + offset + PAGETABLESLOCAL;
+	waitATick();
+	return (frame << pageShift) + offset + PAGETABLESLOCAL;
 }
 
 void Processor::interruptBegin()
