@@ -743,7 +743,6 @@ void Processor::pcAdvance(const long count)
 {
 	programCounter += count;
 	fetchAddressRead(programCounter, true);
-	waitATick();
 }
 
 bool Processor::tryCheatLock() const
