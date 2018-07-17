@@ -86,7 +86,7 @@ private:
 	bool isBitmapValid(const uint64_t& address,
 		const uint64_t& physAddress) const;
 	uint64_t generateAddress(const uint64_t& frame,
-	const uint64_t& address) const;
+	const uint64_t& address);
 	void interruptBegin();
 	void interruptEnd();
 	void transferGlobalToLocal(const uint64_t& address,
