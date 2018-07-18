@@ -236,10 +236,11 @@ bool Processor::isBitmapValid(const uint64_t& address,
 }
 
 uint64_t Processor::generateAddress(const uint64_t& frame,
-	const uint64_t& address) const
+	const uint64_t& address)
 {
 	uint64_t offset = address & bitMask;
-    return (frame << pageShift) + offset + PAGETABLESLOCAL;
+	waitATick();
+	return (frame << pageShift) + offset + PAGETABLESLOCAL;
 }
 
 void Processor::interruptBegin()
@@ -920,7 +921,6 @@ void Processor::pcAdvance(const long count)
 {
 	programCounter += count;
 	fetchAddressRead(programCounter, true);
-	waitATick();
 }
 
 bool Processor::tryCheatLock() const
