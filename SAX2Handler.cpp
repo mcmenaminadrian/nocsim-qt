@@ -104,7 +104,7 @@ void SAX2Handler::startElement(const XMLCh* const uri,
                 break;
             case load:
                 memoryHandler->proc->getAddress(
-                    stol(addrStr, nullptr, 16));
+                    stol(addrStr, nullptr, 16), atoi(size));
                 XMLString::release(&address);
                 XMLString::release(&size);
                 XMLString::release(&addressStr);
