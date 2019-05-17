@@ -849,7 +849,7 @@ void Processor::activateClock()
 		return;
 	}
 	inClock = true;
-	writeHit = false;
+	bool writeHit = false;
     uint64_t pages = TILE_MEM_SIZE >> pageShift;
 	interruptBegin();
     int wiped = 0;
