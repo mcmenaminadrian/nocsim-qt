@@ -599,6 +599,7 @@ uint64_t Processor::fetchAddressWrite(const uint64_t& address)
             		if (pageSought == storedPage) {
                 		waitATick();
                 		flags |= 0x04;
+				flags ^= 0x08;
                 		masterTile->writeWord32(addressInPageTable + 
 					FLAGOFFSET, flags);
                 		waitATick();
@@ -848,6 +849,7 @@ void Processor::activateClock()
 		return;
 	}
 	inClock = true;
+	writeHit = false;
     uint64_t pages = TILE_MEM_SIZE >> pageShift;
 	interruptBegin();
     int wiped = 0;
@@ -860,6 +862,15 @@ void Processor::activateClock()
 		waitATick();
         if (!(flags & 0x01) || flags & 0x02) {
 			continue;
+		}
+		if (!(flags & 0x08)){
+			if (writeHit) {
+				waitATick();
+				continue;
+			} else {
+				waitATick();
+				writeHit = true;
+			}
 		}
 		flags = flags & (~0x04);
 		waitATick();

@@ -120,7 +120,7 @@ private:
     void fetchAddressToRegister();
 	void activateClock();
 	//adjust numbers below to change how CLOCK fuctions
-    const uint8_t clockWipe = 1;
+    const uint8_t clockWipe = 3;
     const uint16_t clockTicks = 1000;
 	uint64_t totalTicks;
 	uint64_t currentTLB;
