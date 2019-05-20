@@ -569,7 +569,7 @@ uint64_t Processor::fetchAddressWrite(const uint64_t& address)
 					readLong(baseAddress + VOFFSET);
 				uint32_t oldFlags = masterTile->
 					readWord32(baseAddress + FLAGOFFSET);
-				if (!(oldFlags & 0x04)||(oldFlags & 0x08)) {
+				if (oldFlags & 0x08) {
 					waitATick();
 					oldFlags = oldFlags ^ 0x08;
 					masterTile->writeWord32(baseAddress +
@@ -849,7 +849,6 @@ void Processor::activateClock()
 		return;
 	}
 	inClock = true;
-	bool writeHit = false;
     uint64_t pages = TILE_MEM_SIZE >> pageShift;
 	interruptBegin();
     int wiped = 0;
@@ -862,15 +861,6 @@ void Processor::activateClock()
 		waitATick();
         if (!(flags & 0x01) || flags & 0x02) {
 			continue;
-		}
-		if (!(flags & 0x08)){
-			if (writeHit) {
-				waitATick();
-				continue;
-			} else {
-				waitATick();
-				writeHit = true;
-			}
 		}
 		flags = flags & (~0x04);
 		waitATick();
