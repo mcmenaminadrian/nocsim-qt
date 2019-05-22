@@ -599,7 +599,9 @@ uint64_t Processor::fetchAddressWrite(const uint64_t& address)
             		if (pageSought == storedPage) {
                 		waitATick();
                 		flags |= 0x04;
-				flags ^= 0x08;
+				if (flags & 0x08) {
+					flags ^= 0x08;
+				}
                 		masterTile->writeWord32(addressInPageTable + 
 					FLAGOFFSET, flags);
                 		waitATick();
